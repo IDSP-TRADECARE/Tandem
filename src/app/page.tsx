@@ -16,6 +16,10 @@ export default function Home() {
         <Link href="/test" className="text-blue-500 hover:text-blue-700 underline">
           Test Page
         </Link>
+        
+        <Link href="/testApi" className="text-blue-500 hover:text-blue-700 underline">
+          Api usage example
+        </Link>
       </main>
     </div>
   );
