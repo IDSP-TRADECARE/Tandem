@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '../lib/db';
-import { users } from '../lib/schema';
+import { db } from '../../lib/db';
+import { users } from '../../lib/schema';
 
 export default async function handler(
   req: NextApiRequest,
