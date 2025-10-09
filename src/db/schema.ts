@@ -20,8 +20,7 @@ export const messages = pgTable('messages', {
   userContact: varchar('user_contact', { length: 255 }).notNull(),
   childcareOrgName: varchar('childcare_org_name', { length: 255 }).notNull(),
   messageBody: text('message_body').notNull(),
-  sentVia: varchar('sent_via', { length: 50 }), // 'email' or 'sms'
-  status: varchar('status', { length: 50 }).default('draft'), // 'draft', 'sent', 'failed'
+  status: varchar('status', { length: 50 }).default('draft'), 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   sentAt: timestamp('sent_at'),
 });
@@ -31,7 +30,7 @@ export const messageTemplates = pgTable('message_templates', {
   name: varchar('name', { length: 255 }).notNull(),
   subject: varchar('subject', { length: 500 }).notNull(),
   body: text('body').notNull(),
-  templateType: varchar('template_type', { length: 100 }).notNull(), // 'professional', 'casual', etc.
+  templateType: varchar('template_type', { length: 100 }).notNull(), 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

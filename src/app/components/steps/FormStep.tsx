@@ -25,7 +25,7 @@ export function FormStep() {
     try {
       let messageBody: string;
 
-      // If user typed a custom message, use that
+      // custom message
       if (formData.customMessage.trim()) {
         messageBody = formData.customMessage;
       } 
