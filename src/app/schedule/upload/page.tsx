@@ -6,8 +6,6 @@ import { ManualInput } from '../../components/schedule/manualnput';
 import { VoiceInput } from '../../components/schedule/voiceInput';
 import { ScheduleOverview } from '../../components/schedule/scheduleOverview';
 import { BottomNav } from '../../components/Layout/BottomNav';
-import { VoiceButton } from '../../components/Layout/VoiceButton';
-import { useRouter } from 'next/navigation';
 
 export type InputMethod = 'file' | 'voice' | 'manual';
 export type UploadStep = 'select' | 'uploading' | 'complete' | 'overview';
@@ -22,7 +20,6 @@ export interface ScheduleData {
 }
 
 export default function ScheduleUploadPage() {
-  const router = useRouter();
   const [inputMethod, setInputMethod] = useState<InputMethod>('file');
   const [step, setStep] = useState<UploadStep>('select');
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
@@ -59,7 +56,6 @@ export default function ScheduleUploadPage() {
   };
 
   const handleUploadClick = () => {
-    // If not on select step, reset to select
     if (step !== 'select') {
       handleReset();
     }
@@ -119,6 +115,17 @@ export default function ScheduleUploadPage() {
                 <ManualInput onComplete={handleScheduleComplete} onBack={handleReset} hideBackButton />
               </div>
             )}
+
+            {/* Voice Input Button - Only show on select screen */}
+            <button
+              onClick={() => handleMethodSelect('voice')}
+              className="fixed bottom-32 right-6 w-16 h-16 bg-[#1e3a5f] rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform z-40"
+            >
+              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </button>
           </div>
         )}
 
@@ -175,9 +182,6 @@ export default function ScheduleUploadPage() {
           </div>
         )}
       </div>
-
-      {/* Voice Input Button */}
-      <VoiceButton onClick={() => handleMethodSelect('voice')} />
 
       {/* Bottom Navigation */}
       <BottomNav onUploadClick={handleUploadClick} />
