@@ -25,13 +25,30 @@ export default function Calendar() {
   const [currentEvents, setCurrentEvents] = useState<EventApi[]>([]);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [newEventTitle, setNewEventTitle] = useState<string>("");
+  const [newEventStartTime, setNewEventStartTime] = useState<string>("");
+  const [newEventEndTime, setNewEventEndTime] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<DateSelectArg | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedEvents = localStorage.getItem("savedEvents");
       if (savedEvents) {
-        setCurrentEvents(JSON.parse(savedEvents));
+        const parsedEvents = JSON.parse(savedEvents);
+        // Convert date strings back to Date objects
+        const eventsWithDates = parsedEvents.map(
+          (event: {
+            id: string;
+            title: string;
+            start: string | Date;
+            end: string | Date;
+            allDay: boolean;
+          }) => ({
+            ...event,
+            start: event.start ? new Date(event.start) : null,
+            end: event.end ? new Date(event.end) : null,
+          })
+        );
+        setCurrentEvents(eventsWithDates);
       }
     }
   }, []); // load saved events on component mount
@@ -51,6 +68,8 @@ export default function Calendar() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setNewEventTitle("");
+    setNewEventStartTime("");
+    setNewEventEndTime("");
   };
 
   const handleEventClick = (clickInfo: EventClickArg) => {
@@ -69,12 +88,23 @@ export default function Calendar() {
       const calendarApi = selectedDate.view.calendar;
       calendarApi.unselect(); // clear date selection
 
+      let startDate = selectedDate.start;
+      let endDate = selectedDate.end;
+      let isAllDay = selectedDate.allDay;
+
+      if (newEventStartTime && newEventEndTime) {
+        const dateString = startDate.toISOString().split("T")[0];
+        startDate = new Date(`${dateString}T${newEventStartTime}`);
+        endDate = new Date(`${dateString}T${newEventEndTime}`);
+        isAllDay = false;
+      }
+
       const newEvent = {
-        id: `${selectedDate?.start.toISOString()}-${newEventTitle}`,
+        id: `${startDate.toISOString()}-${newEventTitle}`,
         title: newEventTitle,
-        start: selectedDate?.start,
-        end: selectedDate?.end,
-        allDay: selectedDate?.allDay,
+        start: startDate,
+        end: endDate,
+        allDay: isAllDay,
       };
       calendarApi.addEvent(newEvent);
       handleCloseDialog();
@@ -110,6 +140,19 @@ export default function Calendar() {
                       day: "numeric",
                     })}
                   </label>
+                  <br />
+
+                  <label className="text-slate-950">
+                    {formatDate(event.start!, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    {" - "}
+                    {formatDate(event.end!, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </label>
                 </li>
               ))}
           </ul>
@@ -133,7 +176,19 @@ export default function Calendar() {
             eventsSet={(events) => setCurrentEvents(events)} // update current events
             initialEvents={
               typeof window !== "undefined"
-                ? JSON.parse(localStorage.getItem("savedEvents") || "[]")
+                ? JSON.parse(localStorage.getItem("savedEvents") || "[]").map(
+                    (event: {
+                      id: string;
+                      title: string;
+                      start: string | Date;
+                      end: string | Date;
+                      allDay: boolean;
+                    }) => ({
+                      ...event,
+                      start: event.start ? new Date(event.start) : null,
+                      end: event.end ? new Date(event.end) : null,
+                    })
+                  )
                 : []
             } // load initial events from localStorage - to save on the user computer to save and track events
           />
@@ -142,22 +197,63 @@ export default function Calendar() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Event Details</DialogTitle>
+            <DialogTitle>Add Shift</DialogTitle>
           </DialogHeader>
           <form className="space-x-5 mb-4" onSubmit={handleAddEvent}>
-            <input
-              type="text"
-              placeholder="Event Title"
-              value={newEventTitle}
-              onChange={(e) => setNewEventTitle(e.target.value)}
-              required
-              className="border border-gray-200 p-3 rounded-md text-lg"
-            />
+            {selectedDate && (
+              <div className="mb-4 p-3 bg-gray-100 rounded-md border border-gray-300">
+                <span className="text-lg font-medium">
+                  {formatDate(selectedDate.start, {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            )}
+            <div>
+              <h2>Addition notes</h2>
+
+              <input
+                type="text"
+                placeholder="Notes"
+                value={newEventTitle}
+                onChange={(e) => setNewEventTitle(e.target.value)}
+                required
+                className="border border-gray-200 p-3 rounded-md text-lg"
+              />
+            </div>
+            <br />
+            <div>
+              <h2>Start</h2>
+
+              <input
+                type="time"
+                placeholder="Start Time"
+                value={newEventStartTime}
+                onChange={(e) => setNewEventStartTime(e.target.value)}
+                className="border border-gray-200 p-3 rounded-md text-lg"
+              />
+            </div>
+            <br />
+            <div>
+              <h2>End</h2>
+
+              <input
+                type="time"
+                placeholder="End Time"
+                value={newEventEndTime}
+                onChange={(e) => setNewEventEndTime(e.target.value)}
+                className="border border-gray-200 p-3 rounded-md text-lg"
+              />
+            </div>
+
             <button
               className="bg-green-500 text-white p-3 mt-5 rounded-md"
               type="submit"
             >
-              Add
+              Add Event
             </button>
           </form>
         </DialogContent>
