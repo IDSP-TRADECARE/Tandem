@@ -21,8 +21,8 @@ export default function Home() {
           Api usage example
         </Link>
         
-        <Link href="/message-generator" className="text-blue-500 hover:text-blue-700 underline">
-          Nanny Message Generator
+        <Link href="/schedule/upload" className="text-blue-500 hover:text-blue-700 underline">
+          Upload Schedule Page  
         </Link>
       </main>
     </div>

@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp, uuid, jsonb, time, index } from 'drizzle-orm/pg-core';
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -14,31 +14,30 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export const messages = pgTable('messages', {
-  id: serial('id').primaryKey(),
-  userName: varchar('user_name', { length: 255 }).notNull(),
-  userContact: varchar('user_contact', { length: 255 }).notNull(),
-  childcareOrgName: varchar('childcare_org_name', { length: 255 }).notNull(),
-  messageBody: text('message_body').notNull(),
-  status: varchar('status', { length: 50 }).default('draft'), 
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  sentAt: timestamp('sent_at'),
+
+// Schedules table
+export const schedules = pgTable('schedules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: varchar('user_id', { length: 255 }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  workingDays: jsonb('working_days').$type<string[]>().notNull(),
+  timeFrom: time('time_from').notNull(),
+  timeTo: time('to').notNull(),
+  location: varchar('location', { length: 255 }),
+  notes: text('notes'),
+  originalFileUrl: text('original_file_url'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => {
+  return {
+    userIdIdx: index('idx_schedules_user_id').on(table.userId),
+    createdAtIdx: index('idx_schedules_created_at').on(table.createdAt),
+  };
 });
 
-export const messageTemplates = pgTable('message_templates', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  subject: varchar('subject', { length: 500 }).notNull(),
-  body: text('body').notNull(),
-  templateType: varchar('template_type', { length: 100 }).notNull(), 
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
-export type Message = typeof messages.$inferSelect;
-export type NewMessage = typeof messages.$inferInsert;
-export type MessageTemplate = typeof messageTemplates.$inferSelect;
-export type NewMessageTemplate = typeof messageTemplates.$inferInsert;
+// TypeScript types
+export type Schedule = typeof schedules.$inferSelect;
+export type NewSchedule = typeof schedules.$inferInsert;
 
 export type User = InferSelectModel<typeof users>;
 export type NewUser = InferInsertModel<typeof users>;
