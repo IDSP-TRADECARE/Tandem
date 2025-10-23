@@ -157,58 +157,52 @@ export default function Calendar() {
       </div>
 
       <div className="flex flex-col lg:flex-row w-full gap-6 p-4 lg:p-8">
-        {/* Calendar Section - Only show when calendar view is active */}
-        {activeView === "calendar" && (
-          <div className="w-full lg:w-2/3 order-1 lg:order-2">
-            <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-6">
-              <FullCalendar
-                height={"auto"}
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                headerToolbar={{
-                  left: "prev,next today",
-                  center: "title",
-                  right: "dayGridMonth,timeGridWeek,timeGridDay",
-                }}
-                initialView="dayGridMonth"
-                editable={true}
-                selectable={true}
-                selectMirror={true}
-                dayMaxEvents={true}
-                select={handleDateClick}
-                eventClick={handleEventClick}
-                eventsSet={(events) => setCurrentEvents(events)}
-                initialEvents={
-                  typeof window !== "undefined"
-                    ? JSON.parse(
-                        localStorage.getItem("savedEvents") || "[]"
-                      ).map(
-                        (event: {
-                          id: string;
-                          title: string;
-                          start: string | Date;
-                          end: string | Date;
-                          allDay: boolean;
-                        }) => ({
-                          ...event,
-                          start: event.start ? new Date(event.start) : null,
-                          end: event.end ? new Date(event.end) : null,
-                        })
-                      )
-                    : []
-                }
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Events List Section - Always visible */}
+        {/* Calendar Section - Always show on desktop, conditional on mobile */}
         <div
-          className={`w-full ${
-            activeView === "calendar"
-              ? "order-2 lg:order-1 lg:w-1/3"
-              : "order-1 lg:w-full"
+          className={`w-full order-1 lg:order-2 lg:w-2/3 ${
+            activeView === "weekly" ? "hidden lg:block" : ""
           }`}
         >
+          <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-6">
+            <FullCalendar
+              height={"auto"}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "dayGridMonth,timeGridWeek,timeGridDay",
+              }}
+              initialView="dayGridMonth"
+              editable={true}
+              selectable={true}
+              selectMirror={true}
+              dayMaxEvents={true}
+              select={handleDateClick}
+              eventClick={handleEventClick}
+              eventsSet={(events) => setCurrentEvents(events)}
+              initialEvents={
+                typeof window !== "undefined"
+                  ? JSON.parse(localStorage.getItem("savedEvents") || "[]").map(
+                      (event: {
+                        id: string;
+                        title: string;
+                        start: string | Date;
+                        end: string | Date;
+                        allDay: boolean;
+                      }) => ({
+                        ...event,
+                        start: event.start ? new Date(event.start) : null,
+                        end: event.end ? new Date(event.end) : null,
+                      })
+                    )
+                  : []
+              }
+            />
+          </div>
+        </div>
+
+        {/* Events List Section - Always visible */}
+        <div className="w-full order-2 lg:order-1 lg:w-1/3">
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">
               Upcoming Events
@@ -236,7 +230,7 @@ export default function Calendar() {
                   return (
                     <div
                       key={date}
-                      className="border-5 border-black rounded-3xl overflow-hidden bg-white"
+                      className="border-2 border-black rounded-3xl overflow-hidden bg-white"
                     >
                       {/* Date Header and Events Combined */}
                       <div className="p-5 flex gap-4">
