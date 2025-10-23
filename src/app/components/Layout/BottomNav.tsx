@@ -12,9 +12,9 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
   const pathname = usePathname();
 
   const isActive = useCallback(
-    (path: string) => pathname === path || pathname.startsWith(path),
-    [pathname]
-  );
+  (path: string) => pathname === path,
+  [pathname]
+);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6">
@@ -24,7 +24,7 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
           <Link href="/" className="flex flex-col items-center gap-2 flex-1">
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                isActive('/') ? 'bg-white' : 'bg-transparent'
+                isActive('/') ? 'bg-transparent' : 'bg-transparent'
               }`}
             >
               <svg
