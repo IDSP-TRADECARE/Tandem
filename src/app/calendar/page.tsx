@@ -236,7 +236,7 @@ export default function Calendar() {
                   return (
                     <div
                       key={date}
-                      className="border-2 border-black rounded-3xl overflow-hidden bg-white"
+                      className="border-5 border-black rounded-3xl overflow-hidden bg-white"
                     >
                       {/* Date Header and Events Combined */}
                       <div className="p-5 flex gap-4">
