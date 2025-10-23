@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import {
   formatDate,
   DateSelectArg,
@@ -14,12 +14,9 @@ import interactionPlugin from "@fullcalendar/interaction";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { start } from "repl";
-import { format } from "path";
 
 export default function Calendar() {
   const [currentEvents, setCurrentEvents] = useState<EventApi[]>([]);
@@ -35,7 +32,6 @@ export default function Calendar() {
       const savedEvents = localStorage.getItem("savedEvents");
       if (savedEvents) {
         const parsedEvents = JSON.parse(savedEvents);
-        // Convert date strings back to Date objects
         const eventsWithDates = parsedEvents.map(
           (event: {
             id: string;
@@ -52,15 +48,14 @@ export default function Calendar() {
         setCurrentEvents(eventsWithDates);
       }
     }
-  }, []); // load saved events on component mount
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("savedEvents", JSON.stringify(currentEvents));
     }
-  }, [currentEvents]); // save events to localStorage whenever they change
+  }, [currentEvents]);
 
-  // Select date to create event
   const handleDateClick = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo);
     setDialogOpen(true);
@@ -71,6 +66,7 @@ export default function Calendar() {
     setNewEventTitle("");
     setNewEventStartTime("");
     setNewEventEndTime("");
+    setNewEventLocation("");
   };
 
   const handleEventClick = (clickInfo: EventClickArg) => {
@@ -83,11 +79,10 @@ export default function Calendar() {
     }
   };
 
-  const handleAddEvent = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddEvent = () => {
     if (selectedDate && newEventTitle) {
       const calendarApi = selectedDate.view.calendar;
-      calendarApi.unselect(); // clear date selection
+      calendarApi.unselect();
 
       let startDate = selectedDate.start;
       let endDate = selectedDate.end;
@@ -113,106 +108,192 @@ export default function Calendar() {
     }
   };
 
+  // Group events by date
+  const groupEventsByDate = () => {
+    const grouped: { [key: string]: EventApi[] } = {};
+    currentEvents.forEach((event) => {
+      const dateKey = formatDate(event.start!, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(event);
+    });
+    return grouped;
+  };
+
+  const groupedEvents = groupEventsByDate();
+
   return (
-    <>
-      <div className="flex w-full px-10 justify-start items-start gap-8">
-        <div className="w-3/12">
-          <div className="py-10 text-2xl font-extrabold px-7">
-            Calendar Events
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Toggle Buttons */}
+      <div className="lg:hidden flex gap-2 p-4 bg-white sticky top-0 z-10 shadow-sm">
+        <button className="flex-1 py-3 px-4 rounded-full border-2 border-gray-300 bg-white text-gray-700 font-medium">
+          Weekly view
+        </button>
+        <button className="flex-1 py-3 px-4 rounded-full bg-blue-900 text-white font-medium">
+          Calendar
+        </button>
+      </div>
+
+      <div className="flex flex-col lg:flex-row w-full gap-6 p-4 lg:p-8">
+        {/* Calendar Section - Top on mobile, Right on desktop */}
+        <div className="w-full lg:w-2/3 order-1 lg:order-2">
+          <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-6">
+            <FullCalendar
+              height={"auto"}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "dayGridMonth,timeGridWeek,timeGridDay",
+              }}
+              initialView="dayGridMonth"
+              editable={true}
+              selectable={true}
+              selectMirror={true}
+              dayMaxEvents={true}
+              select={handleDateClick}
+              eventClick={handleEventClick}
+              eventsSet={(events) => setCurrentEvents(events)}
+              initialEvents={
+                typeof window !== "undefined"
+                  ? JSON.parse(localStorage.getItem("savedEvents") || "[]").map(
+                      (event: {
+                        id: string;
+                        title: string;
+                        start: string | Date;
+                        end: string | Date;
+                        allDay: boolean;
+                      }) => ({
+                        ...event,
+                        start: event.start ? new Date(event.start) : null,
+                        end: event.end ? new Date(event.end) : null,
+                      })
+                    )
+                  : []
+              }
+            />
           </div>
-          <ul className="space-y-4">
-            {currentEvents.length <= 0 && (
-              <div className="italic text-center text-gray-400">
-                No Events Present
+        </div>
+
+        {/* Events List Section - Bottom on mobile, Left on desktop */}
+        <div className="w-full lg:w-1/3 order-2 lg:order-1">
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">
+              Upcoming Events
+            </h2>
+
+            {currentEvents.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg mb-2">📅</div>
+                <p className="text-gray-400 italic">No Events Present</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(groupedEvents).map(([date, events]) => {
+                  const firstEvent = events[0];
+                  const dayOfWeek = formatDate(firstEvent.start!, {
+                    weekday: "short",
+                  });
+                  const dayOfMonth = formatDate(firstEvent.start!, {
+                    day: "numeric",
+                  });
+                  const month = formatDate(firstEvent.start!, {
+                    month: "short",
+                  });
+
+                  return (
+                    <div
+                      key={date}
+                      className="border-2 border-black rounded-3xl overflow-hidden bg-white"
+                    >
+                      {/* Date Header and Events Combined */}
+                      <div className="p-5 flex gap-4">
+                        {/* Left: Date Section */}
+                        <div className="text-center border-r-2 border-gray-200 pr-5 py-2">
+                          <div className="text-base text-gray-700 font-medium">
+                            {dayOfWeek}
+                          </div>
+                          <div className="text-5xl font-bold text-gray-900 my-1">
+                            {dayOfMonth}
+                          </div>
+                          <div className="text-base text-gray-600">{month}</div>
+                        </div>
+
+                        {/* Right: Events Section */}
+                        <div className="flex-1 space-y-2 py-1">
+                          {events.map((event, idx) => (
+                            <div
+                              key={event.id}
+                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
+                              style={{
+                                backgroundColor:
+                                  idx === 0 ? "#E8EAF6" : "#E8F5E9",
+                              }}
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    `Are you sure you want to delete the event '${event.title}'?`
+                                  )
+                                ) {
+                                  event.remove();
+                                }
+                              }}
+                            >
+                              <div
+                                className="w-4 h-4 rounded-full flex-shrink-0 border-3"
+                                style={{
+                                  backgroundColor:
+                                    idx === 0 ? "#5C6BC0" : "#66BB6A",
+                                  border: `3px solid ${
+                                    idx === 0 ? "#3949AB" : "#43A047"
+                                  }`,
+                                }}
+                              ></div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900 text-base truncate">
+                                  {event.title}
+                                </div>
+                                {event.extendedProps?.location && (
+                                  <div className="text-sm text-gray-600 truncate mt-0.5">
+                                    📍{event.extendedProps.location}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-600 font-medium flex-shrink-0">
+                                {formatDate(event.start!, {
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
-
-            {currentEvents.length > 0 &&
-              currentEvents.map((event: EventApi) => (
-                <li
-                  className="border border-gray-200 shadow px-4 py-2 rounded-md text-blue-800"
-                  key={event.id}
-                >
-                  {event.title}
-                  <br />
-                  <label className="text-slate-950">
-                    {formatDate(event.start!, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </label>
-                  <br />
-
-                  <label className="text-slate-950">
-                    {formatDate(event.start!, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {" - "}
-                    {formatDate(event.end!, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </label>
-                  {event.extendedProps?.location && (
-                    <>
-                      <br />
-                      <label className="text-slate-600 text-sm">
-                        📍 {event.extendedProps.location}
-                      </label>
-                    </>
-                  )}
-                </li>
-              ))}
-          </ul>
-        </div>
-        <div className="w-9/12 mt-8">
-          <FullCalendar
-            height={"85vh"}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay",
-            }}
-            initialView="dayGridMonth"
-            editable={true}
-            selectable={true}
-            selectMirror={true}
-            dayMaxEvents={true}
-            select={handleDateClick}
-            eventClick={handleEventClick}
-            eventsSet={(events) => setCurrentEvents(events)} // update current events
-            initialEvents={
-              typeof window !== "undefined"
-                ? JSON.parse(localStorage.getItem("savedEvents") || "[]").map(
-                    (event: {
-                      id: string;
-                      title: string;
-                      start: string | Date;
-                      end: string | Date;
-                      allDay: boolean;
-                    }) => ({
-                      ...event,
-                      start: event.start ? new Date(event.start) : null,
-                      end: event.end ? new Date(event.end) : null,
-                    })
-                  )
-                : []
-            } // load initial events from localStorage - to save on the user computer to save and track events
-          />
+          </div>
         </div>
       </div>
+
+      {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Shift</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Add Event</DialogTitle>
           </DialogHeader>
-          <form className="space-x-5 mb-4" onSubmit={handleAddEvent}>
+          <div className="space-y-4">
             {selectedDate && (
-              <div className="mb-4 p-3 bg-gray-100 rounded-md border border-gray-300">
-                <span className="text-lg font-medium">
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <span className="text-lg font-semibold text-blue-900">
                   {formatDate(selectedDate.start, {
                     weekday: "long",
                     day: "numeric",
@@ -222,63 +303,68 @@ export default function Calendar() {
                 </span>
               </div>
             )}
-            <div>
-              <h2>Addition notes</h2>
 
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Event Title
+              </label>
               <input
                 type="text"
-                placeholder="Notes"
+                placeholder="Enter event title"
                 value={newEventTitle}
                 onChange={(e) => setNewEventTitle(e.target.value)}
-                required
-                className="border border-gray-200 p-3 rounded-md text-lg"
+                className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
               />
             </div>
-            <br />
-            <div>
-              <h2>Start</h2>
 
-              <input
-                type="time"
-                placeholder="Start Time"
-                value={newEventStartTime}
-                onChange={(e) => setNewEventStartTime(e.target.value)}
-                className="border border-gray-200 p-3 rounded-md text-lg"
-              />
-            </div>
-            <br />
-            <div>
-              <h2>End</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Start Time
+                </label>
+                <input
+                  type="time"
+                  value={newEventStartTime}
+                  onChange={(e) => setNewEventStartTime(e.target.value)}
+                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
 
-              <input
-                type="time"
-                placeholder="End Time"
-                value={newEventEndTime}
-                onChange={(e) => setNewEventEndTime(e.target.value)}
-                className="border border-gray-200 p-3 rounded-md text-lg"
-              />
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  End Time
+                </label>
+                <input
+                  type="time"
+                  value={newEventEndTime}
+                  onChange={(e) => setNewEventEndTime(e.target.value)}
+                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
             </div>
-            <br />
+
             <div>
-              <h2>Location</h2>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Location
+              </label>
               <input
                 type="text"
-                placeholder="Location"
+                placeholder="Add location"
                 value={newEventLocation}
                 onChange={(e) => setNewEventLocation(e.target.value)}
-                className="border border-gray-200 p-3 rounded-md text-lg"
+                className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
               />
             </div>
 
             <button
-              className="bg-green-500 text-white p-3 mt-5 rounded-md"
-              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold p-4 rounded-xl transition-colors shadow-lg"
+              onClick={handleAddEvent}
             >
               Add Event
             </button>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
