@@ -28,6 +28,7 @@ export default function Calendar() {
   const [newEventStartTime, setNewEventStartTime] = useState<string>("");
   const [newEventEndTime, setNewEventEndTime] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<DateSelectArg | null>(null);
+  const [newEventLocation, setNewEventLocation] = useState<string>("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -105,6 +106,7 @@ export default function Calendar() {
         start: startDate,
         end: endDate,
         allDay: isAllDay,
+        extendedProps: { location: newEventLocation },
       };
       calendarApi.addEvent(newEvent);
       handleCloseDialog();
@@ -153,6 +155,14 @@ export default function Calendar() {
                       minute: "2-digit",
                     })}
                   </label>
+                  {event.extendedProps?.location && (
+                    <>
+                      <br />
+                      <label className="text-slate-600 text-sm">
+                        📍 {event.extendedProps.location}
+                      </label>
+                    </>
+                  )}
                 </li>
               ))}
           </ul>
@@ -245,6 +255,17 @@ export default function Calendar() {
                 placeholder="End Time"
                 value={newEventEndTime}
                 onChange={(e) => setNewEventEndTime(e.target.value)}
+                className="border border-gray-200 p-3 rounded-md text-lg"
+              />
+            </div>
+            <br />
+            <div>
+              <h2>Location</h2>
+              <input
+                type="text"
+                placeholder="Location"
+                value={newEventLocation}
+                onChange={(e) => setNewEventLocation(e.target.value)}
                 className="border border-gray-200 p-3 rounded-md text-lg"
               />
             </div>
