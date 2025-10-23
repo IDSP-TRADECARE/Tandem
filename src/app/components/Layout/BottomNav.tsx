@@ -72,7 +72,7 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
             <span className="text-xs text-white font-medium">Schedule</span>
           </Link>
 
-          {/* Upload (same look as others) */}
+          {/* Upload */}
           <button
             onClick={onUploadClick}
             className="flex flex-col items-center gap-2 flex-1"
