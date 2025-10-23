@@ -26,6 +26,9 @@ export default function Calendar() {
   const [newEventEndTime, setNewEventEndTime] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<DateSelectArg | null>(null);
   const [newEventLocation, setNewEventLocation] = useState<string>("");
+  const [activeView, setActiveView] = useState<"weekly" | "calendar">(
+    "calendar"
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -131,57 +134,81 @@ export default function Calendar() {
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Toggle Buttons */}
       <div className="lg:hidden flex gap-2 p-4 bg-white sticky top-0 z-10 shadow-sm">
-        <button className="flex-1 py-3 px-4 rounded-full border-2 border-gray-300 bg-white text-gray-700 font-medium">
+        <button
+          className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${
+            activeView === "weekly"
+              ? "bg-blue-900 text-white"
+              : "border-2 border-gray-300 bg-white text-gray-700"
+          }`}
+          onClick={() => setActiveView("weekly")}
+        >
           Weekly view
         </button>
-        <button className="flex-1 py-3 px-4 rounded-full bg-blue-900 text-white font-medium">
+        <button
+          className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${
+            activeView === "calendar"
+              ? "bg-blue-900 text-white"
+              : "border-2 border-gray-300 bg-white text-gray-700"
+          }`}
+          onClick={() => setActiveView("calendar")}
+        >
           Calendar
         </button>
       </div>
 
       <div className="flex flex-col lg:flex-row w-full gap-6 p-4 lg:p-8">
-        {/* Calendar Section - Top on mobile, Right on desktop */}
-        <div className="w-full lg:w-2/3 order-1 lg:order-2">
-          <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-6">
-            <FullCalendar
-              height={"auto"}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              headerToolbar={{
-                left: "prev,next today",
-                center: "title",
-                right: "dayGridMonth,timeGridWeek,timeGridDay",
-              }}
-              initialView="dayGridMonth"
-              editable={true}
-              selectable={true}
-              selectMirror={true}
-              dayMaxEvents={true}
-              select={handleDateClick}
-              eventClick={handleEventClick}
-              eventsSet={(events) => setCurrentEvents(events)}
-              initialEvents={
-                typeof window !== "undefined"
-                  ? JSON.parse(localStorage.getItem("savedEvents") || "[]").map(
-                      (event: {
-                        id: string;
-                        title: string;
-                        start: string | Date;
-                        end: string | Date;
-                        allDay: boolean;
-                      }) => ({
-                        ...event,
-                        start: event.start ? new Date(event.start) : null,
-                        end: event.end ? new Date(event.end) : null,
-                      })
-                    )
-                  : []
-              }
-            />
+        {/* Calendar Section - Only show when calendar view is active */}
+        {activeView === "calendar" && (
+          <div className="w-full lg:w-2/3 order-1 lg:order-2">
+            <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-6">
+              <FullCalendar
+                height={"auto"}
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                headerToolbar={{
+                  left: "prev,next today",
+                  center: "title",
+                  right: "dayGridMonth,timeGridWeek,timeGridDay",
+                }}
+                initialView="dayGridMonth"
+                editable={true}
+                selectable={true}
+                selectMirror={true}
+                dayMaxEvents={true}
+                select={handleDateClick}
+                eventClick={handleEventClick}
+                eventsSet={(events) => setCurrentEvents(events)}
+                initialEvents={
+                  typeof window !== "undefined"
+                    ? JSON.parse(
+                        localStorage.getItem("savedEvents") || "[]"
+                      ).map(
+                        (event: {
+                          id: string;
+                          title: string;
+                          start: string | Date;
+                          end: string | Date;
+                          allDay: boolean;
+                        }) => ({
+                          ...event,
+                          start: event.start ? new Date(event.start) : null,
+                          end: event.end ? new Date(event.end) : null,
+                        })
+                      )
+                    : []
+                }
+              />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Events List Section - Bottom on mobile, Left on desktop */}
-        <div className="w-full lg:w-1/3 order-2 lg:order-1">
+        {/* Events List Section - Always visible */}
+        <div
+          className={`w-full ${
+            activeView === "calendar"
+              ? "order-2 lg:order-1 lg:w-1/3"
+              : "order-1 lg:w-full"
+          }`}
+        >
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">
               Upcoming Events
@@ -260,7 +287,7 @@ export default function Calendar() {
                                 </div>
                                 {event.extendedProps?.location && (
                                   <div className="text-sm text-gray-600 truncate mt-0.5">
-                                    📍{event.extendedProps.location}
+                                    {event.extendedProps.location}
                                   </div>
                                 )}
                               </div>
