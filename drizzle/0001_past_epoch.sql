@@ -1,0 +1,21 @@
+CREATE TABLE "survey_data" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"first_name" text,
+	"last_name" text,
+	"phone_number" text,
+	"children" json,
+	"address" text,
+	"city" text,
+	"zip_code" text,
+	"allergies" text,
+	"medical_conditions" text,
+	"learning_behavioral" text,
+	"additional_notes" text,
+	"language" text,
+	"certificates" json,
+	"budget" text,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now(),
+	CONSTRAINT "survey_data_user_id_unique" UNIQUE("user_id")
+);

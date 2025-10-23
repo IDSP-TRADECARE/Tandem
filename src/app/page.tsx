@@ -24,6 +24,10 @@ export default function Home() {
         <Link href="/schedule/upload" className="text-blue-500 hover:text-blue-700 underline">
           Upload Schedule Page  
         </Link>
+
+          <Link href="/profile" className="text-blue-500 hover:text-blue-700 underline">
+          Profile
+        </Link>
       </main>
     </div>
   );
