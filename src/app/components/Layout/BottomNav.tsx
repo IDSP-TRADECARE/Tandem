@@ -24,7 +24,7 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
           <Link href="/" className="flex flex-col items-center gap-2 flex-1">
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                isActive('/') ? 'bg-transparent' : 'bg-transparent'
+                isActive('/') ? 'bg-white' : 'bg-transparent'
               }`}
             >
               <svg
