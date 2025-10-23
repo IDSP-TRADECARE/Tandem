@@ -28,7 +28,6 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Try to use supported MIME types
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')

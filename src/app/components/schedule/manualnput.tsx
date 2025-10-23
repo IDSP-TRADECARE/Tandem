@@ -103,7 +103,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             placeholder="e.g., November 2025 Work Schedule"
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all"
+            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all text-gray-900"
           />
         </div>
 
@@ -143,7 +143,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
               type="time"
               value={formData.timeFrom}
               onChange={(e) => setFormData({ ...formData, timeFrom: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all text-gray-900"
             />
           </div>
           <div>
@@ -154,7 +154,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
               type="time"
               value={formData.timeTo}
               onChange={(e) => setFormData({ ...formData, timeTo: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all text-gray-900"
             />
           </div>
         </div>
@@ -169,7 +169,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
             value={formData.location}
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             placeholder="e.g., Surrey, Vancouver"
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all"
+            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all text-gray-900"
           />
         </div>
 
@@ -183,7 +183,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             placeholder="Any special notes or requirements..."
             rows={4}
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all resize-none"
+            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all resize-none text-gray-900"
           />
         </div>
 

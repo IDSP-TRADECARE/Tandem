@@ -12,9 +12,9 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
   const pathname = usePathname();
 
   const isActive = useCallback(
-    (path: string) => pathname === path || pathname.startsWith(path),
-    [pathname]
-  );
+  (path: string) => pathname === path,
+  [pathname]
+);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6">
@@ -72,7 +72,7 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
             <span className="text-xs text-white font-medium">Schedule</span>
           </Link>
 
-          {/* Upload (same look as others) */}
+          {/* Upload */}
           <button
             onClick={onUploadClick}
             className="flex flex-col items-center gap-2 flex-1"
