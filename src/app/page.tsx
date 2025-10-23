@@ -31,6 +31,7 @@ export default function Home() {
       
       // Convert schedules to tasks
       const allTasks: Task[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data.schedules.forEach((schedule: any) => {
         const scheduleTasks = scheduleToTasks(schedule);
         allTasks.push(...scheduleTasks);
@@ -91,7 +92,11 @@ export default function Home() {
             <p className="text-gray-500 text-sm mt-1">{getCurrentDate()}</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <button
+              type="button"
+              onClick={() => router.push('/calendar')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
               <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
