@@ -46,16 +46,16 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
             <span className="text-xs text-white font-medium">Home</span>
           </Link>
 
-          {/* Schedule */}
-          <Link href="/schedule" className="flex flex-col items-center gap-2 flex-1">
+          {/* Calendar */}
+          <Link href="/calendar" className="flex flex-col items-center gap-2 flex-1">
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                isActive('/schedule') ? 'bg-white' : 'bg-transparent'
+                isActive('/calendar') ? 'bg-white' : 'bg-transparent'
               }`}
             >
               <svg
                 className={`w-6 h-6 ${
-                  isActive('/schedule') ? 'text-[#1e3a5f]' : 'text-white'
+                  isActive('/calendar') ? 'text-[#1e3a5f]' : 'text-white'
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -69,7 +69,7 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
                 />
               </svg>
             </div>
-            <span className="text-xs text-white font-medium">Schedule</span>
+            <span className="text-xs text-white font-medium">Calendar</span>
           </Link>
 
           {/* Upload */}
