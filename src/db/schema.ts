@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, uuid, jsonb, time, index } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp, uuid, jsonb, time, index, json } from 'drizzle-orm/pg-core';
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -33,6 +33,27 @@ export const schedules = pgTable('schedules', {
     userIdIdx: index('idx_schedules_user_id').on(table.userId),
     createdAtIdx: index('idx_schedules_created_at').on(table.createdAt),
   };
+});
+
+export const surveyData = pgTable('survey_data', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull().unique(),
+  firstName: text('first_name'),
+  lastName: text('last_name'),
+  phoneNumber: text('phone_number'),
+  children: json('children').$type<Array<{ name: string; age: string }>>(),
+  address: text('address'),
+  city: text('city'),
+  zipCode: text('zip_code'),
+  allergies: text('allergies'),
+  medicalConditions: text('medical_conditions'),
+  learningBehavioral: text('learning_behavioral'),
+  additionalNotes: text('additional_notes'),
+  language: text('language'),
+  certificates: json('certificates').$type<string[]>(),
+  budget: text('budget'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // TypeScript types
