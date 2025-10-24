@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
     }
 
-    // Step 1: Transcribe audio using Groq's Whisper (free!)
     const transcription = await groq.audio.transcriptions.create({
       file: audioFile,
       model: 'whisper-large-v3',
@@ -22,7 +21,6 @@ export async function POST(request: NextRequest) {
 
     const transcript = transcription.text;
 
-    // Step 2: Use Groq to extract structured schedule data from transcript
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
