@@ -21,6 +21,12 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
   // Check if we're on the upload page
   const isUploadPage = pathname === '/schedule/upload';
 
+  const handleUploadClick = () => {
+    if (onUploadClick) {
+      onUploadClick();
+    }
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6">
       <div className="bg-[#3d5a80] rounded-full shadow-2xl px-6 py-5 relative">
@@ -50,12 +56,9 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
           </Link>
 
           {/* Upload */}
-          <button
-            onClick={onUploadClick}
-            className="flex flex-col items-center gap-2 flex-1"
-          >
+          <Link href="/schedule/upload" className="flex flex-col items-center gap-2 flex-1">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg ${
-              isUploadPage ? 'bg-white' : 'text-white/70'
+              isUploadPage ? 'bg-white' : 'bg-[#2d4a6f]'
             }`}>
               <svg
                 className={`w-6 h-6 ${isUploadPage ? 'text-[#3d5a80]' : 'text-white'}`}
@@ -76,7 +79,7 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
             }`}>
               Upload
             </span>
-          </button>
+          </Link>
 
           {/* Nanny Share */}
           <Link href="/nanny/join" className="flex flex-col items-center gap-2 flex-1">
