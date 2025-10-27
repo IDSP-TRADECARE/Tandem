@@ -79,10 +79,10 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
           </button>
 
           {/* Nanny Share */}
-          <Link href="/nanny-share" className="flex flex-col items-center gap-2 flex-1">
+          <Link href="/nanny/join" className="flex flex-col items-center gap-2 flex-1">
             <svg
               className={`w-7 h-7 ${
-                isActive('/nanny-share') ? 'text-white' : 'text-white/70'
+                isActive('/nanny/join') ? 'text-white' : 'text-white/70'
               }`}
               fill="none"
               stroke="currentColor"
@@ -96,7 +96,7 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
               />
             </svg>
             <span className={`text-xs font-medium ${
-              isActive('/nanny-share') ? 'text-white' : 'text-white/70'
+              isActive('/nanny/join') ? 'text-white' : 'text-white/70'
             }`}>
               Nanny Share
             </span>

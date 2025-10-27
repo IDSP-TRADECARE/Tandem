@@ -1,15 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSocket } from '@/lib/socket/SocketContext';
 
-export default function JoinSharePage({ params }: { params: { id: string } }) {
+export default function JoinSharePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { socket } = useSocket();
+  const [shareId, setShareId] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [joinForm, setJoinForm] = useState({ userName: '', kidsCount: '1' });
 
+  // Unwrap params
+  useEffect(() => {
+    params.then(({ id }) => setShareId(id));
+  }, [params]);
+
   const handleJoinShare = async () => {
-    if (!joinForm.userName || !joinForm.kidsCount) {
+    if (!joinForm.userName || !joinForm.kidsCount || !shareId) {
       alert('Please fill in all fields');
       return;
     }
@@ -17,7 +25,7 @@ export default function JoinSharePage({ params }: { params: { id: string } }) {
     setIsJoining(true);
 
     try {
-      const response = await fetch(`/api/nanny/${params.id}/join`, {
+      const response = await fetch(`/api/nanny/${shareId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(joinForm),
@@ -31,14 +39,30 @@ export default function JoinSharePage({ params }: { params: { id: string } }) {
         return;
       }
 
-      // Redirect to the share detail page
-      router.push(`/nanny/${params.id}`);
+      // Emit socket event to notify other clients
+      if (socket && data.share) {
+        socket.emit('member-joined', {
+          shareId: shareId,
+          member: data.share.members[data.share.members.length - 1],
+        });
+      }
+
+      // Success! Redirect to the share detail page
+      router.push(`/nanny/${shareId}`);
     } catch (error) {
       console.error('Error joining share:', error);
       alert('An error occurred. Please try again.');
       setIsJoining(false);
     }
   };
+
+  if (!shareId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-[#1e3a5f] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-6">
