@@ -12,24 +12,24 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
   const pathname = usePathname();
 
   const isActive = useCallback(
-  (path: string) => pathname === path,
-  [pathname]
-);
+    (path: string) => pathname === path || pathname.startsWith(path),
+    [pathname]
+  );
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6">
-      <div className="bg-[#1e3a5f] rounded-full shadow-2xl px-8 py-4 relative">
+      <div className="bg-[#1e3a5f] rounded-full shadow-2xl px-6 py-4 relative">
         <div className="flex items-center justify-around">
           {/* Home */}
           <Link href="/" className="flex flex-col items-center gap-2 flex-1">
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                isActive('/') ? 'bg-white' : 'bg-transparent'
+                isActive('/') && pathname === '/' ? 'bg-white' : 'bg-transparent'
               }`}
             >
               <svg
                 className={`w-6 h-6 ${
-                  isActive('/') ? 'text-[#1e3a5f]' : 'text-white'
+                  isActive('/') && pathname === '/' ? 'text-[#1e3a5f]' : 'text-white'
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -100,6 +100,58 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
             </div>
             <span className="text-xs text-white font-medium">Upload</span>
           </button>
+
+          {/* Share Nanny */}
+          <Link href="/nanny/create" className="flex flex-col items-center gap-2 flex-1">
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                isActive('/nanny/create') ? 'bg-white' : 'bg-transparent'
+              }`}
+            >
+              <svg
+                className={`w-6 h-6 ${
+                  isActive('/nanny/create') ? 'text-[#1e3a5f]' : 'text-white'
+                }`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+            </div>
+            <span className="text-xs text-white font-medium">Share</span>
+          </Link>
+
+          {/* Find Nanny */}
+          <Link href="/nanny/join" className="flex flex-col items-center gap-2 flex-1">
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                isActive('/nanny/join') ? 'bg-white' : 'bg-transparent'
+              }`}
+            >
+              <svg
+                className={`w-6 h-6 ${
+                  isActive('/nanny/join') ? 'text-[#1e3a5f]' : 'text-white'
+                }`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            <span className="text-xs text-white font-medium">Find</span>
+          </Link>
 
           {/* Profile */}
           <Link href="/profile" className="flex flex-col items-center gap-2 flex-1">
