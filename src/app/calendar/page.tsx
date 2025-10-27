@@ -92,7 +92,7 @@ export default function Calendar() {
       calendarApi.unselect();
 
       let startDate = selectedDate.start;
-      let endDate = selectedDate.start; // Changed to use start date instead of end
+      let endDate = selectedDate.start;
       let isAllDay = selectedDate.allDay;
 
       if (newEventStartTime && newEventEndTime) {
@@ -101,7 +101,6 @@ export default function Calendar() {
         endDate = new Date(`${dateString}T${newEventEndTime}`);
         isAllDay = false;
       } else {
-        // For all-day events, set end to the same day
         endDate = startDate;
         isAllDay = true;
       }
@@ -145,7 +144,6 @@ export default function Calendar() {
     }
   };
 
-  // Initialize calendar to current month
   useEffect(() => {
     const calendarApi = calendarRef.current?.getApi();
     if (calendarApi) {
@@ -162,10 +160,23 @@ export default function Calendar() {
     });
   };
 
+  // Filter events to only show those in the current displayed month
+  const filterEventsForCurrentMonth = (events: EventApi[]) => {
+    return events.filter((event) => {
+      if (!event.start) return false;
+      const eventDate = new Date(event.start);
+      return (
+        eventDate.getMonth() === currentMonth.getMonth() &&
+        eventDate.getFullYear() === currentMonth.getFullYear()
+      );
+    });
+  };
+
   // Group events by date
   const groupEventsByDate = () => {
+    const filteredEvents = filterEventsForCurrentMonth(currentEvents);
     const grouped: { [key: string]: EventApi[] } = {};
-    currentEvents.forEach((event) => {
+    filteredEvents.forEach((event) => {
       const dateKey = formatDate(event.start!, {
         year: "numeric",
         month: "short",
@@ -180,6 +191,7 @@ export default function Calendar() {
   };
 
   const groupedEvents = groupEventsByDate();
+  const filteredEventsCount = filterEventsForCurrentMonth(currentEvents).length;
 
   const months = [
     "January",
@@ -198,6 +210,79 @@ export default function Calendar() {
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 3000 - 2020 + 1 }, (_, i) => 2020 + i);
+
+  // Calendar header component (reusable)
+  const CalendarHeader = () => (
+    <div className="mb-6 bg-gradient-to-r from-blue-300 via-blue-200 to-blue-300 rounded-3xl p-6 flex items-center justify-between">
+      <button
+        onClick={handlePrevMonth}
+        className="text-gray-800 hover:text-gray-600 transition-colors"
+      >
+        <svg
+          className="w-10 h-10"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={3}
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+      </button>
+
+      <button
+        onClick={() => setMonthPickerOpen(true)}
+        className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+      >
+        <div className="bg-gray-700 p-3 rounded-xl">
+          <svg
+            className="w-8 h-8 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+            <circle cx="9" cy="12" r="1" fill="currentColor" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" />
+            <circle cx="15" cy="12" r="1" fill="currentColor" />
+            <circle cx="9" cy="15" r="1" fill="currentColor" />
+            <circle cx="12" cy="15" r="1" fill="currentColor" />
+            <circle cx="15" cy="15" r="1" fill="currentColor" />
+          </svg>
+        </div>
+        <h2 className="text-4xl lg:text-5xl font-bold text-gray-800">
+          {formatMonthYear(currentMonth)}
+        </h2>
+      </button>
+
+      <button
+        onClick={handleNextMonth}
+        className="text-gray-800 hover:text-gray-600 transition-colors"
+      >
+        <svg
+          className="w-10 h-10"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={3}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+      </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -233,79 +318,7 @@ export default function Calendar() {
           }`}
         >
           <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-6">
-            {/* Custom Header Bar */}
-            <div className="mb-6 bg-gradient-to-r from-blue-300 via-blue-200 to-blue-300 rounded-3xl p-6 flex items-center justify-between">
-              {/* Left Arrow */}
-              <button
-                onClick={handlePrevMonth}
-                className="text-gray-800 hover:text-gray-600 transition-colors"
-              >
-                <svg
-                  className="w-10 h-10"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-
-              {/* Center: Calendar Icon + Month/Year */}
-              <button
-                onClick={() => setMonthPickerOpen(true)}
-                className="flex items-center gap-4 hover:opacity-80 transition-opacity"
-              >
-                <div className="bg-gray-700 p-3 rounded-xl">
-                  <svg
-                    className="w-8 h-8 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                    <circle cx="9" cy="12" r="1" fill="currentColor" />
-                    <circle cx="12" cy="12" r="1" fill="currentColor" />
-                    <circle cx="15" cy="12" r="1" fill="currentColor" />
-                    <circle cx="9" cy="15" r="1" fill="currentColor" />
-                    <circle cx="12" cy="15" r="1" fill="currentColor" />
-                    <circle cx="15" cy="15" r="1" fill="currentColor" />
-                  </svg>
-                </div>
-                <h2 className="text-4xl lg:text-5xl font-bold text-gray-800">
-                  {formatMonthYear(currentMonth)}
-                </h2>
-              </button>
-
-              {/* Right Arrow */}
-              <button
-                onClick={handleNextMonth}
-                className="text-gray-800 hover:text-gray-600 transition-colors"
-              >
-                <svg
-                  className="w-10 h-10"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-            </div>
+            <CalendarHeader />
 
             <FullCalendar
               ref={calendarRef}
@@ -340,7 +353,6 @@ export default function Calendar() {
               }
             />
 
-            {/* Custom CSS to hide default header */}
             <style jsx global>{`
               .fc .fc-toolbar.fc-header-toolbar {
                 display: none;
@@ -351,15 +363,24 @@ export default function Calendar() {
 
         {/* Events List Section - Always visible */}
         <div className="w-full order-2 lg:order-1 lg:w-1/3">
+          {/* Show calendar header on mobile when in weekly view */}
+          {activeView === "weekly" && (
+            <div className="lg:hidden bg-white rounded-2xl shadow-lg p-4 mb-6">
+              <CalendarHeader />
+            </div>
+          )}
+
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">
               Upcoming Events
             </h2>
 
-            {currentEvents.length === 0 ? (
+            {filteredEventsCount === 0 ? (
               <div className="text-center py-12">
                 <div className="text-gray-400 text-lg mb-2">📅</div>
-                <p className="text-gray-400 italic">No Events Present</p>
+                <p className="text-gray-400 italic">
+                  No Events in {formatMonthYear(currentMonth)}
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -380,9 +401,7 @@ export default function Calendar() {
                       key={date}
                       className="border-5 border-black rounded-3xl overflow-hidden bg-white"
                     >
-                      {/* Date Header and Events Combined */}
                       <div className="p-5 flex gap-4">
-                        {/* Left: Date Section */}
                         <div className="text-center border-r-2 border-gray-200 pr-5 py-2">
                           <div className="text-base text-gray-700 font-medium">
                             {dayOfWeek}
@@ -393,7 +412,6 @@ export default function Calendar() {
                           <div className="text-base text-gray-600">{month}</div>
                         </div>
 
-                        {/* Right: Events Section */}
                         <div className="flex-1 space-y-2 py-1">
                           {events.map((event, idx) => (
                             <div
@@ -453,7 +471,6 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
       <BottomNav />
 
       {/* Month Picker Dialog */}
@@ -465,7 +482,6 @@ export default function Calendar() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            {/* Today Button */}
             <button
               onClick={() => {
                 const today = new Date();
@@ -488,7 +504,6 @@ export default function Calendar() {
               </svg>
               Go to Today
             </button>
-            {/* Year Selection */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Year
@@ -512,7 +527,6 @@ export default function Calendar() {
               </div>
             </div>
 
-            {/* Month Selection */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Month
