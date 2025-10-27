@@ -3,19 +3,28 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/app/components/Layout/BottomNav';
+import { useSocket } from '@/lib/socket/SocketContext';
 import type { NannyShare } from '@/db/schema';
 
-export default function NannyShareDetailPage({ params }: { params: { id: string } }) {
+export default function NannyShareDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { socket, isConnected } = useSocket();
+  const [shareId, setShareId] = useState<string | null>(null);
   const [share, setShare] = useState<NannyShare | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Unwrap params first
   useEffect(() => {
+    params.then(({ id }) => setShareId(id));
+  }, [params]);
+
+  useEffect(() => {
+    if (!shareId) return;
+
     async function fetchShare() {
       try {
-        // params.id contains the dynamic value from the URL
-        const response = await fetch(`/api/nanny/${params.id}`);
+        const response = await fetch(`/api/nanny/${shareId}`);
         
         if (!response.ok) {
           const data = await response.json();
@@ -32,7 +41,33 @@ export default function NannyShareDetailPage({ params }: { params: { id: string 
     }
 
     fetchShare();
-  }, [params.id]);
+  }, [shareId]);
+
+  // Socket.IO real-time updates
+  useEffect(() => {
+    if (!socket || !isConnected || !shareId) return;
+
+    socket.emit('join-share', shareId);
+
+    socket.on('share-updated', (updatedShare: NannyShare) => {
+      if (updatedShare.id.toString() === shareId) {
+        setShare(updatedShare);
+      }
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    socket.on('member-joined', (data: { shareId: string; member: any }) => {
+      if (data.shareId === shareId) {
+        setShare(prev => prev ? { ...prev, members: [...prev.members, data.member] } : null);
+      }
+    });
+
+    return () => {
+      socket.emit('leave-share', shareId);
+      socket.off('share-updated');
+      socket.off('member-joined');
+    };
+  }, [socket, isConnected, shareId]);
 
   if (isLoading) {
     return (
@@ -53,7 +88,7 @@ export default function NannyShareDetailPage({ params }: { params: { id: string 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Share Not Found</h2>
           <p className="text-gray-600 mb-6">{error || 'This share may have been deleted'}</p>
           <button
-            onClick={() => router.push('/nanny')}
+            onClick={() => router.push('/nanny/join')}
             className="px-6 py-3 bg-[#1e3a5f] text-white rounded-lg font-semibold hover:bg-[#152d47] transition-colors"
           >
             Back to Shares
@@ -84,6 +119,14 @@ export default function NannyShareDetailPage({ params }: { params: { id: string 
           </svg>
           Back
         </button>
+
+        {/* Connection Status */}
+        <div className="mb-4 flex items-center gap-2 text-sm">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <span className="text-gray-600">
+            {isConnected ? 'Live updates active' : 'Connecting...'}
+          </span>
+        </div>
 
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           {/* Header */}
@@ -162,9 +205,9 @@ export default function NannyShareDetailPage({ params }: { params: { id: string 
             </div>
 
             {/* Actions */}
-            <div className="pt-4 border-t">
+            <div className="pt-4 border-t space-y-3">
               <button
-                onClick={() => alert('Chat feature coming soon!')}
+                onClick={() => router.push(`/nanny/${shareId}/chat`)}
                 className="w-full py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors"
               >
                 💬 Open Group Chat

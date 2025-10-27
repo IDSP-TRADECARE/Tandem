@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params; // Await params first
+    const { id } = await params;
     const shareId = parseInt(id);
 
     if (isNaN(shareId)) {
@@ -31,11 +31,14 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ share });
+    // Return messages (from share.messages or empty array)
+    const messages = share.messages || [];
+
+    return NextResponse.json({ messages, share });
   } catch (error) {
-    console.error('Error fetching nanny share:', error);
+    console.error('Error fetching messages:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch nanny share' },
+      { error: 'Failed to fetch messages' },
       { status: 500 }
     );
   }
@@ -49,11 +52,11 @@ export async function POST(
     const { id } = await params;
     const shareId = parseInt(id);
     const body = await request.json();
-    const { userName, kidsCount } = body;
+    const { senderId, senderName, content } = body;
 
-    if (!userName || !kidsCount) {
+    if (!senderId || !senderName || !content) {
       return NextResponse.json(
-        { error: 'Missing required fields: userName, kidsCount' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
@@ -65,7 +68,6 @@ export async function POST(
       );
     }
 
-    // Fetch the share
     const [share] = await db
       .select()
       .from(nannyShares)
@@ -79,52 +81,33 @@ export async function POST(
       );
     }
 
-    // Check if spots available
-    if (share.maxSpots && share.members.length >= share.maxSpots) {
-      return NextResponse.json(
-        { error: 'No spots available' },
-        { status: 400 }
-      );
-    }
-
-    // Check if user already joined
-    const alreadyJoined = share.members.some(
-      (member) => member.name.toLowerCase() === userName.toLowerCase()
-    );
-
-    if (alreadyJoined) {
-      return NextResponse.json(
-        { error: 'You have already joined this share' },
-        { status: 400 }
-      );
-    }
-
-    // Add new member
-    const newMember = {
-      userId: `user_${Date.now()}`,
-      name: userName,
-      kidsCount: parseInt(kidsCount),
-      joinedAt: new Date().toISOString(),
+    // Create new message
+    const newMessage = {
+      id: `msg_${Date.now()}`,
+      senderId,
+      senderName,
+      content,
+      timestamp: new Date().toISOString(),
     };
 
-    const updatedMembers = [...share.members, newMember];
+    // Update messages array
+    const updatedMessages = [...(share.messages || []), newMessage];
 
-    // Update the share
-    const [updatedShare] = await db
+    // Update share with new message
+    await db
       .update(nannyShares)
-      .set({ members: updatedMembers })
-      .where(eq(nannyShares.id, shareId))
-      .returning();
+      .set({ messages: updatedMessages })
+      .where(eq(nannyShares.id, shareId));
 
-    return NextResponse.json({
-      success: true,
-      share: updatedShare,
-      message: 'Successfully joined the share!',
+    return NextResponse.json({ 
+      message: newMessage,
+      success: true 
     });
+
   } catch (error) {
-    console.error('Error joining share:', error);
+    console.error('Error sending message:', error);
     return NextResponse.json(
-      { error: 'Failed to join share' },
+      { error: 'Failed to send message' },
       { status: 500 }
     );
   }

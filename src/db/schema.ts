@@ -14,7 +14,6 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-
 // Schedules table
 export const schedules = pgTable('schedules', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -60,14 +59,14 @@ export const surveyData = pgTable('survey_data', {
 
 export const nannyShares = pgTable('nanny_shares', {
   id: serial('id').primaryKey(),
-  creatorId: text('creator_id').notNull(), // Will use Clerk userId later
-  date: text('date').notNull(), // ISO date string YYYY-MM-DD
+  creatorId: text('creator_id').notNull(),
+  date: text('date').notNull(),
   location: text('location').notNull(),
-  startTime: text('start_time').notNull(), // HH:MM format
-  endTime: text('end_time').notNull(), // HH:MM format
-  price: decimal('price', { precision: 10, scale: 2 }), // Optional, e.g., "25.00"
-  certificates: jsonb('certificates').$type<string[]>(), // Optional array of strings
-  maxSpots: integer('max_spots'), // Optional, must be multiple of 4
+  startTime: text('start_time').notNull(),
+  endTime: text('end_time').notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }),
+  certificates: jsonb('certificates').$type<string[]>(),
+  maxSpots: integer('max_spots'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   members: jsonb('members').$type<Array<{
     userId: string;
@@ -75,8 +74,14 @@ export const nannyShares = pgTable('nanny_shares', {
     kidsCount: number;
     joinedAt: string;
   }>>().notNull().default([]),
+  messages: jsonb('messages').$type<Array<{
+    id: string;
+    senderId: string;
+    senderName: string;
+    content: string;
+    timestamp: string;
+  }>>().notNull().default([]), // Changed from json to jsonb and added array type + default
 });
-
 
 // TypeScript types
 export type Schedule = typeof schedules.$inferSelect;
