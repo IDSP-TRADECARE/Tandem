@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, uuid, jsonb, time, index, json } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp, uuid, jsonb, time, index, json, integer, decimal } from 'drizzle-orm/pg-core';
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -13,7 +13,6 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
-
 
 // Schedules table
 export const schedules = pgTable('schedules', {
@@ -56,9 +55,40 @@ export const surveyData = pgTable('survey_data', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// NANNY SHARE ------------------------------------------
+
+export const nannyShares = pgTable('nanny_shares', {
+  id: serial('id').primaryKey(),
+  creatorId: text('creator_id').notNull(),
+  date: text('date').notNull(),
+  location: text('location').notNull(),
+  startTime: text('start_time').notNull(),
+  endTime: text('end_time').notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }),
+  certificates: jsonb('certificates').$type<string[]>(),
+  maxSpots: integer('max_spots'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  members: jsonb('members').$type<Array<{
+    userId: string;
+    name: string;
+    kidsCount: number;
+    joinedAt: string;
+  }>>().notNull().default([]),
+  messages: jsonb('messages').$type<Array<{
+    id: string;
+    senderId: string;
+    senderName: string;
+    content: string;
+    timestamp: string;
+  }>>().notNull().default([]), // Changed from json to jsonb and added array type + default
+});
+
 // TypeScript types
 export type Schedule = typeof schedules.$inferSelect;
 export type NewSchedule = typeof schedules.$inferInsert;
 
 export type User = InferSelectModel<typeof users>;
 export type NewUser = InferInsertModel<typeof users>;
+
+export type NannyShare = typeof nannyShares.$inferSelect;
+export type NewNannyShare = typeof nannyShares.$inferInsert;
