@@ -6,6 +6,7 @@ import { SignOutButton } from '@clerk/nextjs';
 import { db } from '@/db/index';
 import { surveyData } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { BottomNav } from '../components/Layout/BottomNav';
 
 async function getSurveyData(userId: string) {
   // query DB directly from server component
@@ -109,6 +110,8 @@ export default async function Profile() {
             Log Out
           </button>
         </SignOutButton>
+        {/* Bottom Navigation */}
+      <BottomNav />
       </div>
     </div>
   );

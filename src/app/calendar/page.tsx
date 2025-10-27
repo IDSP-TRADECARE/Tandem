@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BottomNav } from "../components/Layout/BottomNav";
 
 export default function Calendar() {
   const [currentEvents, setCurrentEvents] = useState<EventApi[]>([]);
@@ -304,6 +305,9 @@ export default function Calendar() {
           </div>
         </div>
       </div>
+
+              {/* Bottom Navigation */}
+            <BottomNav />
 
       {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
