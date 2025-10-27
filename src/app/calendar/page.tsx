@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   formatDate,
   DateSelectArg,
@@ -22,6 +22,7 @@ import { BottomNav } from "../components/Layout/BottomNav";
 export default function Calendar() {
   const [currentEvents, setCurrentEvents] = useState<EventApi[]>([]);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [monthPickerOpen, setMonthPickerOpen] = useState<boolean>(false);
   const [newEventTitle, setNewEventTitle] = useState<string>("");
   const [newEventStartTime, setNewEventStartTime] = useState<string>("");
   const [newEventEndTime, setNewEventEndTime] = useState<string>("");
@@ -30,6 +31,8 @@ export default function Calendar() {
   const [activeView, setActiveView] = useState<"weekly" | "calendar">(
     "calendar"
   );
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const calendarRef = useRef<FullCalendar>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -89,7 +92,7 @@ export default function Calendar() {
       calendarApi.unselect();
 
       let startDate = selectedDate.start;
-      let endDate = selectedDate.end;
+      let endDate = selectedDate.start; // Changed to use start date instead of end
       let isAllDay = selectedDate.allDay;
 
       if (newEventStartTime && newEventEndTime) {
@@ -97,6 +100,10 @@ export default function Calendar() {
         startDate = new Date(`${dateString}T${newEventStartTime}`);
         endDate = new Date(`${dateString}T${newEventEndTime}`);
         isAllDay = false;
+      } else {
+        // For all-day events, set end to the same day
+        endDate = startDate;
+        isAllDay = true;
       }
 
       const newEvent = {
@@ -110,6 +117,49 @@ export default function Calendar() {
       calendarApi.addEvent(newEvent);
       handleCloseDialog();
     }
+  };
+
+  const handlePrevMonth = () => {
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi) {
+      calendarApi.prev();
+      setCurrentMonth(calendarApi.getDate());
+    }
+  };
+
+  const handleNextMonth = () => {
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi) {
+      calendarApi.next();
+      setCurrentMonth(calendarApi.getDate());
+    }
+  };
+
+  const handleMonthSelect = (month: number, year: number) => {
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi) {
+      const newDate = new Date(year, month, 1);
+      calendarApi.gotoDate(newDate);
+      setCurrentMonth(newDate);
+      setMonthPickerOpen(false);
+    }
+  };
+
+  // Initialize calendar to current month
+  useEffect(() => {
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi) {
+      const today = new Date();
+      calendarApi.gotoDate(today);
+      setCurrentMonth(today);
+    }
+  }, []);
+
+  const formatMonthYear = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
   };
 
   // Group events by date
@@ -130,6 +180,24 @@ export default function Calendar() {
   };
 
   const groupedEvents = groupEventsByDate();
+
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 3000 - 2020 + 1 }, (_, i) => 2020 + i);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -165,14 +233,85 @@ export default function Calendar() {
           }`}
         >
           <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-6">
+            {/* Custom Header Bar */}
+            <div className="mb-6 bg-gradient-to-r from-blue-300 via-blue-200 to-blue-300 rounded-3xl p-6 flex items-center justify-between">
+              {/* Left Arrow */}
+              <button
+                onClick={handlePrevMonth}
+                className="text-gray-800 hover:text-gray-600 transition-colors"
+              >
+                <svg
+                  className="w-10 h-10"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              {/* Center: Calendar Icon + Month/Year */}
+              <button
+                onClick={() => setMonthPickerOpen(true)}
+                className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+              >
+                <div className="bg-gray-700 p-3 rounded-xl">
+                  <svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                    <circle cx="9" cy="12" r="1" fill="currentColor" />
+                    <circle cx="12" cy="12" r="1" fill="currentColor" />
+                    <circle cx="15" cy="12" r="1" fill="currentColor" />
+                    <circle cx="9" cy="15" r="1" fill="currentColor" />
+                    <circle cx="12" cy="15" r="1" fill="currentColor" />
+                    <circle cx="15" cy="15" r="1" fill="currentColor" />
+                  </svg>
+                </div>
+                <h2 className="text-4xl lg:text-5xl font-bold text-gray-800">
+                  {formatMonthYear(currentMonth)}
+                </h2>
+              </button>
+
+              {/* Right Arrow */}
+              <button
+                onClick={handleNextMonth}
+                className="text-gray-800 hover:text-gray-600 transition-colors"
+              >
+                <svg
+                  className="w-10 h-10"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+
             <FullCalendar
+              ref={calendarRef}
               height={"auto"}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              headerToolbar={{
-                left: "prev,next today",
-                center: "title",
-                right: "dayGridMonth,timeGridWeek,timeGridDay",
-              }}
+              headerToolbar={false}
               initialView="dayGridMonth"
               editable={true}
               selectable={true}
@@ -181,6 +320,7 @@ export default function Calendar() {
               select={handleDateClick}
               eventClick={handleEventClick}
               eventsSet={(events) => setCurrentEvents(events)}
+              datesSet={(dateInfo) => setCurrentMonth(dateInfo.start)}
               initialEvents={
                 typeof window !== "undefined"
                   ? JSON.parse(localStorage.getItem("savedEvents") || "[]").map(
@@ -199,6 +339,13 @@ export default function Calendar() {
                   : []
               }
             />
+
+            {/* Custom CSS to hide default header */}
+            <style jsx global>{`
+              .fc .fc-toolbar.fc-header-toolbar {
+                display: none;
+              }
+            `}</style>
           </div>
         </div>
 
@@ -306,10 +453,94 @@ export default function Calendar() {
         </div>
       </div>
 
-              {/* Bottom Navigation */}
-            <BottomNav />
+      {/* Bottom Navigation */}
+      <BottomNav />
 
-      {/* Dialog */}
+      {/* Month Picker Dialog */}
+      <Dialog open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">
+              Select Month & Year
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Today Button */}
+            <button
+              onClick={() => {
+                const today = new Date();
+                handleMonthSelect(today.getMonth(), today.getFullYear());
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-md flex items-center justify-center gap-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              Go to Today
+            </button>
+            {/* Year Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Year
+              </label>
+              <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-xl">
+                {years.map((year) => (
+                  <button
+                    key={year}
+                    onClick={() =>
+                      handleMonthSelect(currentMonth.getMonth(), year)
+                    }
+                    className={`p-3 rounded-xl font-medium transition-colors ${
+                      year === currentMonth.getFullYear()
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Month Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Month
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {months.map((month, index) => (
+                  <button
+                    key={month}
+                    onClick={() =>
+                      handleMonthSelect(index, currentMonth.getFullYear())
+                    }
+                    className={`p-3 rounded-xl font-medium transition-colors ${
+                      index === currentMonth.getMonth() &&
+                      currentMonth.getFullYear() === new Date().getFullYear()
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {month}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Event Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
