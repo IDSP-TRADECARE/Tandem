@@ -1,640 +1,334 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import {
-  formatDate,
-  DateSelectArg,
-  EventClickArg,
-  EventApi,
-} from "@fullcalendar/core";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { BottomNav } from "../components/Layout/BottomNav";
+import { useState, useEffect } from 'react';
+import { BottomNav } from '../components/Layout/BottomNav';
+import { useRouter } from 'next/navigation';
+import { generateWeekSchedule, getMonthYearFromDate, DaySchedule } from '../../lib/scheduleToWeek';
 
-export default function Calendar() {
-  const [currentEvents, setCurrentEvents] = useState<EventApi[]>([]);
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [monthPickerOpen, setMonthPickerOpen] = useState<boolean>(false);
-  const [newEventTitle, setNewEventTitle] = useState<string>("");
-  const [newEventStartTime, setNewEventStartTime] = useState<string>("");
-  const [newEventEndTime, setNewEventEndTime] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<DateSelectArg | null>(null);
-  const [newEventLocation, setNewEventLocation] = useState<string>("");
-  const [activeView, setActiveView] = useState<"weekly" | "calendar">(
-    "calendar"
-  );
+type ViewMode = 'weekly' | 'calendar';
+
+export default function HomePage() {
+  const router = useRouter();
+  const [viewMode, setViewMode] = useState<ViewMode>('weekly');
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getStartOfWeek(new Date()));
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const calendarRef = useRef<FullCalendar>(null);
+  const [weekDays, setWeekDays] = useState<DaySchedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [allSchedules, setAllSchedules] = useState<any[]>([]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedEvents = localStorage.getItem("savedEvents");
-      if (savedEvents) {
-        const parsedEvents = JSON.parse(savedEvents);
-        const eventsWithDates = parsedEvents.map(
-          (event: {
-            id: string;
-            title: string;
-            start: string | Date;
-            end: string | Date;
-            allDay: boolean;
-          }) => ({
-            ...event,
-            start: event.start ? new Date(event.start) : null,
-            end: event.end ? new Date(event.end) : null,
-          })
-        );
-        setCurrentEvents(eventsWithDates);
-      }
-    }
+    fetchSchedules();
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("savedEvents", JSON.stringify(currentEvents));
-    }
-  }, [currentEvents]);
+    generateWeekView();
+  }, [currentWeekStart, currentMonth, allSchedules, viewMode]);
 
-  const handleDateClick = (selectInfo: DateSelectArg) => {
-    setSelectedDate(selectInfo);
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setNewEventTitle("");
-    setNewEventStartTime("");
-    setNewEventEndTime("");
-    setNewEventLocation("");
-  };
-
-  const handleEventClick = (clickInfo: EventClickArg) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete the event '${clickInfo.event.title}'?`
-      )
-    ) {
-      clickInfo.event.remove();
-    }
-  };
-
-  const handleAddEvent = () => {
-    if (selectedDate && newEventTitle) {
-      const calendarApi = selectedDate.view.calendar;
-      calendarApi.unselect();
-
-      let startDate = selectedDate.start;
-      let endDate = selectedDate.start;
-      let isAllDay = selectedDate.allDay;
-
-      if (newEventStartTime && newEventEndTime) {
-        const dateString = startDate.toISOString().split("T")[0];
-        startDate = new Date(`${dateString}T${newEventStartTime}`);
-        endDate = new Date(`${dateString}T${newEventEndTime}`);
-        isAllDay = false;
-      } else {
-        endDate = startDate;
-        isAllDay = true;
+  const fetchSchedules = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/schedule/week');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch schedule');
       }
 
-      const newEvent = {
-        id: `${startDate.toISOString()}-${newEventTitle}`,
-        title: newEventTitle,
-        start: startDate,
-        end: endDate,
-        allDay: isAllDay,
-        extendedProps: { location: newEventLocation },
-      };
-      calendarApi.addEvent(newEvent);
-      handleCloseDialog();
+      const data = await response.json();
+      setAllSchedules(data.schedules);
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+      setAllSchedules([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePrevMonth = () => {
-    const calendarApi = calendarRef.current?.getApi();
-    if (calendarApi) {
-      calendarApi.prev();
-      setCurrentMonth(calendarApi.getDate());
-    }
+  const generateWeekView = () => {
+    // In calendar mode, show the week that includes the selected month
+    const startDate = viewMode === 'calendar' 
+      ? getStartOfWeek(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 25)) // Show week of 25th
+      : currentWeekStart;
+    
+    const weekSchedule = generateWeekSchedule(allSchedules, startDate);
+    setWeekDays(weekSchedule);
   };
 
-  const handleNextMonth = () => {
-    const calendarApi = calendarRef.current?.getApi();
-    if (calendarApi) {
-      calendarApi.next();
-      setCurrentMonth(calendarApi.getDate());
-    }
+  const goToPreviousWeek = () => {
+    const newDate = new Date(currentWeekStart);
+    newDate.setDate(newDate.getDate() - 7);
+    setCurrentWeekStart(newDate);
   };
 
-  const handleMonthSelect = (month: number, year: number) => {
-    const calendarApi = calendarRef.current?.getApi();
-    if (calendarApi) {
-      const newDate = new Date(year, month, 1);
-      calendarApi.gotoDate(newDate);
-      setCurrentMonth(newDate);
-      setMonthPickerOpen(false);
-    }
+  const goToNextWeek = () => {
+    const newDate = new Date(currentWeekStart);
+    newDate.setDate(newDate.getDate() + 7);
+    setCurrentWeekStart(newDate);
   };
 
-  useEffect(() => {
-    const calendarApi = calendarRef.current?.getApi();
-    if (calendarApi) {
-      const today = new Date();
-      calendarApi.gotoDate(today);
-      setCurrentMonth(today);
-    }
-  }, []);
+  const goToPreviousMonth = () => {
+    const newDate = new Date(currentMonth);
+    newDate.setMonth(newDate.getMonth() - 1);
+    setCurrentMonth(newDate);
+  };
 
-  const formatMonthYear = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
+  const goToNextMonth = () => {
+    const newDate = new Date(currentMonth);
+    newDate.setMonth(newDate.getMonth() + 1);
+    setCurrentMonth(newDate);
+  };
+
+  const currentMonthYear = viewMode === 'weekly' && weekDays.length > 0 
+    ? getMonthYearFromDate(weekDays[3]?.fullDate || new Date())
+    : getMonthYearFromDate(currentMonth);
+
+  // Generate calendar days
+  const getCalendarDays = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    const startDay = firstDay.getDay(); // 0 = Sunday
+    const daysInMonth = lastDay.getDate();
+    
+    const days: (Date | null)[] = [];
+    
+    // Add empty slots for days before month starts
+    for (let i = 0; i < startDay; i++) {
+      days.push(null);
+    }
+    
+    // Add all days in month
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day));
+    }
+    
+    return days;
+  };
+
+  const hasWorkOnDate = (date: Date | null) => {
+    if (!date) return false;
+    
+    const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    const dayMap: Record<string, string> = {
+      'SUN': 'SUN', 'MON': 'MON', 'TUE': 'TUE', 'WED': 'WED',
+      'THU': 'THU', 'FRI': 'FRI', 'SAT': 'SAT',
+    };
+    const dayCode = dayMap[dayOfWeek];
+    
+    return allSchedules.some(schedule => schedule.workingDays.includes(dayCode));
+  };
+
+  const isInCurrentWeek = (date: Date | null) => {
+    if (!date) return false;
+    
+    // Check if date is within the displayed week
+    return weekDays.some(day => {
+      return day.fullDate.toDateString() === date.toDateString();
     });
   };
 
-  // Filter events to only show those in the current displayed month
-  const filterEventsForCurrentMonth = (events: EventApi[]) => {
-    return events.filter((event) => {
-      if (!event.start) return false;
-      const eventDate = new Date(event.start);
-      return (
-        eventDate.getMonth() === currentMonth.getMonth() &&
-        eventDate.getFullYear() === currentMonth.getFullYear()
-      );
-    });
-  };
-
-  // Group events by date
-  const groupEventsByDate = () => {
-    const filteredEvents = filterEventsForCurrentMonth(currentEvents);
-    const grouped: { [key: string]: EventApi[] } = {};
-    filteredEvents.forEach((event) => {
-      const dateKey = formatDate(event.start!, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(event);
-    });
-    return grouped;
-  };
-
-  const groupedEvents = groupEventsByDate();
-  const filteredEventsCount = filterEventsForCurrentMonth(currentEvents).length;
-
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 3000 - 2020 + 1 }, (_, i) => 2020 + i);
-
-  // Calendar header component (reusable)
-  const CalendarHeader = () => (
-    <div className="mb-6 bg-gradient-to-r from-blue-300 via-blue-200 to-blue-300 rounded-3xl p-6 flex items-center justify-between">
-      <button
-        onClick={handlePrevMonth}
-        className="text-gray-800 hover:text-gray-600 transition-colors"
-      >
-        <svg
-          className="w-10 h-10"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={3}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-      </button>
-
-      <button
-        onClick={() => setMonthPickerOpen(true)}
-        className="flex items-center gap-4 hover:opacity-80 transition-opacity"
-      >
-        <div className="bg-gray-700 p-3 rounded-xl">
-          <svg
-            className="w-8 h-8 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-            <circle cx="9" cy="12" r="1" fill="currentColor" />
-            <circle cx="12" cy="12" r="1" fill="currentColor" />
-            <circle cx="15" cy="12" r="1" fill="currentColor" />
-            <circle cx="9" cy="15" r="1" fill="currentColor" />
-            <circle cx="12" cy="15" r="1" fill="currentColor" />
-            <circle cx="15" cy="15" r="1" fill="currentColor" />
-          </svg>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#1e3a5f] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your schedule...</p>
         </div>
-        <h2 className="text-4xl lg:text-5xl font-bold text-gray-800">
-          {formatMonthYear(currentMonth)}
-        </h2>
-      </button>
-
-      <button
-        onClick={handleNextMonth}
-        className="text-gray-800 hover:text-gray-600 transition-colors"
-      >
-        <svg
-          className="w-10 h-10"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={3}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
-      </button>
-    </div>
-  );
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Toggle Buttons */}
-      <div className="lg:hidden flex gap-2 p-4 bg-white sticky top-0 z-10 shadow-sm">
-        <button
-          className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${
-            activeView === "weekly"
-              ? "bg-blue-900 text-white"
-              : "border-2 border-gray-300 bg-white text-gray-700"
-          }`}
-          onClick={() => setActiveView("weekly")}
-        >
-          Weekly view
-        </button>
-        <button
-          className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${
-            activeView === "calendar"
-              ? "bg-blue-900 text-white"
-              : "border-2 border-gray-300 bg-white text-gray-700"
-          }`}
-          onClick={() => setActiveView("calendar")}
-        >
-          Calendar
-        </button>
-      </div>
-
-      <div className="flex flex-col lg:flex-row w-full gap-6 p-4 lg:p-8">
-        {/* Calendar Section - Always show on desktop, conditional on mobile */}
-        <div
-          className={`w-full order-1 lg:order-2 lg:w-2/3 ${
-            activeView === "weekly" ? "hidden lg:block" : ""
-          }`}
-        >
-          <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-6">
-            <CalendarHeader />
-
-            <FullCalendar
-              ref={calendarRef}
-              height={"auto"}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              headerToolbar={false}
-              initialView="dayGridMonth"
-              editable={true}
-              selectable={true}
-              selectMirror={true}
-              dayMaxEvents={true}
-              select={handleDateClick}
-              eventClick={handleEventClick}
-              eventsSet={(events) => setCurrentEvents(events)}
-              datesSet={(dateInfo) => setCurrentMonth(dateInfo.start)}
-              initialEvents={
-                typeof window !== "undefined"
-                  ? JSON.parse(localStorage.getItem("savedEvents") || "[]").map(
-                      (event: {
-                        id: string;
-                        title: string;
-                        start: string | Date;
-                        end: string | Date;
-                        allDay: boolean;
-                      }) => ({
-                        ...event,
-                        start: event.start ? new Date(event.start) : null,
-                        end: event.end ? new Date(event.end) : null,
-                      })
-                    )
-                  : []
-              }
-            />
-
-            <style jsx global>{`
-              .fc .fc-toolbar.fc-header-toolbar {
-                display: none;
-              }
-            `}</style>
-          </div>
+    <div className="min-h-screen bg-gray-50 pb-32">
+      {/* Header with Toggle */}
+      <div className="bg-white px-4 pt-8 pb-4">
+        {/* View Mode Toggle */}
+        <div className="flex gap-0 mb-6 bg-white border-2 border-[#1e3a5f] rounded-full p-1">
+          <button
+            onClick={() => setViewMode('weekly')}
+            className={`flex-1 py-3 px-6 rounded-full font-semibold transition-all ${
+              viewMode === 'weekly'
+                ? 'bg-[#1e3a5f] text-white'
+                : 'bg-white text-[#1e3a5f]'
+            }`}
+          >
+            Weekly view
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`flex-1 py-3 px-6 rounded-full font-semibold transition-all ${
+              viewMode === 'calendar'
+                ? 'bg-[#1e3a5f] text-white'
+                : 'bg-white text-[#1e3a5f]'
+            }`}
+          >
+            Calendar
+          </button>
         </div>
 
-        {/* Events List Section - Always visible */}
-        <div className="w-full order-2 lg:order-1 lg:w-1/3">
-          {/* Show calendar header on mobile when in weekly view */}
-          {activeView === "weekly" && (
-            <div className="lg:hidden bg-white rounded-2xl shadow-lg p-4 mb-6">
-              <CalendarHeader />
+        {/* Month Navigation */}
+        <div className="flex items-center justify-between bg-[#6fa8dc] rounded-xl px-6 py-4">
+          <button 
+            onClick={viewMode === 'weekly' ? goToPreviousWeek : goToPreviousMonth}
+            className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div className="flex items-center gap-2">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="text-xl font-bold text-white">{currentMonthYear}</span>
+          </div>
+          <button 
+            onClick={viewMode === 'weekly' ? goToNextWeek : goToNextMonth}
+            className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Calendar Month Grid - Only show in calendar view */}
+      {viewMode === 'calendar' && (
+        <div className="px-4 py-4">
+          <div className="bg-white rounded-2xl p-4 mb-4">
+            {/* Day Headers */}
+            <div className="grid grid-cols-7 gap-2 mb-2">
+              {['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat'].map((day) => (
+                <div key={day} className="text-center text-xs font-semibold text-gray-600">
+                  {day}
+                </div>
+              ))}
             </div>
-          )}
 
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">
-              Upcoming Events
-            </h2>
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-2">
+              {getCalendarDays().map((date, index) => (
+                <div
+                  key={index}
+                  className={`aspect-square rounded-lg flex items-center justify-center text-sm font-semibold transition-all relative ${
+                    !date
+                      ? 'invisible'
+                      : isInCurrentWeek(date)
+                      ? 'bg-[#1e3a5f] text-white'
+                      : hasWorkOnDate(date)
+                      ? 'bg-gray-200 text-gray-900'
+                      : 'text-gray-600'
+                  }`}
+                >
+                  {date?.getDate()}
+                  {date && hasWorkOnDate(date) && !isInCurrentWeek(date) && (
+                    <div className="absolute bottom-1 w-1 h-1 bg-[#1e3a5f] rounded-full"></div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-            {filteredEventsCount === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-gray-400 text-lg mb-2">📅</div>
-                <p className="text-gray-400 italic">
-                  No Events in {formatMonthYear(currentMonth)}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {Object.entries(groupedEvents).map(([date, events]) => {
-                  const firstEvent = events[0];
-                  const dayOfWeek = formatDate(firstEvent.start!, {
-                    weekday: "short",
-                  });
-                  const dayOfMonth = formatDate(firstEvent.start!, {
-                    day: "numeric",
-                  });
-                  const month = formatDate(firstEvent.start!, {
-                    month: "short",
-                  });
+      {/* Empty State */}
+      {weekDays.length === 0 && (
+        <div className="px-4 py-12 text-center">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">No schedule yet</h3>
+          <p className="text-gray-600 mb-6">Upload your work schedule to get started</p>
+          <button
+            onClick={() => router.push('/schedule/upload')}
+            className="px-6 py-3 bg-[#1e3a5f] text-white font-semibold rounded-lg hover:bg-[#2d4a6f] transition-colors"
+          >
+            Upload Schedule
+          </button>
+        </div>
+      )}
 
-                  return (
-                    <div
-                      key={date}
-                      className="border-5 border-black rounded-3xl overflow-hidden bg-white"
-                    >
-                      <div className="p-5 flex gap-4">
-                        <div className="text-center border-r-2 border-gray-200 pr-5 py-2">
-                          <div className="text-base text-gray-700 font-medium">
-                            {dayOfWeek}
-                          </div>
-                          <div className="text-5xl font-bold text-gray-900 my-1">
-                            {dayOfMonth}
-                          </div>
-                          <div className="text-base text-gray-600">{month}</div>
-                        </div>
+      {/* Week Schedule Cards - Show in both views */}
+      {weekDays.length > 0 && (
+        <div className="px-4 py-4 space-y-4">
+          {weekDays.map((day, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-2xl border-2 border-gray-900 overflow-hidden"
+            >
+              <div className="flex">
+                {/* Date Section */}
+                <div className="w-28 border-r-2 border-gray-900 p-4 flex flex-col items-center justify-center bg-white">
+                  <p className="text-sm text-gray-600 font-medium">{day.day}</p>
+                  <p className="text-4xl font-bold text-gray-900">{day.date}</p>
+                  <p className="text-sm text-gray-600">{day.month}</p>
+                </div>
 
-                        <div className="flex-1 space-y-2 py-1">
-                          {events.map((event, idx) => (
-                            <div
-                              key={event.id}
-                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
-                              style={{
-                                backgroundColor:
-                                  idx === 0 ? "#E8EAF6" : "#E8F5E9",
-                              }}
-                              onClick={() => {
-                                if (
-                                  window.confirm(
-                                    `Are you sure you want to delete the event '${event.title}'?`
-                                  )
-                                ) {
-                                  event.remove();
-                                }
-                              }}
-                            >
-                              <div
-                                className="w-4 h-4 rounded-full flex-shrink-0 border-3"
-                                style={{
-                                  backgroundColor:
-                                    idx === 0 ? "#5C6BC0" : "#66BB6A",
-                                  border: `3px solid ${
-                                    idx === 0 ? "#3949AB" : "#43A047"
-                                  }`,
-                                }}
-                              ></div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-gray-900 text-base truncate">
-                                  {event.title}
-                                </div>
-                                {event.extendedProps?.location && (
-                                  <div className="text-sm text-gray-600 truncate mt-0.5">
-                                    {event.extendedProps.location}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="text-sm text-gray-600 font-medium flex-shrink-0">
-                                {formatDate(event.start!, {
-                                  hour: "numeric",
-                                  minute: "2-digit",
-                                  hour12: true,
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                {/* Content Section */}
+                <div className="flex-1 p-3 space-y-2">
+                  {/* Childcare Status */}
+                  {!day.hasChildcare && day.hasWork && (
+                    <div className="flex items-center gap-2 bg-blue-50 border-2 border-blue-200 rounded-xl px-3 py-2">
+                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-sm font-bold">!</span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-800">Drop off kid at Alyssa's</span>
+                      <span className="text-sm font-medium text-gray-600 ml-auto">{day.workTime}</span>
+                    </div>
+                  )}
+
+                  {/* Work Schedule */}
+                  {day.hasWork && (
+                    <div className="flex items-center gap-2 bg-green-100 border-2 border-green-200 rounded-xl px-3 py-2">
+                      <div className="w-6 h-6 bg-transparent border-2 border-green-600 rounded-full flex-shrink-0"></div>
+                      <div className="flex-1 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-800">
+                          Work: {day.workLocation}
+                        </span>
+                        <span className="text-sm font-medium text-gray-600">{day.workTime}</span>
                       </div>
                     </div>
-                  );
-                })}
+                  )}
+
+                  {/* No Schedule */}
+                  {!day.hasWork && !day.hasChildcare && (
+                    <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-3">
+                      <div className="w-6 h-6 bg-transparent border-2 border-gray-400 rounded-full flex-shrink-0"></div>
+                      <span className="text-sm text-gray-600">
+                        Nothing yet! Want to add childcare or work?
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
+      {/* Book a Nanny Button */}
+      <button
+        onClick={() => router.push('/nanny/join')}
+        className="fixed bottom-32 right-6 bg-[#a8d446] text-[#1e3a5f] px-6 py-3 rounded-xl font-bold shadow-xl hover:scale-105 transition-transform z-40"
+      >
+        Book a Nanny
+      </button>
+
+      {/* Bottom Navigation */}
       <BottomNav />
-
-      {/* Month Picker Dialog */}
-      <Dialog open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
-              Select Month & Year
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6">
-            <button
-              onClick={() => {
-                const today = new Date();
-                handleMonthSelect(today.getMonth(), today.getFullYear());
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-md flex items-center justify-center gap-2"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              Go to Today
-            </button>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Year
-              </label>
-              <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-xl">
-                {years.map((year) => (
-                  <button
-                    key={year}
-                    onClick={() =>
-                      handleMonthSelect(currentMonth.getMonth(), year)
-                    }
-                    className={`p-3 rounded-xl font-medium transition-colors ${
-                      year === currentMonth.getFullYear()
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Month
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {months.map((month, index) => (
-                  <button
-                    key={month}
-                    onClick={() =>
-                      handleMonthSelect(index, currentMonth.getFullYear())
-                    }
-                    className={`p-3 rounded-xl font-medium transition-colors ${
-                      index === currentMonth.getMonth() &&
-                      currentMonth.getFullYear() === new Date().getFullYear()
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {month}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Event Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Add Event</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {selectedDate && (
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <span className="text-lg font-semibold text-blue-900">
-                  {formatDate(selectedDate.start, {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Event Title
-              </label>
-              <input
-                type="text"
-                placeholder="Enter event title"
-                value={newEventTitle}
-                onChange={(e) => setNewEventTitle(e.target.value)}
-                className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Start Time
-                </label>
-                <input
-                  type="time"
-                  value={newEventStartTime}
-                  onChange={(e) => setNewEventStartTime(e.target.value)}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  End Time
-                </label>
-                <input
-                  type="time"
-                  value={newEventEndTime}
-                  onChange={(e) => setNewEventEndTime(e.target.value)}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Location
-              </label>
-              <input
-                type="text"
-                placeholder="Add location"
-                value={newEventLocation}
-                onChange={(e) => setNewEventLocation(e.target.value)}
-                className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-              />
-            </div>
-
-            <button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold p-4 rounded-xl transition-colors shadow-lg"
-              onClick={handleAddEvent}
-            >
-              Add Event
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
+}
+
+// Helper functions
+function getStartOfWeek(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
 }
