@@ -1,25 +1,31 @@
 import { ClerkProvider } from '@clerk/nextjs'
 import { SocketProvider } from '@/lib/socket/SocketContext'
-import './globals.css'
-import { icons } from 'lucide-react'
+import type { Metadata } from "next";
+import "./globals.css";
 
-export const metadata = {
-  title: 'Tandem',
-  description: 'Web Projects 2',
-  icons: {
-    icon: '/favicon.png',
-  },
-}
+export const metadata: Metadata = {
+  title: "Tandem",
+  description: "Share childcare with your community",
+};
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <ClerkProvider>
       <html lang="en">
-        <body>
+        <head>
+          {/* Omnes Pro from Adobe Fonts */}
+          <link rel="stylesheet" href="https://use.typekit.net/pku8yek.css" />
+          
+          {/* Alan Sans from Google Fonts */}
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@300..900&display=swap" rel="stylesheet" />
+        </head>
+        <body className="antialiased">
           <SocketProvider>
             {children}
           </SocketProvider>
