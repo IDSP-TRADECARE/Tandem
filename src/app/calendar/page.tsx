@@ -17,7 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/calendar/dialog";
+} from "@/app/components/ui/calendar/dialog";
 import { BottomNav } from "../components/Layout/BottomNav";
 
 interface Schedule {
@@ -29,9 +29,17 @@ interface Schedule {
   location: string;
 }
 
+interface CustomEventInput extends EventInput {
+  extendedProps?: {
+    location?: string;
+    notes?: string;
+    type?: string;
+  };
+}
+
 export default function Calendar() {
   const [currentEvents, setCurrentEvents] = useState<EventApi[]>([]);
-  const [allEvents, setAllEvents] = useState<EventInput[]>([]);
+  const [allEvents, setAllEvents] = useState<CustomEventInput[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
@@ -48,7 +56,7 @@ export default function Calendar() {
   );
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [eventDetailOpen, setEventDetailOpen] = useState<boolean>(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CustomEventInput | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
 
   useEffect(() => {
@@ -77,10 +85,10 @@ export default function Calendar() {
       const savedCustomEvents = localStorage.getItem("customEvents");
       if (savedCustomEvents) {
         const parsedCustomEvents = JSON.parse(savedCustomEvents);
-        const customEventsWithDates = parsedCustomEvents.map((event: any) => ({
+        const customEventsWithDates = parsedCustomEvents.map((event: CustomEventInput) => ({
           ...event,
-          start: new Date(event.start),
-          end: new Date(event.end),
+          start: new Date(event.start as string),
+          end: new Date(event.end as string),
         }));
 
         const combined = [...calendarEvents, ...customEventsWithDates];
@@ -95,8 +103,8 @@ export default function Calendar() {
     }
   };
 
-  const generateCalendarEvents = (schedules: Schedule[]): EventInput[] => {
-    const events: EventInput[] = [];
+  const generateCalendarEvents = (schedules: Schedule[]): CustomEventInput[] => {
+    const events: CustomEventInput[] = [];
     const today = new Date();
 
     const dayMap: Record<string, number> = {
@@ -212,7 +220,7 @@ export default function Calendar() {
 
   const groupEventsByDateFromAll = () => {
     const filteredEvents = getEventsForCurrentMonth();
-    const grouped: { [key: string]: any[] } = {};
+    const grouped: { [key: string]: CustomEventInput[] } = {};
 
     filteredEvents.forEach((event) => {
       if (!event.start) return;
@@ -295,7 +303,7 @@ export default function Calendar() {
       const backgroundColor = eventType === "shift" ? "#c8e6c9" : "#bbdefb";
       const borderColor = eventType === "shift" ? "#4caf50" : "#2196f3";
 
-      const newEvent = {
+      const newEvent: CustomEventInput = {
         id: `${eventType}-${Date.now()}-${newEventTitle}`,
         title: newEventTitle,
         start: startDate,
@@ -1288,7 +1296,7 @@ export default function Calendar() {
                         const calendarApi = calendarRef.current?.getApi();
                         if (calendarApi && selectedEvent.id) {
                           const calEvent = calendarApi.getEventById(
-                            selectedEvent.id
+                            selectedEvent.id as string
                           );
                           if (calEvent) calEvent.remove();
                         }
