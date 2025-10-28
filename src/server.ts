@@ -5,7 +5,17 @@ import { initSocketHandlers } from './lib/socket/socketHandler';
 const port = process.env.PORT || 3001;
 const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
-const httpServer = createServer();
+const httpServer = createServer((req, res) => {
+  // Health check endpoint
+  if (req.url === '/health' || req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', message: 'Socket.IO server is running' }));
+    return;
+  }
+  
+  res.writeHead(404);
+  res.end();
+});
 
 // Initialize Socket.IO
 const io = new SocketIOServer(httpServer, {
