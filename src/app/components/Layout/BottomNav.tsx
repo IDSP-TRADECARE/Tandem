@@ -23,7 +23,7 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6">
-      <div className="bg-[#3d5a80] rounded-full shadow-2xl px-6 py-5 relative">
+      <div className="bg-primary-active rounded-full shadow-2xl px-6 py-2 relative">
         <div className="flex items-center justify-around">
           {/* Schedule */}
           <Link href="/" className="flex flex-col items-center gap-2 flex-1 focus:outline-none">
@@ -74,29 +74,27 @@ export function BottomNav({ onUploadClick }: BottomNavProps) {
           </Link>
 
           {/* Nanny Share */}
-          <Link href="/nanny" className="flex flex-col items-center gap-2 flex-1">
-            <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                isActive('/nanny') ? 'bg-white' : 'bg-transparent'
+          <Link href="/nanny" className="flex flex-col items-center gap-2 flex-1 focus:outline-none">
+            <svg
+              className={`w-7 h-7 ${
+                isActive('/nanny') ? 'text-white' : 'text-white/70'
               }`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
             >
-              <svg
-                className={`w-6 h-6 ${
-                  isActive('/nanny') ? 'text-[#1e3a5f]' : 'text-white'
-                }`}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                />
-              </svg>
-            </div>
-            <span className="text-xs text-white font-medium">Nanny</span>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+              />
+            </svg>
+            <span className={`text-xs font-medium ${
+              isActive('/nanny') ? 'text-white' : 'text-white/70'
+            }`}>
+              Nanny
+            </span>
           </Link>
 
           {/* Profile */}
