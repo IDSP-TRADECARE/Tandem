@@ -1,0 +1,1 @@
+ALTER TABLE "nanny_shares" ADD COLUMN "messages" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -1,71 +1,91 @@
 import { Schedule } from '../db/schema';
 
-export interface Task {
-  id: string;
-  title: string;
-  subtitle: string;
-  time: string;
-  type: 'work' | 'childcare';
-  completed: boolean;
-  date: Date;
+export interface DaySchedule {
+  date: number;
+  day: string;
+  month: string;
+  fullDate: Date;
+  hasWork: boolean;
+  hasChildcare: boolean;
+  workLocation?: string;
+  workTime?: string;
+  workTimeEnd?: string;
 }
 
-export function scheduleToTasks(schedule: Schedule): Task[] {
-  const tasks: Task[] = [];
-  const today = new Date();
-  const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+const DAY_MAP: Record<string, number> = {
+  'SUN': 0,
+  'MON': 1,
+  'TUE': 2,
+  'WED': 3,
+  'THU': 4,
+  'FRI': 5,
+  'SAT': 6,
+};
+
+export function generateWeekSchedule(schedules: Schedule[], weekStartDate?: Date): DaySchedule[] {
+  // Default to current week if no start date provided
+  const startDate = weekStartDate || getStartOfWeek(new Date());
   
-  // Map day names to codes
-  const dayMap: Record<string, string> = {
-    'SUN': 'SUN',
-    'MON': 'MON',
-    'TUE': 'TUE',
-    'WED': 'WED',
-    'THU': 'THU',
-    'FRI': 'FRI',
-    'SAT': 'SAT',
-  };
-
-  const todayCode = dayMap[dayOfWeek];
-
-  // Check if today is a working day
-  if (schedule.workingDays.includes(todayCode)) {
-    // Create work task
-    tasks.push({
-      id: `${schedule.id}-work`,
-      title: `Work at: ${schedule.location || 'Work site'}`,
-      subtitle: `Work from ${formatTime(schedule.timeFrom)} to ${formatTime(schedule.timeTo)}`,
-      time: formatTime(schedule.timeFrom),
-      type: 'work',
-      completed: false,
-      date: today,
-    });
-
-    // If there's childcare mentioned in notes, create a childcare task
-    // This is a simple example - you might want to have a separate childcare table
-    if (schedule.notes && (schedule.notes.toLowerCase().includes('childcare') || 
-        schedule.notes.toLowerCase().includes('nanny') || 
-        schedule.notes.toLowerCase().includes('kid'))) {
-      tasks.push({
-        id: `${schedule.id}-childcare`,
-        title: 'Childcare arrangement',
-        subtitle: schedule.notes,
-        time: formatTime(schedule.timeFrom),
-        type: 'childcare',
-        completed: false,
-        date: today,
-      });
+  const weekDays: DaySchedule[] = [];
+  
+  // Generate 7 days starting from startDate
+  for (let i = 0; i < 7; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+    
+    const dayOfWeek = currentDate.getDay(); // 0-6
+    const dayCode = Object.keys(DAY_MAP).find(key => DAY_MAP[key] === dayOfWeek) || 'SUN';
+    
+    // Check if any schedule has work on this day
+    let hasWork = false;
+    let workLocation = '';
+    let workTime = '';
+    let workTimeEnd = '';
+    
+    for (const schedule of schedules) {
+      if (schedule.workingDays.includes(dayCode)) {
+        hasWork = true;
+        workLocation = schedule.location || 'Work site';
+        workTime = formatTime(schedule.timeFrom);
+        workTimeEnd = formatTime(schedule.timeTo);
+        break; // Use first matching schedule
+      }
     }
+    
+    // Check for childcare (you'll need to add childcare logic or table later)
+    const hasChildcare = false; // TODO: Check childcare bookings
+    
+    weekDays.push({
+      date: currentDate.getDate(),
+      day: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
+      month: currentDate.toLocaleDateString('en-US', { month: 'short' }),
+      fullDate: currentDate,
+      hasWork,
+      hasChildcare,
+      workLocation,
+      workTime,
+      workTimeEnd,
+    });
   }
+  
+  return weekDays;
+}
 
-  return tasks;
+function getStartOfWeek(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  return new Date(d.setDate(diff));
 }
 
 function formatTime(time: string): string {
-  // Convert 24-hour format to 12-hour format
   const [hours, minutes] = time.split(':');
   const hour = parseInt(hours);
   const ampm = hour >= 12 ? 'PM' : 'AM';
   const displayHour = hour % 12 || 12;
   return `${displayHour}:${minutes} ${ampm}`;
+}
+
+export function getMonthYearFromDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
