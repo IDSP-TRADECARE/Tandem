@@ -43,6 +43,8 @@ export default function Calendar() {
   const [newEventLocation, setNewEventLocation] = useState<string>("");
   const [activeView, setActiveView] = useState<"weekly" | "calendar">("calendar");
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [eventDetailOpen, setEventDetailOpen] = useState<boolean>(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const calendarRef = useRef<FullCalendar>(null);
 
   useEffect(() => {
@@ -166,53 +168,49 @@ export default function Calendar() {
     }
   }, [currentEvents]);
 
-const getEventsForDate = (date: Date) => {
-  const filtered = allEvents.filter((event) => {
-    if (!event.start) return false;
-    const eventStart = event.start instanceof Date ? event.start : new Date(event.start as string);
-    return eventStart.toDateString() === date.toDateString();
-  });
-  console.log(`Events for ${date.toDateString()}:`, filtered);
-  return filtered;
-};
+  const getEventsForDate = (date: Date) => {
+    const filtered = allEvents.filter((event) => {
+      if (!event.start) return false;
+      const eventStart = event.start instanceof Date ? event.start : new Date(event.start as string);
+      return eventStart.toDateString() === date.toDateString();
+    });
+    return filtered;
+  };
 
-const getEventsForCurrentMonth = () => {
-  const filtered = allEvents.filter((event) => {
-    if (!event.start) return false;
-    const eventStart = event.start instanceof Date ? event.start : new Date(event.start as string);
-    return (
-      eventStart.getMonth() === currentMonth.getMonth() &&
-      eventStart.getFullYear() === currentMonth.getFullYear()
-    );
-  });
-  console.log(`Events for current month:`, filtered);
-  console.log(`Current month:`, currentMonth);
-  console.log(`All events:`, allEvents);
-  return filtered;
-};
+  const getEventsForCurrentMonth = () => {
+    const filtered = allEvents.filter((event) => {
+      if (!event.start) return false;
+      const eventStart = event.start instanceof Date ? event.start : new Date(event.start as string);
+      return (
+        eventStart.getMonth() === currentMonth.getMonth() &&
+        eventStart.getFullYear() === currentMonth.getFullYear()
+      );
+    });
+    return filtered;
+  };
 
-const groupEventsByDateFromAll = () => {
-  const filteredEvents = getEventsForCurrentMonth();
-  const grouped: { [key: string]: any[] } = {};
-  
-  filteredEvents.forEach((event) => {
-    if (!event.start) return;
-    const eventStart = event.start instanceof Date ? event.start : new Date(event.start as string);
+  const groupEventsByDateFromAll = () => {
+    const filteredEvents = getEventsForCurrentMonth();
+    const grouped: { [key: string]: any[] } = {};
     
-    const dateKey = formatDate(eventStart, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+    filteredEvents.forEach((event) => {
+      if (!event.start) return;
+      const eventStart = event.start instanceof Date ? event.start : new Date(event.start as string);
+      
+      const dateKey = formatDate(eventStart, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(event);
     });
     
-    if (!grouped[dateKey]) {
-      grouped[dateKey] = [];
-    }
-    grouped[dateKey].push(event);
-  });
-  
-  return grouped;
-};
+    return grouped;
+  };
 
   const handleDateClick = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo);
@@ -448,12 +446,12 @@ const groupEventsByDateFromAll = () => {
               eventClick={handleEventClick}
               eventsSet={(events) => setCurrentEvents(events)}
               datesSet={(dateInfo) => {
-              const centerDate = new Date(
-              dateInfo.view.currentStart.getFullYear(),
-              dateInfo.view.currentStart.getMonth(),
-              15
-              );
-              setCurrentMonth(centerDate);
+                const centerDate = new Date(
+                  dateInfo.view.currentStart.getFullYear(),
+                  dateInfo.view.currentStart.getMonth(),
+                  15
+                );
+                setCurrentMonth(centerDate);
               }}
               events={allEvents}
               eventDisplay="block"
@@ -648,14 +646,14 @@ const groupEventsByDateFromAll = () => {
                   const dayOfMonth = formatDate(date, { day: "numeric" });
                   const month = formatDate(date, { month: "short" });
                   const isToday = date.toDateString() === new Date().toDateString();
-
+                  
                   const dayEvents = getEventsForDate(date);
 
                   return (
                     <div
                       key={date.toISOString()}
                       className={`rounded-3xl overflow-hidden bg-white ${
-                        isToday ? "border-4 border-purple-500" : "border-4 border-black"
+                        isToday ? "border-4 border-blue-500" : "border-4 border-black"
                       }`}
                     >
                       <div className="p-5 flex gap-4">
@@ -673,7 +671,7 @@ const groupEventsByDateFromAll = () => {
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              {dayEvents.map((event, idx) => {
+                              {dayEvents.map((event) => {
                                 const eventStart = typeof event.start === 'string' ? new Date(event.start) : event.start;
                                 return (
                                   <div
@@ -687,17 +685,10 @@ const groupEventsByDateFromAll = () => {
                                           ? "#FFE4B5"
                                           : "#D5EDD8",
                                     }}
-                                        onClick={() => {
-                                       if (event.extendedProps?.type === 'work' || event.extendedProps?.type === 'childcare') {
-                                       alert('Schedule events cannot be deleted. Please update your schedule in the schedule page.');
-                                       return;
-                                        }
-                                        const calendarApi = calendarRef.current?.getApi();
-                                      if (calendarApi && event.id && window.confirm(`Are you sure you want to delete the event '${event.title}'?`)) {
-                                     const calEvent = calendarApi.getEventById(event.id);
-                                        if (calEvent) calEvent.remove();
-                                          }
-                                        }}
+                                    onClick={() => {
+                                      setSelectedEvent(event);
+                                      setEventDetailOpen(true);
+                                    }}
                                   >
                                     <div
                                       className="w-6 h-6 rounded-full flex-shrink-0"
@@ -771,7 +762,7 @@ const groupEventsByDateFromAll = () => {
                           </div>
 
                           <div className="flex-1 space-y-2 py-1">
-                            {events.map((event, idx) => {
+                            {events.map((event) => {
                               const eventStart = typeof event.start === 'string' ? new Date(event.start) : event.start;
                               return (
                                 <div
@@ -784,15 +775,8 @@ const groupEventsByDateFromAll = () => {
                                       : "#E8F5E9",
                                   }}
                                   onClick={() => {
-                                    if (event.extendedProps?.type === 'work' || event.extendedProps?.type === 'childcare') {
-                                      alert('Schedule events cannot be deleted. Please update your schedule in the schedule page.');
-                                      return;
-                                    }
-                                    const calendarApi = calendarRef.current?.getApi();
-                                    if (calendarApi && window.confirm(`Are you sure you want to delete the event '${event.title}'?`)) {
-                                      const calEvent = calendarApi.getEventById(event.id);
-                                      if (calEvent) calEvent.remove();
-                                    }
+                                    setSelectedEvent(event);
+                                    setEventDetailOpen(true);
                                   }}
                                 >
                                   <div
@@ -971,6 +955,130 @@ const groupEventsByDateFromAll = () => {
               Add Event
             </button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Event Detail Dialog */}
+      <Dialog open={eventDetailOpen} onOpenChange={setEventDetailOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Event Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedEvent && (
+            <div className="space-y-4">
+              {/* Event Type Badge */}
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor:
+                      selectedEvent.extendedProps?.type === 'work' ? "#5C6BC0"
+                      : selectedEvent.extendedProps?.type === 'childcare' ? "#FFA726"
+                      : "#66BB6A",
+                  }}
+                ></div>
+                <span className="text-sm font-medium text-gray-500 uppercase">
+                  {selectedEvent.extendedProps?.type === 'work' ? 'Work Schedule'
+                   : selectedEvent.extendedProps?.type === 'childcare' ? 'Childcare Reminder'
+                   : 'Custom Event'}
+                </span>
+              </div>
+
+              {/* Event Title */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+                <p className="text-lg font-medium text-gray-900">{selectedEvent.title}</p>
+              </div>
+
+              {/* Date & Time */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Date & Time</label>
+                <div className="space-y-1">
+                  {(() => {
+                    const eventStart = selectedEvent.start instanceof Date 
+                      ? selectedEvent.start 
+                      : new Date(selectedEvent.start as string);
+                    const eventEnd = selectedEvent.end instanceof Date 
+                      ? selectedEvent.end 
+                      : selectedEvent.end ? new Date(selectedEvent.end as string) : null;
+                    
+                    return (
+                      <>
+                        <p className="text-gray-900">
+                          📅 {formatDate(eventStart, {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                        <p className="text-gray-900">
+                          🕐 {formatDate(eventStart, {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          })}
+                          {eventEnd && ` - ${formatDate(eventEnd, {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          })}`}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Location */}
+              {selectedEvent.extendedProps?.location && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                  <p className="text-gray-900">📍 {selectedEvent.extendedProps.location}</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                {selectedEvent.extendedProps?.type === 'custom' && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to delete "${selectedEvent.title}"?`)) {
+                        const calendarApi = calendarRef.current?.getApi();
+                        if (calendarApi && selectedEvent.id) {
+                          const calEvent = calendarApi.getEventById(selectedEvent.id);
+                          if (calEvent) calEvent.remove();
+                        }
+                        setEventDetailOpen(false);
+                      }
+                    }}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                  >
+                    Delete Event
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => setEventDetailOpen(false)}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-4 rounded-xl transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+
+              {/* Note for schedule events */}
+              {(selectedEvent.extendedProps?.type === 'work' || 
+                selectedEvent.extendedProps?.type === 'childcare') && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <p className="text-sm text-blue-900">
+                    ℹ️ This is a schedule event and cannot be deleted here. 
+                    Please update your schedule in the Schedule page.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
