@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, uuid, jsonb, time, index, json, integer, decimal } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp, uuid, jsonb, time, index, json, integer, decimal, boolean } from 'drizzle-orm/pg-core';
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -21,7 +21,7 @@ export const schedules = pgTable('schedules', {
   title: varchar('title', { length: 255 }).notNull(),
   workingDays: jsonb('working_days').$type<string[]>().notNull(),
   timeFrom: time('time_from').notNull(),
-  timeTo: time('to').notNull(),
+  timeTo: time('time_to').notNull(),
   location: varchar('location', { length: 255 }),
   notes: text('notes'),
   originalFileUrl: text('original_file_url'),
@@ -31,6 +31,29 @@ export const schedules = pgTable('schedules', {
   return {
     userIdIdx: index('idx_schedules_user_id').on(table.userId),
     createdAtIdx: index('idx_schedules_created_at').on(table.createdAt),
+  };
+});
+
+// Events table - for daily tasks generated from schedules
+export const events = pgTable('events', {
+  id: serial('id').primaryKey(),
+  userId: varchar('user_id', { length: 255 }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  type: varchar('type', { length: 50 }).notNull(), // 'work' or 'childcare'
+  date: timestamp('date', { withTimezone: true }).notNull(),
+  timeFrom: time('time_from').notNull(),
+  timeTo: time('time_to').notNull(),
+  location: varchar('location', { length: 255 }),
+  notes: text('notes'),
+  completed: boolean('completed').default(false).notNull(),
+  scheduleId: uuid('schedule_id').references(() => schedules.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => {
+  return {
+    userIdIdx: index('idx_events_user_id').on(table.userId),
+    dateIdx: index('idx_events_date').on(table.date),
+    typeIdx: index('idx_events_type').on(table.type),
   };
 });
 
@@ -80,12 +103,15 @@ export const nannyShares = pgTable('nanny_shares', {
     senderName: string;
     content: string;
     timestamp: string;
-  }>>().notNull().default([]), // Changed from json to jsonb and added array type + default
+  }>>().notNull().default([]),
 });
 
 // TypeScript types
 export type Schedule = typeof schedules.$inferSelect;
 export type NewSchedule = typeof schedules.$inferInsert;
+
+export type Event = typeof events.$inferSelect;
+export type NewEvent = typeof events.$inferInsert;
 
 export type User = InferSelectModel<typeof users>;
 export type NewUser = InferInsertModel<typeof users>;

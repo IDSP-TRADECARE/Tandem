@@ -23,8 +23,13 @@ const DAY_MAP: Record<string, number> = {
 };
 
 export function generateWeekSchedule(schedules: Schedule[], weekStartDate?: Date): DaySchedule[] {
+  console.log('🏗️ === GENERATE WEEK SCHEDULE FUNCTION ===');
+  console.log('📊 Number of schedules received:', schedules?.length || 0);
+  console.log('📋 Schedules:', schedules);
+  
   // Default to current week if no start date provided
   const startDate = weekStartDate || getStartOfWeek(new Date());
+  console.log('📅 Week start date:', startDate.toDateString());
   
   const weekDays: DaySchedule[] = [];
   
@@ -33,8 +38,12 @@ export function generateWeekSchedule(schedules: Schedule[], weekStartDate?: Date
     const currentDate = new Date(startDate);
     currentDate.setDate(startDate.getDate() + i);
     
-    const dayOfWeek = currentDate.getDay(); // 0-6
+    const dayOfWeek = currentDate.getDay(); // 0-6 (0=Sunday, 1=Monday, etc.)
+    
+    // Map day number to day code
     const dayCode = Object.keys(DAY_MAP).find(key => DAY_MAP[key] === dayOfWeek) || 'SUN';
+    
+    console.log(`\n🔍 Checking ${dayCode} (${currentDate.toDateString()})...`);
     
     // Check if any schedule has work on this day
     let hasWork = false;
@@ -43,17 +52,29 @@ export function generateWeekSchedule(schedules: Schedule[], weekStartDate?: Date
     let workTimeEnd = '';
     
     for (const schedule of schedules) {
+      console.log(`  📝 Schedule "${schedule.title}"`);
+      console.log(`  📆 Working days:`, schedule.workingDays);
+      console.log(`  ❓ Includes ${dayCode}?`, schedule.workingDays.includes(dayCode));
+      
+      // Check if this schedule includes the current day
       if (schedule.workingDays.includes(dayCode)) {
         hasWork = true;
         workLocation = schedule.location || 'Work site';
         workTime = formatTime(schedule.timeFrom);
         workTimeEnd = formatTime(schedule.timeTo);
+        console.log(`  ✅ MATCH! Work found for ${dayCode}`);
+        console.log(`  📍 Location: ${workLocation}`);
+        console.log(`  ⏰ Time: ${workTime}`);
         break; // Use first matching schedule
       }
     }
     
+    if (!hasWork) {
+      console.log(`  ❌ No work scheduled for ${dayCode}`);
+    }
+    
     // Check for childcare (you'll need to add childcare logic or table later)
-    const hasChildcare = false; // TODO: Check childcare bookings
+    const hasChildcare = false; // TODO: Check childcare bookings from database
     
     weekDays.push({
       date: currentDate.getDate(),
@@ -68,6 +89,11 @@ export function generateWeekSchedule(schedules: Schedule[], weekStartDate?: Date
     });
   }
   
+  console.log('\n✨ === FINAL WEEK SCHEDULE ===');
+  weekDays.forEach(day => {
+    console.log(`${day.day} ${day.date}: ${day.hasWork ? '✅ Work at ' + day.workLocation : '❌ No work'}`);
+  });
+  
   return weekDays;
 }
 
@@ -79,11 +105,25 @@ function getStartOfWeek(date: Date): Date {
 }
 
 function formatTime(time: string): string {
-  const [hours, minutes] = time.split(':');
-  const hour = parseInt(hours);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${minutes} ${ampm}`;
+  if (!time) {
+    console.warn('⚠️ formatTime received empty time');
+    return '';
+  }
+  
+  console.log('🕐 Formatting time:', time);
+  
+  // Handle both "HH:MM:SS" and "HH:MM" formats
+  const parts = time.split(':');
+  const hours = parseInt(parts[0]);
+  const minutes = parts[1] || '00';
+  
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHour = hours % 12 || 12;
+  const formatted = `${displayHour}:${minutes} ${ampm}`;
+  
+  console.log('🕐 Formatted result:', formatted);
+  
+  return formatted;
 }
 
 export function getMonthYearFromDate(date: Date): string {
