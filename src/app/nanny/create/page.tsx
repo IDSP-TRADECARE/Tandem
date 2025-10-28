@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/app/components/Layout/BottomNav';
 
-export default function CreateNannySharePage() {
+function CreateNannyShareContent() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -69,7 +69,7 @@ export default function CreateNannySharePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 pb-32">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 pb-32">
       <div className="px-6 pt-8 max-w-2xl mx-auto">
         <div className="mb-6">
           <button
@@ -240,6 +240,14 @@ export default function CreateNannySharePage() {
       </div>
 
       <BottomNav />
+    </div>
+  );
+}
+
+export default function CreateNannySharePage() {
+  return (
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 pb-32">
+      <CreateNannyShareContent />
     </div>
   );
 }
