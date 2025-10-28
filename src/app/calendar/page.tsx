@@ -17,7 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/app/components/ui/calendar/dialog";
+} from "@/components/ui/dialog";
 import { BottomNav } from "../components/Layout/BottomNav";
 
 interface Schedule {
@@ -36,12 +36,16 @@ export default function Calendar() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [monthPickerOpen, setMonthPickerOpen] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"shift" | "nanny">("shift");
   const [newEventTitle, setNewEventTitle] = useState<string>("");
   const [newEventStartTime, setNewEventStartTime] = useState<string>("");
   const [newEventEndTime, setNewEventEndTime] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<DateSelectArg | null>(null);
   const [newEventLocation, setNewEventLocation] = useState<string>("");
-  const [activeView, setActiveView] = useState<"weekly" | "calendar">("calendar");
+  const [newEventNotes, setNewEventNotes] = useState<string>("");
+  const [activeView, setActiveView] = useState<"weekly" | "calendar">(
+    "calendar"
+  );
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [eventDetailOpen, setEventDetailOpen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -54,22 +58,22 @@ export default function Calendar() {
   const fetchSchedules = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching schedules from API...');
-      
-      const response = await fetch('/api/schedule/week');
-      
+      console.log("🔍 Fetching schedules from API...");
+
+      const response = await fetch("/api/schedule/week");
+
       if (!response.ok) {
-        throw new Error('Failed to fetch schedules');
+        throw new Error("Failed to fetch schedules");
       }
 
       const data = await response.json();
-      console.log('✅ Schedules received:', data.schedules);
-      
+      console.log("✅ Schedules received:", data.schedules);
+
       setSchedules(data.schedules || []);
-      
+
       const calendarEvents = generateCalendarEvents(data.schedules || []);
-      console.log('📅 Generated calendar events:', calendarEvents);
-      
+      console.log("📅 Generated calendar events:", calendarEvents);
+
       const savedCustomEvents = localStorage.getItem("customEvents");
       if (savedCustomEvents) {
         const parsedCustomEvents = JSON.parse(savedCustomEvents);
@@ -78,14 +82,14 @@ export default function Calendar() {
           start: new Date(event.start),
           end: new Date(event.end),
         }));
-        
+
         const combined = [...calendarEvents, ...customEventsWithDates];
         setAllEvents(combined);
       } else {
         setAllEvents(calendarEvents);
       }
     } catch (error) {
-      console.error('❌ Error fetching schedules:', error);
+      console.error("❌ Error fetching schedules:", error);
     } finally {
       setLoading(false);
     }
@@ -94,71 +98,82 @@ export default function Calendar() {
   const generateCalendarEvents = (schedules: Schedule[]): EventInput[] => {
     const events: EventInput[] = [];
     const today = new Date();
-    
+
     const dayMap: Record<string, number> = {
-      'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3,
-      'THU': 4, 'FRI': 5, 'SAT': 6,
+      SUN: 0,
+      MON: 1,
+      TUE: 2,
+      WED: 3,
+      THU: 4,
+      FRI: 5,
+      SAT: 6,
     };
-    
+
     for (let i = 0; i < 90; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      
+
       const dayOfWeek = date.getDay();
-      
+
       for (const schedule of schedules) {
-        const dayCode = Object.keys(dayMap).find(key => dayMap[key] === dayOfWeek);
-        
+        const dayCode = Object.keys(dayMap).find(
+          (key) => dayMap[key] === dayOfWeek
+        );
+
         if (dayCode && schedule.workingDays.includes(dayCode)) {
-          const dateStr = date.toISOString().split('T')[0];
-          
+          const dateStr = date.toISOString().split("T")[0];
+
           events.push({
             id: `work-${schedule.id}-${dateStr}`,
-            title: `Work: ${schedule.location || 'Work'}`,
+            title: `Work: ${schedule.location || "Work"}`,
             start: `${dateStr}T${schedule.timeFrom}`,
             end: `${dateStr}T${schedule.timeTo}`,
             allDay: false,
-            backgroundColor: '#c6efce',
-            borderColor: '#5f9f6f',
+            backgroundColor: "#c6efce",
+            borderColor: "#5f9f6f",
             extendedProps: {
               location: schedule.location,
-              type: 'work',
+              type: "work",
             },
           });
-          
+
           events.push({
             id: `childcare-${schedule.id}-${dateStr}`,
-            title: 'No Childcare',
+            title: "No Childcare",
             start: `${dateStr}T${schedule.timeFrom}`,
             end: `${dateStr}T${schedule.timeFrom}`,
             allDay: false,
-            backgroundColor: '#fff4e6',
-            borderColor: '#ffa726',
+            backgroundColor: "#fff4e6",
+            borderColor: "#ffa726",
             extendedProps: {
-              type: 'childcare',
+              type: "childcare",
             },
           });
         }
       }
     }
-    
+
     return events;
   };
 
   const saveCustomEvents = () => {
     const customEvents = currentEvents
-      .filter(event => event.extendedProps?.type === 'custom')
-      .map(event => ({
+      .filter(
+        (event) =>
+          event.extendedProps?.type === "shift" ||
+          event.extendedProps?.type === "nanny"
+      )
+      .map((event) => ({
         id: event.id,
         title: event.title,
         start: event.start?.toISOString(),
         end: event.end?.toISOString(),
         allDay: event.allDay,
-        backgroundColor: '#e8f5e9',
-        borderColor: '#66bb6a',
+        backgroundColor: event.backgroundColor,
+        borderColor: event.borderColor,
         extendedProps: event.extendedProps,
       }));
-    
+
     localStorage.setItem("customEvents", JSON.stringify(customEvents));
   };
 
@@ -171,7 +186,10 @@ export default function Calendar() {
   const getEventsForDate = (date: Date) => {
     const filtered = allEvents.filter((event) => {
       if (!event.start) return false;
-      const eventStart = event.start instanceof Date ? event.start : new Date(event.start as string);
+      const eventStart =
+        event.start instanceof Date
+          ? event.start
+          : new Date(event.start as string);
       return eventStart.toDateString() === date.toDateString();
     });
     return filtered;
@@ -180,7 +198,10 @@ export default function Calendar() {
   const getEventsForCurrentMonth = () => {
     const filtered = allEvents.filter((event) => {
       if (!event.start) return false;
-      const eventStart = event.start instanceof Date ? event.start : new Date(event.start as string);
+      const eventStart =
+        event.start instanceof Date
+          ? event.start
+          : new Date(event.start as string);
       return (
         eventStart.getMonth() === currentMonth.getMonth() &&
         eventStart.getFullYear() === currentMonth.getFullYear()
@@ -192,28 +213,32 @@ export default function Calendar() {
   const groupEventsByDateFromAll = () => {
     const filteredEvents = getEventsForCurrentMonth();
     const grouped: { [key: string]: any[] } = {};
-    
+
     filteredEvents.forEach((event) => {
       if (!event.start) return;
-      const eventStart = event.start instanceof Date ? event.start : new Date(event.start as string);
-      
+      const eventStart =
+        event.start instanceof Date
+          ? event.start
+          : new Date(event.start as string);
+
       const dateKey = formatDate(eventStart, {
         year: "numeric",
         month: "short",
         day: "numeric",
       });
-      
+
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
       grouped[dateKey].push(event);
     });
-    
+
     return grouped;
   };
 
   const handleDateClick = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo);
+    setActiveTab("shift");
     setDialogOpen(true);
   };
 
@@ -223,15 +248,21 @@ export default function Calendar() {
     setNewEventStartTime("");
     setNewEventEndTime("");
     setNewEventLocation("");
+    setNewEventNotes("");
+    setActiveTab("shift");
   };
 
   const handleEventClick = (clickInfo: EventClickArg) => {
-    if (clickInfo.event.extendedProps?.type === 'work' || 
-        clickInfo.event.extendedProps?.type === 'childcare') {
-      alert('Schedule events cannot be deleted. Please update your schedule in the schedule page.');
+    if (
+      clickInfo.event.extendedProps?.type === "work" ||
+      clickInfo.event.extendedProps?.type === "childcare"
+    ) {
+      alert(
+        "Schedule events cannot be deleted. Please update your schedule in the schedule page."
+      );
       return;
     }
-    
+
     if (
       window.confirm(
         `Are you sure you want to delete the event '${clickInfo.event.title}'?`
@@ -260,17 +291,22 @@ export default function Calendar() {
         isAllDay = true;
       }
 
+      const eventType = activeTab;
+      const backgroundColor = eventType === "shift" ? "#c8e6c9" : "#bbdefb";
+      const borderColor = eventType === "shift" ? "#4caf50" : "#2196f3";
+
       const newEvent = {
-        id: `custom-${Date.now()}-${newEventTitle}`,
+        id: `${eventType}-${Date.now()}-${newEventTitle}`,
         title: newEventTitle,
         start: startDate,
         end: endDate,
         allDay: isAllDay,
-        backgroundColor: '#e8f5e9',
-        borderColor: '#66bb6a',
-        extendedProps: { 
+        backgroundColor: backgroundColor,
+        borderColor: borderColor,
+        extendedProps: {
           location: newEventLocation,
-          type: 'custom'
+          notes: newEventNotes,
+          type: eventType,
         },
       };
       calendarApi.addEvent(newEvent);
@@ -339,11 +375,36 @@ export default function Calendar() {
   const weekDates = getCurrentWeekDates();
 
   const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const years = Array.from({ length: 3000 - 2020 + 1 }, (_, i) => 2020 + i);
+
+  const getEventColor = (eventType: string) => {
+    switch (eventType) {
+      case "shift":
+        return { bg: "#E8F5E9", circle: "#4CAF50", border: "#2E7D32" };
+      case "nanny":
+        return { bg: "#E3F2FD", circle: "#2196F3", border: "#1565C0" };
+      case "work":
+        return { bg: "#D4E4F7", circle: "#5C6BC0", border: "#3949AB" };
+      case "childcare":
+        return { bg: "#FFE4B5", circle: "#FFA726", border: "#F57C00" };
+      default:
+        return { bg: "#F5F5F5", circle: "#9E9E9E", border: "#616161" };
+    }
+  };
 
   const CalendarHeader = () => (
     <div className="mb-6 bg-gradient-to-r from-blue-300 via-blue-200 to-blue-300 rounded-3xl p-6 flex items-center justify-between">
@@ -351,8 +412,18 @@ export default function Calendar() {
         onClick={handlePrevMonth}
         className="text-gray-800 hover:text-gray-600 transition-colors"
       >
-        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+        <svg
+          className="w-10 h-10"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={3}
+            d="M15 19l-7-7 7-7"
+          />
         </svg>
       </button>
 
@@ -361,8 +432,18 @@ export default function Calendar() {
         className="flex items-center gap-4 hover:opacity-80 transition-opacity"
       >
         <div className="bg-gray-700 p-3 rounded-xl">
-          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <svg
+            className="w-8 h-8 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
             <circle cx="9" cy="12" r="1" fill="currentColor" />
             <circle cx="12" cy="12" r="1" fill="currentColor" />
             <circle cx="15" cy="12" r="1" fill="currentColor" />
@@ -380,8 +461,18 @@ export default function Calendar() {
         onClick={handleNextMonth}
         className="text-gray-800 hover:text-gray-600 transition-colors"
       >
-        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+        <svg
+          className="w-10 h-10"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={3}
+            d="M9 5l7 7-7 7"
+          />
         </svg>
       </button>
     </div>
@@ -463,7 +554,6 @@ export default function Calendar() {
                 display: none;
               }
 
-              /* Desktop styles */
               @media (min-width: 1025px) {
                 .fc .fc-event {
                   margin-bottom: 2px;
@@ -471,17 +561,16 @@ export default function Calendar() {
                   font-size: 11px;
                   border-radius: 4px;
                 }
-                
+
                 .fc .fc-event-title {
                   font-weight: 500;
                 }
-                
+
                 .fc .fc-daygrid-day-frame {
                   min-height: 100px;
                 }
               }
 
-              /* Mobile styles */
               @media (max-width: 1024px) {
                 .fc .fc-scrollgrid {
                   border: none !important;
@@ -645,21 +734,28 @@ export default function Calendar() {
                   const dayOfWeek = formatDate(date, { weekday: "short" });
                   const dayOfMonth = formatDate(date, { day: "numeric" });
                   const month = formatDate(date, { month: "short" });
-                  const isToday = date.toDateString() === new Date().toDateString();
-                  
+                  const isToday =
+                    date.toDateString() === new Date().toDateString();
+
                   const dayEvents = getEventsForDate(date);
 
                   return (
                     <div
                       key={date.toISOString()}
                       className={`rounded-3xl overflow-hidden bg-white ${
-                        isToday ? "border-4 border-blue-500" : "border-4 border-black"
+                        isToday
+                          ? "border-4 border-blue-500"
+                          : "border-4 border-black"
                       }`}
                     >
                       <div className="p-5 flex gap-4">
                         <div className="text-center border-r-2 border-gray-200 pr-5 py-2">
-                          <div className="text-base text-gray-700 font-medium">{dayOfWeek}</div>
-                          <div className="text-5xl font-bold text-gray-900 my-1">{dayOfMonth}</div>
+                          <div className="text-base text-gray-700 font-medium">
+                            {dayOfWeek}
+                          </div>
+                          <div className="text-5xl font-bold text-gray-900 my-1">
+                            {dayOfMonth}
+                          </div>
                           <div className="text-base text-gray-600">{month}</div>
                         </div>
 
@@ -667,24 +763,25 @@ export default function Calendar() {
                           {dayEvents.length === 0 ? (
                             <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-100">
                               <div className="w-6 h-6 rounded-full border-2 border-gray-400 flex-shrink-0"></div>
-                              <div className="text-gray-500">Nothing yet! Want to add childcare or work?</div>
+                              <div className="text-gray-500">
+                                Nothing yet! Want to add childcare or work?
+                              </div>
                             </div>
                           ) : (
                             <div className="space-y-2">
                               {dayEvents.map((event) => {
-                                const eventStart = typeof event.start === 'string' ? new Date(event.start) : event.start;
+                                const eventStart =
+                                  typeof event.start === "string"
+                                    ? new Date(event.start)
+                                    : event.start;
+                                const colors = getEventColor(
+                                  event.extendedProps?.type || ""
+                                );
                                 return (
                                   <div
                                     key={event.id}
                                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-                                    style={{
-                                      backgroundColor:
-                                        event.extendedProps?.type === 'work' 
-                                          ? "#D4E4F7" 
-                                          : event.extendedProps?.type === 'childcare'
-                                          ? "#FFE4B5"
-                                          : "#D5EDD8",
-                                    }}
+                                    style={{ backgroundColor: colors.bg }}
                                     onClick={() => {
                                       setSelectedEvent(event);
                                       setEventDetailOpen(true);
@@ -693,19 +790,14 @@ export default function Calendar() {
                                     <div
                                       className="w-6 h-6 rounded-full flex-shrink-0"
                                       style={{
-                                        backgroundColor:
-                                          event.extendedProps?.type === 'work' ? "#5C6BC0"
-                                          : event.extendedProps?.type === 'childcare' ? "#FFA726"
-                                          : "#66BB6A",
-                                        border: `3px solid ${
-                                          event.extendedProps?.type === 'work' ? "#3949AB"
-                                          : event.extendedProps?.type === 'childcare' ? "#F57C00"
-                                          : "#43A047"
-                                        }`,
+                                        backgroundColor: colors.circle,
+                                        border: `3px solid ${colors.border}`,
                                       }}
                                     ></div>
                                     <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-gray-900 text-base truncate">{event.title}</div>
+                                      <div className="font-medium text-gray-900 text-base truncate">
+                                        {event.title}
+                                      </div>
                                       {event.extendedProps?.location && (
                                         <div className="text-sm text-gray-600 truncate mt-0.5">
                                           {event.extendedProps.location}
@@ -713,11 +805,12 @@ export default function Calendar() {
                                       )}
                                     </div>
                                     <div className="text-sm text-gray-600 font-medium flex-shrink-0">
-                                      {eventStart && formatDate(eventStart, {
-                                        hour: "numeric",
-                                        minute: "2-digit",
-                                        hour12: true,
-                                      })}
+                                      {eventStart &&
+                                        formatDate(eventStart, {
+                                          hour: "numeric",
+                                          minute: "2-digit",
+                                          hour12: true,
+                                        })}
                                     </div>
                                   </div>
                                 );
@@ -733,7 +826,9 @@ export default function Calendar() {
             ) : getEventsForCurrentMonth().length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-gray-400 text-lg mb-2">📅</div>
-                <p className="text-gray-400 italic">No Events in {formatMonthYear(currentMonth)}</p>
+                <p className="text-gray-400 italic">
+                  No Events in {formatMonthYear(currentMonth)}
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -745,35 +840,54 @@ export default function Calendar() {
                   })
                   .map(([date, events]) => {
                     const firstEvent = events[0];
-                    const firstEventStart = typeof firstEvent.start === 'string' ? new Date(firstEvent.start) : firstEvent.start;
+                    const firstEventStart =
+                      typeof firstEvent.start === "string"
+                        ? new Date(firstEvent.start)
+                        : firstEvent.start;
                     if (!firstEventStart) return null;
 
-                    const dayOfWeek = formatDate(firstEventStart, { weekday: "short" });
-                    const dayOfMonth = formatDate(firstEventStart, { day: "numeric" });
-                    const month = formatDate(firstEventStart, { month: "short" });
+                    const dayOfWeek = formatDate(firstEventStart, {
+                      weekday: "short",
+                    });
+                    const dayOfMonth = formatDate(firstEventStart, {
+                      day: "numeric",
+                    });
+                    const month = formatDate(firstEventStart, {
+                      month: "short",
+                    });
 
                     return (
-                      <div key={date} className="border-5 border-black rounded-3xl overflow-hidden bg-white">
+                      <div
+                        key={date}
+                        className="border-5 border-black rounded-3xl overflow-hidden bg-white"
+                      >
                         <div className="p-5 flex gap-4">
                           <div className="text-center border-r-2 border-gray-200 pr-5 py-2">
-                            <div className="text-base text-gray-700 font-medium">{dayOfWeek}</div>
-                            <div className="text-5xl font-bold text-gray-900 my-1">{dayOfMonth}</div>
-                            <div className="text-base text-gray-600">{month}</div>
+                            <div className="text-base text-gray-700 font-medium">
+                              {dayOfWeek}
+                            </div>
+                            <div className="text-5xl font-bold text-gray-900 my-1">
+                              {dayOfMonth}
+                            </div>
+                            <div className="text-base text-gray-600">
+                              {month}
+                            </div>
                           </div>
 
                           <div className="flex-1 space-y-2 py-1">
                             {events.map((event) => {
-                              const eventStart = typeof event.start === 'string' ? new Date(event.start) : event.start;
+                              const eventStart =
+                                typeof event.start === "string"
+                                  ? new Date(event.start)
+                                  : event.start;
+                              const colors = getEventColor(
+                                event.extendedProps?.type || ""
+                              );
                               return (
                                 <div
                                   key={event.id}
                                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
-                                  style={{
-                                    backgroundColor:
-                                      event.extendedProps?.type === 'work' ? "#E8EAF6"
-                                      : event.extendedProps?.type === 'childcare' ? "#FFE4B5"
-                                      : "#E8F5E9",
-                                  }}
+                                  style={{ backgroundColor: colors.bg }}
                                   onClick={() => {
                                     setSelectedEvent(event);
                                     setEventDetailOpen(true);
@@ -782,19 +896,14 @@ export default function Calendar() {
                                   <div
                                     className="w-4 h-4 rounded-full flex-shrink-0 border-3"
                                     style={{
-                                      backgroundColor:
-                                        event.extendedProps?.type === 'work' ? "#5C6BC0"
-                                        : event.extendedProps?.type === 'childcare' ? "#FFA726"
-                                        : "#66BB6A",
-                                      border: `3px solid ${
-                                        event.extendedProps?.type === 'work' ? "#3949AB"
-                                        : event.extendedProps?.type === 'childcare' ? "#F57C00"
-                                        : "#43A047"
-                                      }`,
+                                      backgroundColor: colors.circle,
+                                      border: `3px solid ${colors.border}`,
                                     }}
                                   ></div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-gray-900 text-base truncate">{event.title}</div>
+                                    <div className="font-medium text-gray-900 text-base truncate">
+                                      {event.title}
+                                    </div>
                                     {event.extendedProps?.location && (
                                       <div className="text-sm text-gray-600 truncate mt-0.5">
                                         {event.extendedProps.location}
@@ -802,11 +911,12 @@ export default function Calendar() {
                                     )}
                                   </div>
                                   <div className="text-sm text-gray-600 font-medium flex-shrink-0">
-                                    {eventStart && formatDate(eventStart, {
-                                      hour: "numeric",
-                                      minute: "2-digit",
-                                      hour12: true,
-                                    })}
+                                    {eventStart &&
+                                      formatDate(eventStart, {
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                      })}
                                   </div>
                                 </div>
                               );
@@ -828,7 +938,9 @@ export default function Calendar() {
       <Dialog open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Select Month & Year</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Select Month & Year
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             <button
@@ -838,18 +950,32 @@ export default function Calendar() {
               }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-md flex items-center justify-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
               Go to Today
             </button>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Year</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Year
+              </label>
               <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-xl">
                 {years.map((year) => (
                   <button
                     key={year}
-                    onClick={() => handleMonthSelect(currentMonth.getMonth(), year)}
+                    onClick={() =>
+                      handleMonthSelect(currentMonth.getMonth(), year)
+                    }
                     className={`p-3 rounded-xl font-medium transition-colors ${
                       year === currentMonth.getFullYear()
                         ? "bg-blue-600 text-white"
@@ -863,14 +989,19 @@ export default function Calendar() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Month</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Month
+              </label>
               <div className="grid grid-cols-3 gap-2">
                 {months.map((month, index) => (
                   <button
                     key={month}
-                    onClick={() => handleMonthSelect(index, currentMonth.getFullYear())}
+                    onClick={() =>
+                      handleMonthSelect(index, currentMonth.getFullYear())
+                    }
                     className={`p-3 rounded-xl font-medium transition-colors ${
-                      index === currentMonth.getMonth() && currentMonth.getFullYear() === new Date().getFullYear()
+                      index === currentMonth.getMonth() &&
+                      currentMonth.getFullYear() === new Date().getFullYear()
                         ? "bg-blue-600 text-white"
                         : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                     }`}
@@ -884,13 +1015,44 @@ export default function Calendar() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Event Dialog */}
+      {/* Add Event Dialog with Tabs */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">Add Event</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+
+          {/* Tabs */}
+          <div className="flex gap-2 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("shift")}
+              className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
+                activeTab === "shift"
+                  ? "text-green-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Add Shift
+              {activeTab === "shift" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600"></div>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("nanny")}
+              className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
+                activeTab === "nanny"
+                  ? "text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Add Nanny
+              {activeTab === "nanny" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
+              )}
+            </button>
+          </div>
+
+          <div className="space-y-4 mt-4">
             {selectedDate && (
               <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
                 <span className="text-lg font-semibold text-blue-900">
@@ -905,10 +1067,16 @@ export default function Calendar() {
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Event Title</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {activeTab === "shift" ? "Shift Title" : "Nanny Name"}
+              </label>
               <input
                 type="text"
-                placeholder="Enter event title"
+                placeholder={
+                  activeTab === "shift"
+                    ? "Enter shift title"
+                    : "Enter nanny name"
+                }
                 value={newEventTitle}
                 onChange={(e) => setNewEventTitle(e.target.value)}
                 className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
@@ -917,7 +1085,9 @@ export default function Calendar() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Start Time
+                </label>
                 <input
                   type="time"
                   value={newEventStartTime}
@@ -927,7 +1097,9 @@ export default function Calendar() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">End Time</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  End Time
+                </label>
                 <input
                   type="time"
                   value={newEventEndTime}
@@ -938,7 +1110,9 @@ export default function Calendar() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Location
+              </label>
               <input
                 type="text"
                 placeholder="Add location"
@@ -948,12 +1122,37 @@ export default function Calendar() {
               />
             </div>
 
-            <button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold p-4 rounded-xl transition-colors shadow-lg"
-              onClick={handleAddEvent}
-            >
-              Add Event
-            </button>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Additional Notes
+              </label>
+              <textarea
+                placeholder="Add any additional notes here..."
+                value={newEventNotes}
+                onChange={(e) => setNewEventNotes(e.target.value)}
+                rows={4}
+                className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors resize-none"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold p-4 rounded-xl transition-colors"
+                onClick={handleCloseDialog}
+              >
+                Cancel
+              </button>
+              <button
+                className={`flex-1 text-white font-semibold p-4 rounded-xl transition-colors shadow-lg ${
+                  activeTab === "shift"
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+                onClick={handleAddEvent}
+              >
+                Save
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -962,9 +1161,11 @@ export default function Calendar() {
       <Dialog open={eventDetailOpen} onOpenChange={setEventDetailOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Event Details</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Event Details
+            </DialogTitle>
           </DialogHeader>
-          
+
           {selectedEvent && (
             <div className="space-y-4">
               {/* Event Type Badge */}
@@ -972,58 +1173,76 @@ export default function Calendar() {
                 <div
                   className="w-4 h-4 rounded-full flex-shrink-0"
                   style={{
-                    backgroundColor:
-                      selectedEvent.extendedProps?.type === 'work' ? "#5C6BC0"
-                      : selectedEvent.extendedProps?.type === 'childcare' ? "#FFA726"
-                      : "#66BB6A",
+                    backgroundColor: getEventColor(
+                      selectedEvent.extendedProps?.type || ""
+                    ).circle,
                   }}
                 ></div>
                 <span className="text-sm font-medium text-gray-500 uppercase">
-                  {selectedEvent.extendedProps?.type === 'work' ? 'Work Schedule'
-                   : selectedEvent.extendedProps?.type === 'childcare' ? 'Childcare Reminder'
-                   : 'Custom Event'}
+                  {selectedEvent.extendedProps?.type === "shift"
+                    ? "Shift"
+                    : selectedEvent.extendedProps?.type === "nanny"
+                    ? "Nanny"
+                    : selectedEvent.extendedProps?.type === "work"
+                    ? "Work Schedule"
+                    : selectedEvent.extendedProps?.type === "childcare"
+                    ? "Childcare Reminder"
+                    : "Event"}
                 </span>
               </div>
 
               {/* Event Title */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
-                <p className="text-lg font-medium text-gray-900">{selectedEvent.title}</p>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Title
+                </label>
+                <p className="text-lg font-medium text-gray-900">
+                  {selectedEvent.title}
+                </p>
               </div>
 
               {/* Date & Time */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Date & Time</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Date & Time
+                </label>
                 <div className="space-y-1">
                   {(() => {
-                    const eventStart = selectedEvent.start instanceof Date 
-                      ? selectedEvent.start 
-                      : new Date(selectedEvent.start as string);
-                    const eventEnd = selectedEvent.end instanceof Date 
-                      ? selectedEvent.end 
-                      : selectedEvent.end ? new Date(selectedEvent.end as string) : null;
-                    
+                    const eventStart =
+                      selectedEvent.start instanceof Date
+                        ? selectedEvent.start
+                        : new Date(selectedEvent.start as string);
+                    const eventEnd =
+                      selectedEvent.end instanceof Date
+                        ? selectedEvent.end
+                        : selectedEvent.end
+                        ? new Date(selectedEvent.end as string)
+                        : null;
+
                     return (
                       <>
                         <p className="text-gray-900">
-                          📅 {formatDate(eventStart, {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric',
+                          📅{" "}
+                          {formatDate(eventStart, {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
                           })}
                         </p>
                         <p className="text-gray-900">
-                          🕐 {formatDate(eventStart, {
-                            hour: 'numeric',
-                            minute: '2-digit',
+                          🕐{" "}
+                          {formatDate(eventStart, {
+                            hour: "numeric",
+                            minute: "2-digit",
                             hour12: true,
                           })}
-                          {eventEnd && ` - ${formatDate(eventEnd, {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          })}`}
+                          {eventEnd &&
+                            ` - ${formatDate(eventEnd, {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}`}
                         </p>
                       </>
                     );
@@ -1034,20 +1253,43 @@ export default function Calendar() {
               {/* Location */}
               {selectedEvent.extendedProps?.location && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
-                  <p className="text-gray-900">📍 {selectedEvent.extendedProps.location}</p>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Location
+                  </label>
+                  <p className="text-gray-900">
+                    📍 {selectedEvent.extendedProps.location}
+                  </p>
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedEvent.extendedProps?.notes && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Additional Notes
+                  </label>
+                  <p className="text-gray-900 whitespace-pre-wrap">
+                    {selectedEvent.extendedProps.notes}
+                  </p>
                 </div>
               )}
 
               {/* Action Buttons */}
               <div className="flex gap-2 pt-4">
-                {selectedEvent.extendedProps?.type === 'custom' && (
+                {(selectedEvent.extendedProps?.type === "shift" ||
+                  selectedEvent.extendedProps?.type === "nanny") && (
                   <button
                     onClick={() => {
-                      if (window.confirm(`Are you sure you want to delete "${selectedEvent.title}"?`)) {
+                      if (
+                        window.confirm(
+                          `Are you sure you want to delete "${selectedEvent.title}"?`
+                        )
+                      ) {
                         const calendarApi = calendarRef.current?.getApi();
                         if (calendarApi && selectedEvent.id) {
-                          const calEvent = calendarApi.getEventById(selectedEvent.id);
+                          const calEvent = calendarApi.getEventById(
+                            selectedEvent.id
+                          );
                           if (calEvent) calEvent.remove();
                         }
                         setEventDetailOpen(false);
@@ -1058,7 +1300,7 @@ export default function Calendar() {
                     Delete Event
                   </button>
                 )}
-                
+
                 <button
                   onClick={() => setEventDetailOpen(false)}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-4 rounded-xl transition-colors"
@@ -1068,11 +1310,11 @@ export default function Calendar() {
               </div>
 
               {/* Note for schedule events */}
-              {(selectedEvent.extendedProps?.type === 'work' || 
-                selectedEvent.extendedProps?.type === 'childcare') && (
+              {(selectedEvent.extendedProps?.type === "work" ||
+                selectedEvent.extendedProps?.type === "childcare") && (
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
                   <p className="text-sm text-blue-900">
-                    ℹ️ This is a schedule event and cannot be deleted here. 
+                    ℹ️ This is a schedule event and cannot be deleted here.
                     Please update your schedule in the Schedule page.
                   </p>
                 </div>
