@@ -1,8 +1,11 @@
 import { SignUp } from "@clerk/nextjs";
-import Image from "next/image"; // <- necessário!
+import Image from "next/image"; 
+import { GradientBackgroundFull } from "@/app/components/ui/GradientBackgroundFull";
+
 
 export default function SignUpPage() {
   return (
+    <GradientBackgroundFull>
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-500 via-blue-400 light-blue-200 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
@@ -22,5 +25,6 @@ export default function SignUpPage() {
         />
       </div>
     </div>
+    </GradientBackgroundFull>
   );
 }
