@@ -1,25 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { nannyShares } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date');
-
-    if (!date) {
-      return NextResponse.json(
-        { error: 'Date parameter is required' },
-        { status: 400 }
-      );
-    }
-
-    // Fetch all shares for the given date
+    // Fetch all shares, no date filter
     const allShares = await db
       .select()
       .from(nannyShares)
-      .where(eq(nannyShares.date, date))
       .orderBy(nannyShares.startTime);
 
     // Filter shares that have available spots or no limit

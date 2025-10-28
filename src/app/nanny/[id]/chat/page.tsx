@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { useSocket } from '@/lib/socket/SocketContext';
 import type { NannyShare } from '@/db/schema';
 
@@ -15,16 +16,19 @@ interface Message {
 
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { user } = useUser();
   const { socket, isConnected } = useSocket();
   const [shareId, setShareId] = useState<string | null>(null);
   const [share, setShare] = useState<NannyShare | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [userName, setUserName] = useState('');
-  const [userId, setUserId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Get user info from Clerk
+  const userId = user?.id || '';
+  const userName = user?.firstName || user?.username || 'Anonymous';
 
   // Unwrap params
   useEffect(() => {
@@ -33,7 +37,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
   // Fetch chat data
   useEffect(() => {
-    if (!shareId) return;
+    if (!shareId || !userId) return;
 
     async function fetchChat() {
       try {
@@ -46,28 +50,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         const data = await response.json();
         setMessages(data.messages || []);
         setShare(data.share);
-        
-        // Prompt for user name if not set
-        const storedName = localStorage.getItem('userName');
-        const storedId = localStorage.getItem('userId');
-        
-        if (storedName && storedId) {
-          setUserName(storedName);
-          setUserId(storedId);
-        } else {
-          const name = prompt('What would you like to be called:');
-          if (name) {
-            const id = `user_${Date.now()}`;
-            localStorage.setItem('userName', name);
-            localStorage.setItem('userId', id);
-            setUserName(name);
-            setUserId(id);
-          } else {
-            router.back();
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching chat:', err);
+      } catch (error) {
+        console.error('Error fetching chat:', error);
         alert('Failed to load chat');
         router.back();
       } finally {
@@ -76,7 +60,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
 
     fetchChat();
-  }, [shareId, router]);
+  }, [shareId, userId, router]);
 
   // Socket.IO real-time message updates
   useEffect(() => {
@@ -142,7 +126,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#1e3a5f] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading chat...</p>
@@ -152,7 +136,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex flex-col">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 flex flex-col">
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="px-6 py-4">
