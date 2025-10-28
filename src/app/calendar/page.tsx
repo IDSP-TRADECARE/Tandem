@@ -56,7 +56,9 @@ export default function Calendar() {
   );
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [eventDetailOpen, setEventDetailOpen] = useState<boolean>(false);
-  const [selectedEvent, setSelectedEvent] = useState<CustomEventInput | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CustomEventInput | null>(
+    null
+  );
   const calendarRef = useRef<FullCalendar>(null);
 
   useEffect(() => {
@@ -85,11 +87,13 @@ export default function Calendar() {
       const savedCustomEvents = localStorage.getItem("customEvents");
       if (savedCustomEvents) {
         const parsedCustomEvents = JSON.parse(savedCustomEvents);
-        const customEventsWithDates = parsedCustomEvents.map((event: CustomEventInput) => ({
-          ...event,
-          start: new Date(event.start as string),
-          end: new Date(event.end as string),
-        }));
+        const customEventsWithDates = parsedCustomEvents.map(
+          (event: CustomEventInput) => ({
+            ...event,
+            start: new Date(event.start as string),
+            end: new Date(event.end as string),
+          })
+        );
 
         const combined = [...calendarEvents, ...customEventsWithDates];
         setAllEvents(combined);
@@ -103,7 +107,9 @@ export default function Calendar() {
     }
   };
 
-  const generateCalendarEvents = (schedules: Schedule[]): CustomEventInput[] => {
+  const generateCalendarEvents = (
+    schedules: Schedule[]
+  ): CustomEventInput[] => {
     const events: CustomEventInput[] = [];
     const today = new Date();
 
@@ -406,9 +412,9 @@ export default function Calendar() {
       case "nanny":
         return { bg: "#E3F2FD", circle: "#2196F3", border: "#1565C0" };
       case "work":
-        return { bg: "#D4E4F7", circle: "#5C6BC0", border: "#3949AB" };
+        return { bg: "#C8D3BC", circle: "#C8D3BC", border: "#708D51" };
       case "childcare":
-        return { bg: "#FFE4B5", circle: "#FFA726", border: "#F57C00" };
+        return { bg: "#D4E4F7", circle: "#D4E4F7", border: "#5369A5" };
       default:
         return { bg: "#F5F5F5", circle: "#9E9E9E", border: "#616161" };
     }
