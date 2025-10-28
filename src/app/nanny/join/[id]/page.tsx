@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSocket } from '@/lib/socket/SocketContext';
+import { useUser } from '@clerk/nextjs';
 
 export default function JoinSharePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { socket } = useSocket();
+  useUser();
   const [shareId, setShareId] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [joinForm, setJoinForm] = useState({ userName: '', kidsCount: '1' });
@@ -58,14 +60,14 @@ export default function JoinSharePage({ params }: { params: Promise<{ id: string
 
   if (!shareId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
         <div className="w-16 h-16 border-4 border-[#1e3a5f] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-6">
       <div className="bg-white rounded-xl max-w-md w-full p-8 shadow-lg">
         <button
           onClick={() => router.back()}

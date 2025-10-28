@@ -71,7 +71,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#1e3a5f] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading share details...</p>
@@ -82,7 +82,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
 
   if (error || !share) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 flex items-center justify-center px-6">
         <div className="text-center">
           <div className="text-6xl mb-4">😔</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Share Not Found</h2>
@@ -108,7 +108,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
   const availableSpots = share.maxSpots ? share.maxSpots - share.members.length : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 pb-32">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 pb-32">
       <div className="px-6 pt-8 max-w-2xl mx-auto">
         <button
           onClick={() => router.back()}
@@ -130,7 +130,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
 
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8a] text-white p-6">
+          <div className="bg-linear-to-r from-[#1e3a5f] to-[#2d5a8a] text-white p-6">
             <h1 className="text-2xl font-bold mb-2">{dateLabel}</h1>
             <div className="flex items-center gap-4 text-sm">
               <span>🕐 {share.startTime} - {share.endTime}</span>
@@ -189,7 +189,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
               <div className="space-y-3">
                 {share.members.map((member, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
                       {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                     </div>
                     <div className="flex-1">
