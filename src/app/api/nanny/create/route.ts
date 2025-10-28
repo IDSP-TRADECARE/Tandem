@@ -73,10 +73,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
-    const shareId = parseInt(params.id); // params.id will be whatever is in the URL
+    const { id } = await params;
+    const shareId = parseInt(id);// params.id will be whatever is in the URL
 
     if (isNaN(shareId)) {
       return NextResponse.json(
