@@ -20,7 +20,7 @@ export function ShareRequestCard({
   hasActivity = false,
 }: ShareRequestCardProps) {
   return (
-    <div className="relative bg-white rounded-3xl p-4 shadow-sm">
+    <div className="relative bg-white rounded-3xl p-4 shadow-sm mt-3 mb-3 ">
       {/* Activity indicator */}
       {hasActivity && (
         <div className={`absolute top-4 right-4 w-3 h-3 ${colors.success.bg} rounded-full`} />
