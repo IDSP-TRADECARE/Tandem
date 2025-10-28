@@ -2,14 +2,15 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { initSocketHandlers } from './lib/socket/socketHandler';
 
-const port = 3001; // Different port from Next.js (which uses 3000)
+const port = process.env.PORT || 3001;
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
 const httpServer = createServer();
 
 // Initialize Socket.IO
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: 'http://localhost:3000', // Next.js runs on 3000
+    origin: clientUrl,
     methods: ['GET', 'POST'],
   },
 });
@@ -23,5 +24,6 @@ httpServer
     process.exit(1);
   })
   .listen(port, () => {
-    console.log(`> Socket.IO server running on http://localhost:${port}`);
+    console.log(`> Socket.IO server running on port ${port}`);
+    console.log(`> Accepting connections from ${clientUrl}`);
   });

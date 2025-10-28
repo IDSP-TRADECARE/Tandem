@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:next\" \"npm run dev:socket\" --names \"NEXT,SOCKET\" --prefix-colors \"cyan,magenta\"",
-    "dev:next": "next dev --turbopack",
+    "dev": "next dev --turbopack",
     "dev:socket": "tsx watch src/server.ts",
-    "build": "next build --turbopack",
-    "start": "concurrently \"next start\" \"tsx src/server.ts\"",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:socket\"",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
