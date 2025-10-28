@@ -1,116 +1,118 @@
 @import "tailwindcss";
 
+@theme {
+  /* Font families */
+  --font-family-alan: "Alan Sans", sans-serif;
+  --font-family-omnes: "omnes-pro", sans-serif;
+
+  /* Primary Colors */
+  --color-primary: #3373cc;
+  --color-primary-lighter: #a3c0e8;
+  --color-primary-light: #91b3e3;
+  --color-primary-light-hover: #91b3e3;
+  --color-primary-light-active: #7aa4de;
+  --color-primary-hover: #2b62ad;
+  --color-primary-active: #255495;
+  --color-primary-dark: #122847;
+  --color-primary-dark-hover: #0d1d33;
+  --color-primary-dark-active: #060d16;
+
+  /* Secondary Colors */
+  --color-secondary: #92f189;
+  --color-secondary-lighter: #cef9ca;
+  --color-secondary-light: #c4f7bf;
+  --color-secondary-light-hover: #c4f7bf;
+  --color-secondary-light-active: #b8f6b2;
+  --color-secondary-hover: #7ccd74;
+  --color-secondary-active: #6bb064;
+  --color-secondary-dark: #335430;
+  --color-secondary-dark-hover: #253c22;
+  --color-secondary-dark-active: #101b0f;
+
+  /* Analogous Colors */
+  --color-analogous: #68d5ff;
+  --color-analogous-lighter: #bbecff;
+  --color-analogous-light: #ade8ff;
+  --color-analogous-light-hover: #ade8ff;
+  --color-analogous-light-active: #9de4ff;
+  --color-analogous-hover: #58b5d9;
+  --color-analogous-active: #4c9bba;
+  --color-analogous-dark: #244b59;
+  --color-analogous-dark-hover: #1a3540;
+  --color-analogous-dark-active: #0b171c;
+
+  /* Success */
+  --color-success: #95b548;
+  
+  /* Warning */
+  --color-warning: #d78f26;
+  
+  /* Error */
+  --color-error: #c43535;
+
+  /* Neutral Colors */
+  --color-neutral-50: #e6e6e8;
+  --color-neutral-100: #b0b0b8;
+  --color-neutral-200: #8a8a96;
+  --color-neutral-300: #545466;
+  --color-neutral-400: #333349;
+  --color-neutral-500: #00001b;
+  --color-neutral-600: #000019;
+  --color-neutral-700: #000013;
+  --color-neutral-800: #00000f;
+  --color-neutral-900: #00000b;
+}
+
 @layer base {
   :root {
-    /* Font families */
-    --font-alan: "Alan Sans", sans-serif;
-    --font-omnes: "omnes-pro", sans-serif;
-
-    /* Primary Colors */
-    --primary: #3373cc;
-    --primary-lighter: #a3c0e8;
-    --primary-light: #91b3e3;
-    --primary-light-hover: #91b3e3;
-    --primary-light-active: #7aa4de;
-    --primary-hover: #2b62ad;
-    --primary-active: #255495;
-    --primary-dark: #122847;
-    --primary-dark-hover: #0d1d33;
-    --primary-dark-active: #060d16;
-
-    /* Secondary Colors */
-    --secondary: #92f189;
-    --secondary-lighter: #cef9ca;
-    --secondary-light: #c4f7bf;
-    --secondary-light-hover: #c4f7bf;
-    --secondary-light-active: #b8f6b2;
-    --secondary-hover: #7ccd74;
-    --secondary-active: #6bb064;
-    --secondary-dark: #335430;
-    --secondary-dark-hover: #253c22;
-    --secondary-dark-active: #101b0f;
-
-    /* Analogous Colors */
-    --analogous: #68d5ff;
-    --analogous-lighter: #bbecff;
-    --analogous-light: #ade8ff;
-    --analogous-light-hover: #ade8ff;
-    --analogous-light-active: #9de4ff;
-    --analogous-hover: #58b5d9;
-    --analogous-active: #4c9bba;
-    --analogous-dark: #244b59;
-    --analogous-dark-hover: #1a3540;
-    --analogous-dark-active: #0b171c;
-
-    /* Success */
-    --success: #95b548;
-    
-    /* Warning */
-    --warning: #d78f26;
-    
-    /* Error */
-    --error: #c43535;
-
-    /* Neutral Colors */
-    --neutral-50: #e6e6e8;
-    --neutral-100: #b0b0b8;
-    --neutral-200: #8a8a96;
-    --neutral-300: #545466;
-    --neutral-400: #333349;
-    --neutral-500: #00001b;
-    --neutral-600: #000019;
-    --neutral-700: #000013;
-    --neutral-800: #00000f;
-    --neutral-900: #00000b;
-
-    /* Semantic mappings */
+    /* Semantic mappings for shadcn */
     --background: 0 0% 100%;
-    --foreground: var(--neutral-500);
+    --foreground: var(--color-neutral-500);
     --card: 0 0% 100%;
-    --card-foreground: var(--neutral-500);
+    --card-foreground: var(--color-neutral-500);
     --popover: 0 0% 100%;
-    --popover-foreground: var(--neutral-500);
+    --popover-foreground: var(--color-neutral-500);
     --primary-foreground: 0 0% 98%;
-    --secondary-foreground: var(--neutral-500);
-    --muted: var(--neutral-50);
-    --muted-foreground: var(--neutral-300);
-    --accent: var(--analogous-light);
-    --accent-foreground: var(--neutral-500);
-    --destructive: var(--error);
+    --secondary-foreground: var(--color-neutral-500);
+    --muted: var(--color-neutral-50);
+    --muted-foreground: var(--color-neutral-300);
+    --accent: var(--color-analogous-light);
+    --accent-foreground: var(--color-neutral-500);
+    --destructive: var(--color-error);
     --destructive-foreground: 0 0% 98%;
-    --border: var(--neutral-100);
-    --input: var(--neutral-100);
-    --ring: var(--primary);
+    --border: var(--color-neutral-100);
+    --input: var(--color-neutral-100);
+    --ring: var(--color-primary);
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: var(--neutral-500);
+    --background: var(--color-neutral-500);
     --foreground: 0 0% 98%;
-    --card: var(--neutral-400);
+    --card: var(--color-neutral-400);
     --card-foreground: 0 0% 98%;
-    --popover: var(--neutral-400);
+    --popover: var(--color-neutral-400);
     --popover-foreground: 0 0% 98%;
-    --primary-foreground: var(--neutral-500);
+    --primary-foreground: var(--color-neutral-500);
     --secondary-foreground: 0 0% 98%;
-    --muted: var(--neutral-300);
-    --muted-foreground: var(--neutral-100);
-    --accent: var(--analogous-dark);
+    --muted: var(--color-neutral-300);
+    --muted-foreground: var(--color-neutral-100);
+    --accent: var(--color-analogous-dark);
     --accent-foreground: 0 0% 98%;
     --destructive-foreground: 0 0% 98%;
-    --border: var(--neutral-300);
-    --input: var(--neutral-300);
-    --ring: var(--primary-light);
+    --border: var(--color-neutral-300);
+    --input: var(--color-neutral-300);
+    --ring: var(--color-primary-light);
   }
 
   /* Font utilities */
   .font-alan {
-    font-family: var(--font-alan);
+    font-family: var(--font-family-alan);
     font-optical-sizing: auto;
   }
 
   .font-omnes {
-    font-family: var(--font-omnes);
+    font-family: var(--font-family-omnes);
   }
 }
 
@@ -126,12 +128,12 @@
 .fc .fc-toolbar-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--color-primary);
 }
 
 .fc .fc-button {
-  background-color: var(--primary);
-  border-color: var(--primary);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
   color: white;
   border-radius: 8px;
   padding: 6px 12px;
@@ -139,30 +141,30 @@
 }
 
 .fc .fc-button:hover {
-  background-color: var(--primary-hover);
-  border-color: var(--primary-hover);
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 .fc .fc-button-active {
-  background-color: var(--primary-dark);
-  border-color: var(--primary-dark);
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
 }
 
 .fc .fc-col-header-cell {
-  background-color: var(--neutral-50);
+  background-color: var(--color-neutral-50);
   padding: 12px;
   font-weight: 600;
-  color: var(--primary);
+  color: var(--color-primary);
 }
 
 .fc .fc-daygrid-day-number {
   font-weight: 600;
-  color: var(--primary);
+  color: var(--color-primary);
   padding: 8px;
 }
 
 .fc .fc-daygrid-day.fc-day-today {
-  background-color: var(--primary-lighter) !important;
+  background-color: var(--color-primary-lighter) !important;
 }
 
 .fc .fc-event {
