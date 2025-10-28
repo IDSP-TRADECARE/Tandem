@@ -143,8 +143,8 @@ export default function Calendar() {
             start: `${dateStr}T${schedule.timeFrom}`,
             end: `${dateStr}T${schedule.timeTo}`,
             allDay: false,
-            backgroundColor: "#c6efce",
-            borderColor: "#5f9f6f",
+            backgroundColor: "#D4E3F0",
+            borderColor: "#D4E3F0",
             extendedProps: {
               location: schedule.location,
               type: "work",
@@ -157,8 +157,8 @@ export default function Calendar() {
             start: `${dateStr}T${schedule.timeFrom}`,
             end: `${dateStr}T${schedule.timeFrom}`,
             allDay: false,
-            backgroundColor: "#fff4e6",
-            borderColor: "#ffa726",
+            backgroundColor: "#C8D3BC",
+            borderColor: "#C8D3BC",
             extendedProps: {
               type: "childcare",
             },
