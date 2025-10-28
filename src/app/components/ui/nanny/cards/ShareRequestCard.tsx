@@ -48,7 +48,7 @@ export function ShareRequestCard({
           <p className={`${typography.body.caption} ${colors.primary.hover} mb-3`}>
             Nanny: {nannyName}
           </p>
-          <div className={`inline-block px-4 py-1.5 ${colors.success.bg} rounded-full`}>
+          <div className={`inline-block px-4 py-1.5 ${colors.secondary.bgActive} rounded-full`}>
             <span className={`${typography.body.label} font-semibold text-white`}>
               Available spots: {availableSpots}
             </span>
