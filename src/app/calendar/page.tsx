@@ -160,7 +160,6 @@ export default function Calendar() {
     });
   };
 
-  // Filter events to only show those in the current displayed month
   const filterEventsForCurrentMonth = (events: EventApi[]) => {
     return events.filter((event) => {
       if (!event.start) return false;
@@ -172,7 +171,22 @@ export default function Calendar() {
     });
   };
 
-  // Group events by date
+  const getCurrentWeekDates = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - daysToMonday);
+
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      weekDates.push(date);
+    }
+    return weekDates;
+  };
+
   const groupEventsByDate = () => {
     const filteredEvents = filterEventsForCurrentMonth(currentEvents);
     const grouped: { [key: string]: EventApi[] } = {};
@@ -192,6 +206,7 @@ export default function Calendar() {
 
   const groupedEvents = groupEventsByDate();
   const filteredEventsCount = filterEventsForCurrentMonth(currentEvents).length;
+  const weekDates = getCurrentWeekDates();
 
   const months = [
     "January",
@@ -211,7 +226,6 @@ export default function Calendar() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 3000 - 2020 + 1 }, (_, i) => 2020 + i);
 
-  // Calendar header component (reusable)
   const CalendarHeader = () => (
     <div className="mb-6 bg-gradient-to-r from-blue-300 via-blue-200 to-blue-300 rounded-3xl p-6 flex items-center justify-between">
       <button
@@ -286,7 +300,6 @@ export default function Calendar() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Toggle Buttons */}
       <div className="lg:hidden flex gap-2 p-4 bg-white sticky top-0 z-10 shadow-sm">
         <button
           className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${
@@ -311,7 +324,6 @@ export default function Calendar() {
       </div>
 
       <div className="flex flex-col lg:flex-row w-full gap-6 p-4 lg:p-8">
-        {/* Calendar Section - Always show on desktop, conditional on mobile */}
         <div
           className={`w-full order-1 lg:order-2 lg:w-2/3 ${
             activeView === "weekly" ? "hidden lg:block" : ""
@@ -357,13 +369,153 @@ export default function Calendar() {
               .fc .fc-toolbar.fc-header-toolbar {
                 display: none;
               }
+
+              @media (max-width: 1024px) {
+                .fc .fc-scrollgrid {
+                  border: none !important;
+                }
+
+                .fc .fc-scrollgrid td,
+                .fc .fc-scrollgrid th {
+                  border: none !important;
+                }
+
+                .fc .fc-daygrid-day {
+                  height: 60px !important;
+                  border: none !important;
+                  position: relative !important;
+                }
+
+                .fc .fc-daygrid-day-number {
+                  font-size: 20px !important;
+                  font-weight: 600 !important;
+                  color: #1e293b !important;
+                  padding: 10px !important;
+                  width: 100%;
+                  text-align: center;
+                  cursor: pointer !important;
+                }
+
+                .fc .fc-col-header-cell {
+                  padding: 12px 0 !important;
+                  font-weight: 600 !important;
+                  font-size: 13px !important;
+                  color: #1e293b !important;
+                  border: none !important;
+                }
+
+                .fc .fc-daygrid-day.fc-day-today {
+                  background-color: transparent !important;
+                }
+
+                .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+                  background-color: #1e293b !important;
+                  color: white !important;
+                  border-radius: 10px !important;
+                  padding: 8px 14px !important;
+                  display: inline-block !important;
+                  min-width: 40px;
+                }
+
+                .fc .fc-daygrid-day-frame {
+                  min-height: 60px !important;
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: flex-start;
+                  padding-top: 4px;
+                  border: none !important;
+                  position: relative !important;
+                }
+
+                .fc .fc-daygrid-day-top {
+                  flex-direction: column;
+                  width: 100%;
+                  position: relative;
+                }
+
+                .fc .fc-daygrid-day-events {
+                  position: absolute !important;
+                  top: 4px !important;
+                  right: 4px !important;
+                  display: flex !important;
+                  gap: 3px !important;
+                  margin: 0 !important;
+                  flex-direction: row-reverse !important;
+                }
+
+                .fc .fc-daygrid-event-dot {
+                  display: none !important;
+                }
+
+                .fc .fc-daygrid-event {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  border: none !important;
+                  background: none !important;
+                  display: inline-block !important;
+                  width: 10px !important;
+                  height: 10px !important;
+                }
+
+                .fc .fc-event-main {
+                  display: none !important;
+                }
+
+                .fc .fc-event-title {
+                  display: none !important;
+                }
+
+                .fc .fc-event-time {
+                  display: none !important;
+                }
+
+                .fc .fc-daygrid-event-harness {
+                  margin: 0 !important;
+                }
+
+                .fc .fc-daygrid-event::before {
+                  content: "";
+                  width: 10px;
+                  height: 10px;
+                  background-color: #64748b;
+                  border-radius: 50%;
+                  display: block;
+                }
+
+                .fc .fc-daygrid-event:nth-child(1)::before {
+                  background-color: #5c6bc0;
+                }
+
+                .fc .fc-daygrid-event:nth-child(2)::before {
+                  background-color: #66bb6a;
+                }
+
+                .fc .fc-daygrid-event:nth-child(3)::before {
+                  background-color: #ffa726;
+                }
+
+                .fc .fc-daygrid-event:nth-child(n + 4)::before {
+                  background-color: #ef5350;
+                }
+
+                .fc .fc-daygrid-day-top {
+                  cursor: pointer !important;
+                }
+
+                .fc .fc-highlight {
+                  background: transparent !important;
+                }
+
+                .fc .fc-daygrid-event {
+                  pointer-events: none !important;
+                }
+              }
             `}</style>
           </div>
         </div>
 
-        {/* Events List Section - Always visible */}
         <div className="w-full order-2 lg:order-1 lg:w-1/3">
-          {/* Show calendar header on mobile when in weekly view */}
           {activeView === "weekly" && (
             <div className="lg:hidden bg-white rounded-2xl shadow-lg p-4 mb-6">
               <CalendarHeader />
@@ -372,10 +524,115 @@ export default function Calendar() {
 
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">
-              Upcoming Events
+              {activeView === "weekly" ? "This Week" : "Upcoming Events"}
             </h2>
 
-            {filteredEventsCount === 0 ? (
+            {activeView === "weekly" ? (
+              <div className="space-y-4">
+                {weekDates.map((date) => {
+                  const dateKey = formatDate(date, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  });
+                  const dayOfWeek = formatDate(date, { weekday: "short" });
+                  const dayOfMonth = formatDate(date, { day: "numeric" });
+                  const month = formatDate(date, { month: "short" });
+                  const isToday =
+                    date.toDateString() === new Date().toDateString();
+
+                  const dayEvents = currentEvents.filter((event) => {
+                    if (!event.start) return false;
+                    const eventDate = new Date(event.start);
+                    return eventDate.toDateString() === date.toDateString();
+                  });
+
+                  return (
+                    <div
+                      key={dateKey}
+                      className={`rounded-3xl overflow-hidden bg-white ${
+                        isToday
+                          ? "border-4 border-purple-500"
+                          : "border-4 border-black"
+                      }`}
+                    >
+                      <div className="p-5 flex gap-4">
+                        <div className="text-center border-r-2 border-gray-200 pr-5 py-2">
+                          <div className="text-base text-gray-700 font-medium">
+                            {dayOfWeek}
+                          </div>
+                          <div className="text-5xl font-bold text-gray-900 my-1">
+                            {dayOfMonth}
+                          </div>
+                          <div className="text-base text-gray-600">{month}</div>
+                        </div>
+
+                        <div className="flex-1 py-1">
+                          {dayEvents.length === 0 ? (
+                            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-100">
+                              <div className="w-6 h-6 rounded-full border-2 border-gray-400 flex-shrink-0"></div>
+                              <div className="text-gray-500">
+                                Nothing yet! Want to add childcare or work?
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {dayEvents.map((event, idx) => (
+                                <div
+                                  key={event.id}
+                                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                                  style={{
+                                    backgroundColor:
+                                      idx === 0 ? "#D4E4F7" : "#D5EDD8",
+                                  }}
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        `Are you sure you want to delete the event '${event.title}'?`
+                                      )
+                                    ) {
+                                      event.remove();
+                                    }
+                                  }}
+                                >
+                                  <div
+                                    className="w-6 h-6 rounded-full flex-shrink-0"
+                                    style={{
+                                      backgroundColor:
+                                        idx === 0 ? "#5C6BC0" : "#66BB6A",
+                                      border: `3px solid ${
+                                        idx === 0 ? "#3949AB" : "#43A047"
+                                      }`,
+                                    }}
+                                  ></div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-900 text-base truncate">
+                                      {event.title}
+                                    </div>
+                                    {event.extendedProps?.location && (
+                                      <div className="text-sm text-gray-600 truncate mt-0.5">
+                                        {event.extendedProps.location}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-gray-600 font-medium flex-shrink-0">
+                                    {formatDate(event.start!, {
+                                      hour: "numeric",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : filteredEventsCount === 0 ? (
               <div className="text-center py-12">
                 <div className="text-gray-400 text-lg mb-2">📅</div>
                 <p className="text-gray-400 italic">
@@ -473,7 +730,6 @@ export default function Calendar() {
 
       <BottomNav />
 
-      {/* Month Picker Dialog */}
       <Dialog open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -554,7 +810,6 @@ export default function Calendar() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Event Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
