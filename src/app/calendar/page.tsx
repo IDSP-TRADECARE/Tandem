@@ -16,7 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/app/components/ui/calendar/dialog";
 import { BottomNav } from "../components/Layout/BottomNav";
 
 export default function Calendar() {
