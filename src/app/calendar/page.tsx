@@ -286,47 +286,52 @@ export default function Calendar() {
     }
   };
 
-  const handleAddEvent = () => {
-    if (selectedDate && newEventTitle) {
-      const calendarApi = selectedDate.view.calendar;
-      calendarApi.unselect();
+const handleAddEvent = () => {
+  if (selectedDate && newEventTitle) {
+    const calendarApi = selectedDate.view.calendar;
+    calendarApi.unselect();
 
-      let startDate = selectedDate.start;
-      let endDate = selectedDate.start;
-      let isAllDay = selectedDate.allDay;
+    let startDate = selectedDate.start;
+    let endDate = selectedDate.start;
+    let isAllDay = selectedDate.allDay;
 
-      if (newEventStartTime && newEventEndTime) {
-        const dateString = startDate.toISOString().split("T")[0];
-        startDate = new Date(`${dateString}T${newEventStartTime}`);
-        endDate = new Date(`${dateString}T${newEventEndTime}`);
-        isAllDay = false;
-      } else {
-        endDate = startDate;
-        isAllDay = true;
-      }
-
-      const eventType = activeTab;
-      const backgroundColor = eventType === "shift" ? "#c8e6c9" : "#bbdefb";
-      const borderColor = eventType === "shift" ? "#4caf50" : "#2196f3";
-
-      const newEvent: CustomEventInput = {
-        id: `${eventType}-${Date.now()}-${newEventTitle}`,
-        title: newEventTitle,
-        start: startDate,
-        end: endDate,
-        allDay: isAllDay,
-        backgroundColor: backgroundColor,
-        borderColor: borderColor,
-        extendedProps: {
-          location: newEventLocation,
-          notes: newEventNotes,
-          type: eventType,
-        },
-      };
-      calendarApi.addEvent(newEvent);
-      handleCloseDialog();
+    if (newEventStartTime && newEventEndTime) {
+      const dateString = startDate.toISOString().split("T")[0];
+      startDate = new Date(`${dateString}T${newEventStartTime}`);
+      endDate = new Date(`${dateString}T${newEventEndTime}`);
+      isAllDay = false;
+    } else {
+      endDate = startDate;
+      isAllDay = true;
     }
-  };
+
+    const eventType = activeTab;
+    const backgroundColor = eventType === "shift" ? "#c8e6c9" : "#bbdefb";
+    const borderColor = eventType === "shift" ? "#4caf50" : "#2196f3";
+
+    const newEvent: CustomEventInput = {
+      id: `${eventType}-${Date.now()}-${newEventTitle}`,
+      title: newEventTitle,
+      start: startDate,
+      end: endDate,
+      allDay: isAllDay,
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
+      extendedProps: {
+        location: newEventLocation,
+        notes: newEventNotes,
+        type: eventType,
+      },
+    };
+    
+    calendarApi.addEvent(newEvent);
+    
+    // ADD THIS: Update allEvents state immediately
+    setAllEvents(prevEvents => [...prevEvents, newEvent]);
+    
+    handleCloseDialog();
+  }
+};
 
   const handlePrevMonth = () => {
     const calendarApi = calendarRef.current?.getApi();
@@ -550,6 +555,14 @@ export default function Calendar() {
               select={handleDateClick}
               eventClick={handleEventClick}
               eventsSet={(events) => setCurrentEvents(events)}
+                dateClick={(info) => {
+                if (window.innerWidth <= 1024) {
+                  const calendarApi = calendarRef.current?.getApi();
+                  if (calendarApi) {
+                    calendarApi.select(info.date);
+                  }
+                }
+              }}
               datesSet={(dateInfo) => {
                 const centerDate = new Date(
                   dateInfo.view.currentStart.getFullYear(),
@@ -1292,27 +1305,32 @@ export default function Calendar() {
               <div className="flex gap-2 pt-4">
                 {(selectedEvent.extendedProps?.type === "shift" ||
                   selectedEvent.extendedProps?.type === "nanny") && (
-                  <button
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Are you sure you want to delete "${selectedEvent.title}"?`
-                        )
-                      ) {
-                        const calendarApi = calendarRef.current?.getApi();
-                        if (calendarApi && selectedEvent.id) {
-                          const calEvent = calendarApi.getEventById(
-                            selectedEvent.id as string
-                          );
-                          if (calEvent) calEvent.remove();
-                        }
-                        setEventDetailOpen(false);
+                <button
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Are you sure you want to delete "${selectedEvent.title}"?`
+                      )
+                    ) {
+                      const calendarApi = calendarRef.current?.getApi();
+                      if (calendarApi && selectedEvent.id) {
+                        const calEvent = calendarApi.getEventById(
+                          selectedEvent.id as string
+                        );
+                        if (calEvent) calEvent.remove();
+                        
+                        
+                        setAllEvents(prevEvents => 
+                          prevEvents.filter(event => event.id !== selectedEvent.id)
+                        );
                       }
-                    }}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
-                  >
-                    Delete Event
-                  </button>
+                      setEventDetailOpen(false);
+                    }
+                  }}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                >
+                  Delete Event
+                </button>
                 )}
 
                 <button
