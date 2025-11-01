@@ -13,9 +13,9 @@ export function NavItem({ href, icon, label, isActive, onClick }: NavItemProps) 
     <div className={`flex flex-col items-center transition-all ${
       isActive ? '-translate-y-8' : ''
     }`}>
-      <div className={`rounded-full p-3 transition-all ${
+      <div className={`rounded-full transition-all ${
         isActive 
-          ? 'bg-white shadow-lg' 
+          ? 'bg-primary-active' 
           : 'bg-transparent'
       }`}>
         <div className={`w-7 h-7 transition-colors ${

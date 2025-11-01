@@ -2,7 +2,7 @@ export const NavIcons = {
   Schedule: () => (
     <svg
       fill="none"
-      stroke="currentColor"
+      stroke="white"
       strokeWidth={2}
       viewBox="0 0 24 24"
       className="w-full h-full"
@@ -18,7 +18,7 @@ export const NavIcons = {
   Upload: () => (
     <svg
       fill="none"
-      stroke="currentColor"
+      stroke="white"
       strokeWidth={2}
       viewBox="0 0 24 24"
       className="w-full h-full"
@@ -34,7 +34,7 @@ export const NavIcons = {
   NannyShare: () => (
     <svg
       fill="none"
-      stroke="currentColor"
+      stroke="white"
       strokeWidth={2}
       viewBox="0 0 24 24"
       className="w-full h-full"
@@ -50,7 +50,7 @@ export const NavIcons = {
   Profile: () => (
     <svg
       fill="none"
-      stroke="currentColor"
+      stroke="white"
       strokeWidth={2}
       viewBox="0 0 24 24"
       className="w-full h-full"
