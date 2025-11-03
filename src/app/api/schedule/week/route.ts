@@ -1,26 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../db/index';
-import { schedules } from '../../../../db/schema';
-import { eq } from 'drizzle-orm';
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/db";
+import { schedules } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id') || 'demo-user';
-    
-    console.log('🔍 API: Fetching schedules for user:', userId);
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const userSchedules = await db
-      .select()
+      .select({
+        id: schedules.id,
+        title: schedules.title,
+        workingDays: schedules.workingDays,
+        timeFrom: schedules.timeFrom,
+        timeTo: schedules.timeTo,
+        location: schedules.location,
+        notes: schedules.notes,
+        deletedDates: schedules.deletedDates, // ← Make sure this line is included
+        createdAt: schedules.createdAt,
+      })
       .from(schedules)
       .where(eq(schedules.userId, userId));
 
-    console.log('✅ API: Found schedules:', userSchedules.length);
-
     return NextResponse.json({ schedules: userSchedules });
   } catch (error) {
-    console.error('❌ API Error:', error);
+    console.error("Error fetching schedules:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch schedule' },
+      { error: "Failed to fetch schedules" },
       { status: 500 }
     );
   }

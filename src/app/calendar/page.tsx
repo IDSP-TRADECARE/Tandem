@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   formatDate,
   DateSelectArg,
@@ -27,6 +27,7 @@ interface Schedule {
   timeFrom: string;
   timeTo: string;
   location: string;
+  deletedDates?: string[]; // Add this line
 }
 
 interface CustomEventInput extends EventInput {
@@ -137,6 +138,9 @@ export default function Calendar() {
         if (dayCode && schedule.workingDays.includes(dayCode)) {
           const dateStr = date.toISOString().split("T")[0];
 
+          // Skip deleted dates
+          if (schedule.deletedDates?.includes(dateStr)) continue;
+
           events.push({
             id: `work-${schedule.id}-${dateStr}`,
             title: `Work: ${schedule.location || "Work"}`,
@@ -170,7 +174,7 @@ export default function Calendar() {
     return events;
   };
 
-  const saveCustomEvents = () => {
+  const saveCustomEvents = useCallback(() => {
     const customEvents = currentEvents
       .filter(
         (event) =>
@@ -189,13 +193,13 @@ export default function Calendar() {
       }));
 
     localStorage.setItem("customEvents", JSON.stringify(customEvents));
-  };
+  }, [currentEvents]);
 
   useEffect(() => {
     if (currentEvents.length > 0) {
       saveCustomEvents();
     }
-  }, [currentEvents]);
+  }, [currentEvents, saveCustomEvents]);
 
   const getEventsForDate = (date: Date) => {
     const filtered = allEvents.filter((event) => {
@@ -267,71 +271,66 @@ export default function Calendar() {
   };
 
   const handleEventClick = (clickInfo: EventClickArg) => {
-    if (
-      clickInfo.event.extendedProps?.type === "work" ||
-      clickInfo.event.extendedProps?.type === "childcare"
-    ) {
-      alert(
-        "Schedule events cannot be deleted. Please update your schedule in the schedule page."
-      );
-      return;
-    }
-
-    if (
-      window.confirm(
-        `Are you sure you want to delete the event '${clickInfo.event.title}'?`
-      )
-    ) {
-      clickInfo.event.remove();
-    }
+    // Show event details in dialog
+    setSelectedEvent({
+      id: clickInfo.event.id,
+      title: clickInfo.event.title,
+      start: clickInfo.event.start || undefined,
+      end: clickInfo.event.end || undefined,
+      allDay: clickInfo.event.allDay,
+      backgroundColor: clickInfo.event.backgroundColor || undefined,
+      borderColor: clickInfo.event.borderColor || undefined,
+      extendedProps: clickInfo.event.extendedProps,
+    });
+    setEventDetailOpen(true);
   };
 
-const handleAddEvent = () => {
-  if (selectedDate && newEventTitle) {
-    const calendarApi = selectedDate.view.calendar;
-    calendarApi.unselect();
+  const handleAddEvent = () => {
+    if (selectedDate && newEventTitle) {
+      const calendarApi = selectedDate.view.calendar;
+      calendarApi.unselect();
 
-    let startDate = selectedDate.start;
-    let endDate = selectedDate.start;
-    let isAllDay = selectedDate.allDay;
+      let startDate = selectedDate.start;
+      let endDate = selectedDate.start;
+      let isAllDay = selectedDate.allDay;
 
-    if (newEventStartTime && newEventEndTime) {
-      const dateString = startDate.toISOString().split("T")[0];
-      startDate = new Date(`${dateString}T${newEventStartTime}`);
-      endDate = new Date(`${dateString}T${newEventEndTime}`);
-      isAllDay = false;
-    } else {
-      endDate = startDate;
-      isAllDay = true;
+      if (newEventStartTime && newEventEndTime) {
+        const dateString = startDate.toISOString().split("T")[0];
+        startDate = new Date(`${dateString}T${newEventStartTime}`);
+        endDate = new Date(`${dateString}T${newEventEndTime}`);
+        isAllDay = false;
+      } else {
+        endDate = startDate;
+        isAllDay = true;
+      }
+
+      const eventType = activeTab;
+      const backgroundColor = eventType === "shift" ? "#c8e6c9" : "#bbdefb";
+      const borderColor = eventType === "shift" ? "#4caf50" : "#2196f3";
+
+      const newEvent: CustomEventInput = {
+        id: `${eventType}-${Date.now()}-${newEventTitle}`,
+        title: newEventTitle,
+        start: startDate,
+        end: endDate,
+        allDay: isAllDay,
+        backgroundColor: backgroundColor,
+        borderColor: borderColor,
+        extendedProps: {
+          location: newEventLocation,
+          notes: newEventNotes,
+          type: eventType,
+        },
+      };
+
+      calendarApi.addEvent(newEvent);
+
+      // ADD THIS: Update allEvents state immediately
+      setAllEvents((prevEvents) => [...prevEvents, newEvent]);
+
+      handleCloseDialog();
     }
-
-    const eventType = activeTab;
-    const backgroundColor = eventType === "shift" ? "#c8e6c9" : "#bbdefb";
-    const borderColor = eventType === "shift" ? "#4caf50" : "#2196f3";
-
-    const newEvent: CustomEventInput = {
-      id: `${eventType}-${Date.now()}-${newEventTitle}`,
-      title: newEventTitle,
-      start: startDate,
-      end: endDate,
-      allDay: isAllDay,
-      backgroundColor: backgroundColor,
-      borderColor: borderColor,
-      extendedProps: {
-        location: newEventLocation,
-        notes: newEventNotes,
-        type: eventType,
-      },
-    };
-    
-    calendarApi.addEvent(newEvent);
-    
-    // ADD THIS: Update allEvents state immediately
-    setAllEvents(prevEvents => [...prevEvents, newEvent]);
-    
-    handleCloseDialog();
-  }
-};
+  };
 
   const handlePrevMonth = () => {
     const calendarApi = calendarRef.current?.getApi();
@@ -555,7 +554,7 @@ const handleAddEvent = () => {
               select={handleDateClick}
               eventClick={handleEventClick}
               eventsSet={(events) => setCurrentEvents(events)}
-                dateClick={(info) => {
+              dateClick={(info) => {
                 if (window.innerWidth <= 1024) {
                   const calendarApi = calendarRef.current?.getApi();
                   if (calendarApi) {
@@ -1303,10 +1302,8 @@ const handleAddEvent = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-2 pt-4">
-                {(selectedEvent.extendedProps?.type === "shift" ||
-                  selectedEvent.extendedProps?.type === "nanny") && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (
                       window.confirm(
                         `Are you sure you want to delete "${selectedEvent.title}"?`
@@ -1318,11 +1315,43 @@ const handleAddEvent = () => {
                           selectedEvent.id as string
                         );
                         if (calEvent) calEvent.remove();
-                        
-                        
-                        setAllEvents(prevEvents => 
-                          prevEvents.filter(event => event.id !== selectedEvent.id)
+
+                        // Update allEvents state
+                        setAllEvents((prevEvents) =>
+                          prevEvents.filter(
+                            (event) => event.id !== selectedEvent.id
+                          )
                         );
+
+                        // If it's a schedule event (work or childcare), delete from database
+                        if (
+                          selectedEvent.extendedProps?.type === "work" ||
+                          selectedEvent.extendedProps?.type === "childcare"
+                        ) {
+                          try {
+                            const eventId = selectedEvent.id as string;
+                            // Extract schedule ID from event ID format: "work-{scheduleId}-{date}" or "childcare-{scheduleId}-{date}"
+                            const scheduleId = eventId.split("-")[1];
+                            const eventDate = eventId.split("-")[2];
+
+                            await fetch(`/api/schedule/event`, {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                scheduleId,
+                                date: eventDate,
+                                type: selectedEvent.extendedProps?.type,
+                              }),
+                            });
+
+                            console.log("Schedule event deleted from database");
+                          } catch (error) {
+                            console.error(
+                              "Error deleting schedule event:",
+                              error
+                            );
+                          }
+                        }
                       }
                       setEventDetailOpen(false);
                     }
@@ -1331,7 +1360,6 @@ const handleAddEvent = () => {
                 >
                   Delete Event
                 </button>
-                )}
 
                 <button
                   onClick={() => setEventDetailOpen(false)}
@@ -1340,17 +1368,6 @@ const handleAddEvent = () => {
                   Close
                 </button>
               </div>
-
-              {/* Note for schedule events */}
-              {(selectedEvent.extendedProps?.type === "work" ||
-                selectedEvent.extendedProps?.type === "childcare") && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                  <p className="text-sm text-blue-900">
-                    ℹ️ This is a schedule event and cannot be deleted here.
-                    Please update your schedule in the Schedule page.
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </DialogContent>
