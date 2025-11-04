@@ -20,11 +20,16 @@ export async function GET(request: NextRequest) {
         timeTo: schedules.timeTo,
         location: schedules.location,
         notes: schedules.notes,
-        deletedDates: schedules.deletedDates, // ← Make sure this line is included
-        createdAt: schedules.createdAt,
+        deletedDates: schedules.deletedDates,
+        editedDates: schedules.editedDates, // CRITICAL: Include this!
       })
       .from(schedules)
       .where(eq(schedules.userId, userId));
+
+    console.log(
+      "📅 Fetching schedules for week - editedDates:",
+      userSchedules.map((s) => ({ id: s.id, editedDates: s.editedDates }))
+    );
 
     return NextResponse.json({ schedules: userSchedules });
   } catch (error) {

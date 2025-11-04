@@ -40,14 +40,31 @@ export const schedules = pgTable(
     timeTo: time("time_to").notNull(),
     location: text("location"),
     notes: text("notes"),
-    deletedDates: jsonb("deleted_dates").$type<string[]>().default([]), // Add this line
+    deletedDates: jsonb("deleted_dates").$type<string[]>().default([]),
+    editedDates: jsonb("edited_dates")
+      .$type<
+        Record<
+          string,
+          Record<
+            string,
+            {
+              title?: string;
+              timeFrom?: string;
+              timeTo?: string;
+              location?: string;
+              notes?: string;
+              updatedAt: string;
+            }
+          >
+        >
+      >()
+      .default({}),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
   (table) => {
     return {
       userIdIdx: index("idx_schedules_user_id").on(table.userId),
-      createdAtIdx: index("idx_schedules_created_at").on(table.createdAt),
     };
   }
 );
