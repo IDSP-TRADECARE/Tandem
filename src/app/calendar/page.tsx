@@ -496,6 +496,15 @@ export default function Calendar() {
     </div>
   );
 
+  const parseScheduleEventId = (eventId: string) => {
+    const parts = eventId?.split("-") ?? [];
+    if (parts.length < 5) return null;
+
+    const date = parts.slice(-3).join("-");
+    const scheduleId = parts.slice(1, -3).join("-");
+    return scheduleId && date ? { scheduleId, date } : null;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1328,28 +1337,27 @@ export default function Calendar() {
                           selectedEvent.extendedProps?.type === "work" ||
                           selectedEvent.extendedProps?.type === "childcare"
                         ) {
-                          try {
-                            const eventId = selectedEvent.id as string;
-                            // Extract schedule ID from event ID format: "work-{scheduleId}-{date}" or "childcare-{scheduleId}-{date}"
-                            const scheduleId = eventId.split("-")[1];
-                            const eventDate = eventId.split("-")[2];
-
-                            await fetch(`/api/schedule/event`, {
-                              method: "DELETE",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                scheduleId,
-                                date: eventDate,
-                                type: selectedEvent.extendedProps?.type,
-                              }),
-                            });
-
-                            console.log("Schedule event deleted from database");
-                          } catch (error) {
-                            console.error(
-                              "Error deleting schedule event:",
-                              error
+                          const eventId = selectedEvent.id as string;
+                          const meta = parseScheduleEventId(eventId);
+                          if (meta) {
+                            const response = await fetch(
+                              "/api/schedule/event",
+                              {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  scheduleId: meta.scheduleId,
+                                  date: meta.date,
+                                  type: selectedEvent.extendedProps?.type,
+                                }),
+                              }
                             );
+                            if (!response.ok) {
+                              console.error(
+                                "Failed to delete schedule event",
+                                await response.json()
+                              );
+                            }
                           }
                         }
                       }
