@@ -16,14 +16,29 @@ export function NavContainer({ children }: NavContainerProps) {
         const href = child.props.href;
         if (navPositions[href]) {
           activePositionPercent = navPositions[href];
+          
+          // Special offset for calendar
+          if (href === '/calendar') {
+            activePositionPercent += 3.2;
+          }
+          if (href === '/schedule/upload') {
+            activePositionPercent += 1;
+          }
+          if (href === '/nanny') {
+            activePositionPercent -= 1;
+          }
+          if (href === '/profile') {
+            activePositionPercent -= 3.2;
+          }
         }
       }
     });
   }
   
-  // cutout
+  // cutout with smooth edges
   const radiusPx = 40;
-  const cutoutStyle = `radial-gradient(circle ${radiusPx}px at ${activePositionPercent}% -10px, transparent 0, transparent ${radiusPx}px, black ${radiusPx}px)`;
+  const featherPx = 0.3;
+  const cutoutStyle = `radial-gradient(circle ${radiusPx}px at ${activePositionPercent}% -10px, transparent 0, transparent ${radiusPx - featherPx}px, black ${radiusPx + featherPx}px)`;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-8 pb-6">
@@ -31,7 +46,10 @@ export function NavContainer({ children }: NavContainerProps) {
         className="absolute bottom-6 left-4 right-4 bg-primary-active rounded-4xl shadow-2xl h-[62px] transition-all duration-300"
         style={{
           WebkitMaskImage: cutoutStyle,
-          maskImage: cutoutStyle
+          maskImage: cutoutStyle,
+          WebkitMaskComposite: 'source-out',
+          WebkitBackfaceVisibility: 'hidden',
+          transform: 'translateZ(0)',
         }}
       />
       
