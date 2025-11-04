@@ -3,32 +3,22 @@ import Link from 'next/link';
 interface NavItemProps {
   href: string;
   icon: React.ReactNode;
-  label: string;
   isActive: boolean;
   onClick?: () => void;
 }
 
-export function NavItem({ href, icon, label, isActive, onClick }: NavItemProps) {
+export function NavItem({ href, icon, isActive, onClick }: NavItemProps) {
   const content = (
-    <div className={`flex flex-col items-center transition-all ${
-      isActive ? '-translate-y-8' : ''
-    }`}>
+    <div className={`flex flex-col items-center transition-all`}>
       <div className={`rounded-full transition-all ${
         isActive 
-          ? 'bg-primary-active' 
+          ? 'bg-primary-active p-4 -translate-y-8' 
           : 'bg-transparent'
       }`}>
-        <div className={`w-7 h-7 transition-colors ${
-          isActive ? 'text-[#3d5a80]' : 'text-white'
-        }`}>
+        <div className="w-5 h-5 text-white">
           {icon}
         </div>
       </div>
-      <span className={`text-xs font-medium mt-1 ${
-        isActive ? 'text-white' : 'text-white/70'
-      }`}>
-        {label}
-      </span>
     </div>
   );
 
@@ -53,3 +43,10 @@ export function NavItem({ href, icon, label, isActive, onClick }: NavItemProps) 
     </Link>
   );
 }
+
+
+// STEFAN NOTES
+
+// make line 16 padding inline so it doesnt fuck the shit uo
+// related to line 24
+// make the cutout in navcontainer smoother, add another one
