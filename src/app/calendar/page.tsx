@@ -27,6 +27,7 @@ interface Schedule {
   timeFrom: string;
   timeTo: string;
   location: string;
+  notes?: string; // Add this line
   deletedDates?: string[];
   editedDates?: Record<
     string,
