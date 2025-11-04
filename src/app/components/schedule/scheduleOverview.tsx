@@ -1,6 +1,6 @@
 'use client';
 
-import { ScheduleData } from '@/app/schedule/upload/page';
+import { ScheduleData } from '../../schedule/upload/page';
 
 interface ScheduleOverviewProps {
   data: ScheduleData;
@@ -8,121 +8,154 @@ interface ScheduleOverviewProps {
   onBack: () => void;
 }
 
-const DAY_LABELS: Record<string, string> = {
-  MON: 'Monday',
-  TUE: 'Tuesday',
-  WED: 'Wednesday',
-  THU: 'Thursday',
-  FRI: 'Friday',
-  SAT: 'Saturday',
-  SUN: 'Sunday',
-};
-
-const DAY_ABBREV: Record<string, string> = {
-  MON: 'M',
-  TUE: 'T',
-  WED: 'W',
-  THU: 'T',
-  FRI: 'F',
-  SAT: 'S',
-  SUN: 'S',
-};
-
 export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps) {
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
+  const daysOfWeek = [
+    { code: 'MON', label: 'Monday' },
+    { code: 'TUE', label: 'Tuesday' },
+    { code: 'WED', label: 'Wednesday' },
+    { code: 'THU', label: 'Thursday' },
+    { code: 'FRI', label: 'Friday' },
+    { code: 'SAT', label: 'Saturday' },
+    { code: 'SUN', label: 'Sunday' },
+  ];
+
+  // Safely handle workingDays with default empty array
+  const workingDays = data?.workingDays || [];
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="mb-4">
+    <div className="max-w-2xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          className="mb-4 p-2 hover:bg-gray-100 rounded-full transition-colors inline-flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back
         </button>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Schedule Overview</h1>
+        <p className="text-gray-600">Review your schedule details</p>
       </div>
 
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Overview</h2>
-
-      <div className="space-y-6">
+      {/* Schedule Card */}
+      <div className="bg-white rounded-2xl border-2 border-gray-200 p-6 mb-6">
         {/* Title */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Title</label>
-          <p className="text-gray-900">{data.title}</p>
-        </div>
-
-        {/* Working Days */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Working Days</label>
-          <div className="flex gap-2">
-            {Object.keys(DAY_ABBREV).map((day) => (
-              <div
-                key={day}
-                className={`flex-1 h-10 rounded-lg flex items-center justify-center font-semibold ${
-                  data.workingDays.includes(day)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-400'
-                }`}
-              >
-                {DAY_ABBREV[day]}
-              </div>
-            ))}
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            {data.workingDays.map((day) => DAY_LABELS[day]).join(', ')}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Schedule Title
+          </label>
+          <p className="text-lg font-medium text-gray-900">
+            {data?.title || 'Untitled Schedule'}
           </p>
         </div>
 
-        {/* Time Range */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">From</label>
-            <p className="text-gray-900">{formatTime(data.timeFrom)}</p>
+        {/* Working Days */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Working Days
+          </label>
+          <div className="grid grid-cols-7 gap-2">
+            {daysOfWeek.map((day) => {
+              const isSelected = workingDays.includes(day.code);
+              return (
+                <div
+                  key={day.code}
+                  className={`p-3 rounded-xl text-center transition-colors ${
+                    isSelected
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-400'
+                  }`}
+                >
+                  <div className="font-semibold text-sm">{day.code}</div>
+                </div>
+              );
+            })}
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">To</label>
-            <p className="text-gray-900">{formatTime(data.timeTo)}</p>
+          <div className="mt-2 text-sm text-gray-600">
+            {workingDays.length > 0 
+              ? `${workingDays.length} day${workingDays.length > 1 ? 's' : ''} selected`
+              : 'No days selected'}
           </div>
         </div>
 
-        {/* Working Location */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Working Location</label>
-          <p className="text-gray-900">{data.location || 'Not specified'}</p>
+        {/* Time */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Start Time
+            </label>
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-lg font-medium text-gray-900">
+                {data?.timeFrom || 'Not set'}
+              </p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              End Time
+            </label>
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-lg font-medium text-gray-900">
+                {data?.timeTo || 'Not set'}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Additional Note */}
-        {data.notes && (
+        {/* Location */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Location
+          </label>
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <p className="text-lg font-medium text-gray-900">
+              {data?.location || 'Not specified'}
+            </p>
+          </div>
+        </div>
+
+        {/* Notes */}
+        {data?.notes && (
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Additional Note</label>
-            <p className="text-gray-900">{data.notes}</p>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Notes
+            </label>
+            <p className="text-gray-700 bg-gray-50 rounded-xl p-4">
+              {data.notes}
+            </p>
           </div>
         )}
+      </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
-          <button
-            onClick={onEdit}
-            className="flex-1 py-3 px-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Edit
-          </button>
-          <button
-            onClick={onBack}
-            className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Done
-          </button>
-        </div>
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <button
+          onClick={onEdit}
+          className="flex-1 py-3 px-4 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors"
+        >
+          Edit Schedule
+        </button>
+        <button
+          onClick={() => {
+            // Save schedule and navigate to calendar
+            window.location.href = '/calendar';
+          }}
+          className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+        >
+          Save & View Calendar
+        </button>
       </div>
     </div>
   );
