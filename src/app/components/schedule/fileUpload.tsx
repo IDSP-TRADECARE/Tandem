@@ -70,7 +70,7 @@ export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadPro
   try {
     console.log('🚀 Starting upload:', file.name);
     
-    const response = await fetch("/api/schedule/upload", {
+    const response = await fetch("/api/schedule/parse-pdf", {  // <-- Correct endpoint
       method: "POST",
       body: formData,
     });
@@ -86,15 +86,15 @@ export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadPro
     const result = await response.json();
     console.log('✅ Upload successful:', result);
     
-    // Extract the actual schedule data from the response
-    const scheduleData = result.data; // <-- FIX: Extract data property
+    // Extract the schedule data from the response
+    const scheduleData = result.schedule;  // <-- FIXED: Your API returns { schedule: {...} }
     console.log('📋 Schedule data:', scheduleData);
     
     clearInterval(interval);
     setUploadProgress(100);
     
     setTimeout(() => {
-      onComplete(scheduleData); // <-- FIX: Pass only the schedule data
+      onComplete(scheduleData);  // <-- Pass the schedule data
     }, 500);
   } catch (error) {
     console.error("❌ Upload error:", error);
