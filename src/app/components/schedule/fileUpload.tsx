@@ -48,7 +48,7 @@ export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadPro
     }
   };
 
-  const handleUpload = async () => {
+const handleUpload = async () => {
   if (!file) return;
 
   setUploading(true);
@@ -70,7 +70,8 @@ export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadPro
   try {
     console.log('🚀 Starting upload:', file.name);
     
-    const response = await fetch("/api/schedule/parse-pdf", {  // <-- Correct endpoint
+    // Step 1: Parse the PDF
+    const response = await fetch("/api/schedule/parse-pdf", {
       method: "POST",
       body: formData,
     });
@@ -86,15 +87,29 @@ export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadPro
     const result = await response.json();
     console.log('✅ Upload successful:', result);
     
-    // Extract the schedule data from the response
-    const scheduleData = result.schedule;  // <-- FIXED: Your API returns { schedule: {...} }
+    const scheduleData = result.schedule;
     console.log('📋 Schedule data:', scheduleData);
+    
+    // Step 2: Save to database
+    console.log('💾 Saving to database...');
+    const saveResponse = await fetch('/api/schedule/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(scheduleData),
+    });
+
+    if (!saveResponse.ok) {
+      throw new Error('Failed to save schedule to database');
+    }
+
+    const saveResult = await saveResponse.json();
+    console.log('✅ Saved to database:', saveResult);
     
     clearInterval(interval);
     setUploadProgress(100);
     
     setTimeout(() => {
-      onComplete(scheduleData);  // <-- Pass the schedule data
+      onComplete(scheduleData);
     }, 500);
   } catch (error) {
     console.error("❌ Upload error:", error);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface VoiceInputProps {
   onComplete: (data: any) => void;
@@ -9,28 +9,107 @@ interface VoiceInputProps {
 
 export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
   const [status, setStatus] = useState<'idle' | 'recording' | 'processing'>('idle');
-  const [transcript, setTranscript] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
-  const handleMicrophoneClick = () => {
+  const handleMicrophoneClick = async () => {
     if (status === 'idle') {
-      setStatus('recording');
-    } else if (status === 'recording') {
-      setStatus('processing');
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.start();
+        setStatus('recording');
+        setError(null);
+        console.log('🎤 Started recording...');
+      } catch (err) {
+        console.error('Failed to start recording:', err);
+        setError('Failed to access microphone. Please allow microphone access.');
+        setStatus('idle');
+      }
       
-      setTimeout(() => {
-        setTranscript('I work Monday to Friday from 9 AM to 5 PM at Vancouver Downtown');
-        
-        setTimeout(() => {
-          onComplete({
-            title: 'Work Schedule',
-            workingDays: ['MON', 'TUE', 'WED', 'THU', 'FRI'],
-            timeFrom: '09:00',
-            timeTo: '17:00',
-            location: 'Vancouver Downtown',
-            notes: 'Created via voice input',
+    } else if (status === 'recording') {
+      // Stop recording and process
+      if (!mediaRecorderRef.current) {
+        setError('Recording error');
+        setStatus('idle');
+        return;
+      }
+
+      mediaRecorderRef.current.stop();
+      console.log('🎤 Stopped recording');
+
+      mediaRecorderRef.current.onstop = async () => {
+        setStatus('processing');
+
+        try {
+          // Create audio blob
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          console.log('🎵 Audio blob created:', audioBlob.size, 'bytes');
+
+          // Create form data
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+
+          // Send to API
+          const response = await fetch('/api/schedule/transcribe-voice', {
+            method: 'POST',
+            body: formData,
           });
-        }, 2000);
-      }, 2000);
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to process voice input');
+          }
+
+          const { transcript, schedule } = await response.json();
+          console.log('📝 Transcript:', transcript);
+          console.log('📋 Parsed schedule:', schedule);
+
+          // Save to database
+          const saveResponse = await fetch('/api/schedule/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(schedule),
+          });
+
+          if (!saveResponse.ok) {
+            throw new Error('Failed to save schedule');
+          }
+
+          console.log('✅ Schedule saved successfully');
+
+          // Stop all tracks
+          if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
+            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+          }
+
+          // Complete the flow
+          setTimeout(() => {
+            onComplete(schedule);
+          }, 500);
+
+        } catch (err) {
+          console.error('❌ Voice input error:', err);
+          setError(err instanceof Error ? err.message : 'Failed to process voice input');
+          setStatus('idle');
+
+          // Stop all tracks on error
+          if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
+            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+          }
+        }
+      };
     }
   };
 
@@ -78,6 +157,12 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
                   I will help you to fill that in!
                 </p>
               </div>
+
+              {error && (
+                <div className="mt-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl max-w-md mx-auto">
+                  <p className="text-sm text-red-600 font-semibold">{error}</p>
+                </div>
+              )}
             </div>
           )}
 
