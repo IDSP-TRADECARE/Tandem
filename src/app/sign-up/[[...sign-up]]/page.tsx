@@ -1,6 +1,6 @@
 import { SignUp } from "@clerk/nextjs";
 import Image from "next/image"; 
-import { GradientBackgroundFull } from "@/app/components/ui/GradientBackgroundFull";
+import { GradientBackgroundFull } from "@/app/components/ui/backgrounds/GradientBackgroundFull";
 
 
 export default function SignUpPage() {
