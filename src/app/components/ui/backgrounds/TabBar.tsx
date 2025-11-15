@@ -20,7 +20,7 @@ export function TabBar({ tabs, activeTab, onTabChange }: TabBarProps) {
             <div 
               className="absolute bottom-0 left-1/2 -translate-x-1/2 h-1 rounded-full"
               style={{
-                width: '80px',
+                width: '60px',
                 background: 'linear-gradient(90deg, #3373CC 0%, #9DEE95 100%)',
               }}
             />

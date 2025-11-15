@@ -1,4 +1,5 @@
 'use client';
+import { typography } from '@/app/styles/typography';
 import { useState } from 'react';
 import { IoIosNotifications } from "react-icons/io";
 
@@ -39,8 +40,8 @@ export function DateHeader({ type, date = new Date()}: DateHeaderProps) {
     return (
       <div className="flex items-center justify-between px-6 py-8">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-white text-2xl font-bold">Today</h1>
-          <span className="text-white">{formatDate(date)}</span>
+          <h1 className={`text-white text-[32px] ${typography.display.h2}`}>Today</h1>
+          <span className={`text-white text-[16px] font-light ${typography.body.body}`}>{formatDate(date)}</span>
         </div>
         
         <button className="relative">
@@ -65,16 +66,16 @@ export function DateHeader({ type, date = new Date()}: DateHeaderProps) {
               <button
                 key={index}
                 onClick={() => setSelectedDay(day)}
-                className={`flex flex-col items-center justify-center rounded-3xl transition-all p-3 ${
+                className={`flex flex-col items-center justify-center rounded-3xl transition-all p-2 px-1 drop-shadow-2xl ${
                   isSelected 
                     ? 'bg-primary-active text-white shadow-lg' 
                     : 'bg-white text-primary-dark'
                 } w-14 h-18`}
               >
-                <div className="text-2xl font-bold leading-none mb-1">
+                <div className={`font-bold text-[30px] ${typography.display.h2} leading-none mb-1`}>
                   {dayNumber}
                 </div>
-                <div className="text-[14px] font-semibold tracking-wide">
+                <div className={`text-[12px] font-light ${typography.body.label} tracking-wide`}>
                   {dayName}
                 </div>
               </button>
