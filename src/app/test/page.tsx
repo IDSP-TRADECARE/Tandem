@@ -3,54 +3,55 @@ import { useState } from 'react';
 import { GradientBackgroundFull } from "../components/ui/backgrounds/GradientBackgroundFull";
 import { HalfBackground } from "../components/ui/backgrounds/HalfBackground";
 import { TabBar } from "../components/ui/backgrounds/TabBar";
-import { DateHeader } from '../components/ui/calendar/DateHeader';
-
+import { 
+  getHeadersForView, 
+  getHeightForView, 
+  createMonthHandlers
+} from '../components/calendar/viewHelpers';
 
 // Calendar layout
 const tabs = ['Today', 'Weekly', 'Monthly'];
 
-
-
 export default function TestPage() {
-  const [activeTab, setActiveTab] = useState('Today');
+  
+  const [activeTab, setActiveTab] = useState<'Today' | 'Weekly' | 'Monthly'>('Today');
+  const [selectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const { handlePreviousMonth, handleNextMonth } = createMonthHandlers(currentMonth, setCurrentMonth);
+  const halfBackgroundHeight = getHeightForView(activeTab);
 
   return (
     <GradientBackgroundFull>
-      
-      <DateHeader type="date" date={new Date()} />
+      {/* Render headers based on active tab */}
+      {getHeadersForView(activeTab, selectedDate, currentMonth, {
+        onPrevMonth: handlePreviousMonth,
+        onNextMonth: handleNextMonth,
+      })}
 
-      <DateHeader type="today" date={new Date()} />
-
-
-      <HalfBackground>
+      <HalfBackground divHeight={halfBackgroundHeight}>
         <TabBar
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={(tab) => setActiveTab(tab as 'Today' | 'Weekly' | 'Monthly')}
         />
-        <div>
-
-
+        <div className="">
           {activeTab === 'Today' && (
-          <div>
-            <h2>Today View</h2>
-          </div>
+            <div>
+              <h2>Today View</h2>
+            </div>
           )}
 
           {activeTab === 'Weekly' && (
-          <div>
-            <h2>Weekly View</h2>
-          </div>
+            <div>
+              <h2>Weekly View</h2>
+            </div>
           )}
 
           {activeTab === 'Monthly' && (
-          <div>
-            <h2>Monthly View</h2>
-          </div>
+            <div>
+              <h2>Monthly View</h2>
+            </div>
           )}
-
-
-          
         </div>
       </HalfBackground>
     </GradientBackgroundFull>

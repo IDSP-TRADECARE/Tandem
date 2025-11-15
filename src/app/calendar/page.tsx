@@ -17,7 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "../components/ui/calendar/dialog";
+} from "../components/calendar/dialog";
 import { BottomNav } from "../components/Layout/BottomNav";
 
 interface Schedule {

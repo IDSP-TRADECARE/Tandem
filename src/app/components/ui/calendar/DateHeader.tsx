@@ -1,17 +1,20 @@
 'use client';
 import { typography } from '@/app/styles/typography';
 import { useState } from 'react';
-import { IoIosNotifications } from "react-icons/io";
+import { IoIosNotifications, IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 
 type HeaderType = 'date' | 'today' | 'weekly' | 'monthly';
 
 interface DateHeaderProps {
   type: HeaderType;
   date?: Date;
+  onPrevious?: () => void;
+  onNext?: () => void;
+  onDateSelect?: (date: Date) => void;
 }
 
-export function DateHeader({ type, date = new Date()}: DateHeaderProps) {
-  const [selectedDay, setSelectedDay] = useState(new Date());
+export function DateHeader({ type, date = new Date(), onPrevious, onNext, onDateSelect }: DateHeaderProps) {
+  const [selectedDay, setSelectedDay] = useState(date);
 
   // Format date as "Aug 25, 2025"
   const formatDate = (d: Date) => {
@@ -34,6 +37,14 @@ export function DateHeader({ type, date = new Date()}: DateHeaderProps) {
   };
 
   const fiveDays = getFiveDays(date);
+
+  // Handle day selection
+  const handleDayClick = (day: Date) => {
+    setSelectedDay(day);
+    if (onDateSelect) {
+      onDateSelect(day);
+    }
+  };
 
   // Date Header - Just "Today" with date and notification
   if (type === 'date') {
@@ -65,7 +76,7 @@ export function DateHeader({ type, date = new Date()}: DateHeaderProps) {
             return (
               <button
                 key={index}
-                onClick={() => setSelectedDay(day)}
+                onClick={() => handleDayClick(day)}
                 className={`flex flex-col items-center justify-center rounded-3xl transition-all p-2 px-1 drop-shadow-2xl ${
                   isSelected 
                     ? 'bg-primary-active text-white shadow-lg' 
@@ -82,6 +93,42 @@ export function DateHeader({ type, date = new Date()}: DateHeaderProps) {
             );
           })}
         </div>
+      </div>
+    );
+  }
+
+  // Weekly Header - Navigation with month and year
+  if (type === 'weekly') {
+    const monthYear = date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      year: 'numeric' 
+    });
+    
+    return (
+      <div 
+        className="px-6 py-2 flex items-center justify-between rounded-2xl mx-4"
+        style={{
+          background: 'rgba(255, 255, 255, 0.2)',
+          backdropFilter: 'blur(10px)'
+        }}
+      >
+        <button 
+          onClick={onPrevious}
+          className="p-2 hover:bg-white/20 rounded-full transition-all"
+        >
+          <IoIosArrowBack size={28} color="white" />
+        </button>
+        
+        <div className={`text-white text-[24px] font-bold ${typography.display.h3}`}>
+          {monthYear}
+        </div>
+        
+        <button 
+          onClick={onNext}
+          className="p-2 hover:bg-white/20 rounded-full transition-all"
+        >
+          <IoIosArrowForward size={28} color="white" />
+        </button>
       </div>
     );
   }
