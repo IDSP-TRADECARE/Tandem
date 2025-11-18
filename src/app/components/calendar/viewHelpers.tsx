@@ -9,7 +9,6 @@ export function getHeadersForView(view: ViewType, date: Date, month: Date, handl
       return (
         <>
           <DateHeader type="date" date={date} />
-          <DateHeader type="today" date={date} />
         </>
       );
     
@@ -17,12 +16,7 @@ export function getHeadersForView(view: ViewType, date: Date, month: Date, handl
       return (
         <>
           <DateHeader type="date" date={date} />
-          <DateHeader 
-            type="weekly" 
-            date={month} 
-            onPrevious={handlers.onPrevMonth}
-            onNext={handlers.onNextMonth}
-          />
+          <DateHeader type="today" date={date} />
         </>
       );
     
@@ -49,13 +43,27 @@ export function getHeadersForView(view: ViewType, date: Date, month: Date, handl
 export function getHeightForView(view: ViewType): number | undefined {
   switch (view) {
     case 'Today':
-      return 79; // Default 75%
+      return undefined; // Will calculate dynamically
     case 'Weekly':
-      return 81; // Taller for weekly view
+      return undefined; // Will calculate dynamically
     case 'Monthly':
-      return 50; // Shorter for monthly view
+      return undefined; // Will calculate dynamically
     default:
       return undefined;
+  }
+}
+
+// Calculate top position for HalfBackground based on view
+export function getTopPositionForView(view: ViewType): string {
+  switch (view) {
+    case 'Today':
+      return '140px'; // After date header
+    case 'Weekly':
+      return '220px'; // After date + today headers
+    case 'Monthly':
+      return '210px'; // After date + weekly headers (no today selector)
+    default:
+      return '140px';
   }
 }
 

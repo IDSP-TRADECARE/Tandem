@@ -5,7 +5,7 @@ import { HalfBackground } from "../components/ui/backgrounds/HalfBackground";
 import { TabBar } from "../components/ui/backgrounds/TabBar";
 import { 
   getHeadersForView, 
-  getHeightForView, 
+  getTopPositionForView,
   createMonthHandlers
 } from '../components/calendar/viewHelpers';
 import {DateCardContainer } from '../components/ui/calendar/DateCard';
@@ -19,7 +19,7 @@ export default function TestPage() {
   const [selectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const { handlePreviousMonth, handleNextMonth } = createMonthHandlers(currentMonth, setCurrentMonth);
-  const halfBackgroundHeight = getHeightForView(activeTab);
+  const topPosition = getTopPositionForView(activeTab);
 
   return (
     <GradientBackgroundFull>
@@ -29,7 +29,7 @@ export default function TestPage() {
         onNextMonth: handleNextMonth,
       })}
 
-      <HalfBackground divHeight={halfBackgroundHeight}>
+      <HalfBackground topPosition={topPosition}>
         <TabBar
           tabs={tabs}
           activeTab={activeTab}
