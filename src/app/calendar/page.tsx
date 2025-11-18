@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   formatDate,
   DateSelectArg,
@@ -27,6 +27,22 @@ interface Schedule {
   timeFrom: string;
   timeTo: string;
   location: string;
+  notes?: string; // Add this line
+  deletedDates?: string[];
+  editedDates?: Record<
+    string,
+    Record<
+      string,
+      {
+        title?: string;
+        timeFrom?: string;
+        timeTo?: string;
+        location?: string;
+        notes?: string;
+        updatedAt: string;
+      }
+    >
+  >;
 }
 
 interface CustomEventInput extends EventInput {
@@ -59,6 +75,12 @@ export default function Calendar() {
   const [selectedEvent, setSelectedEvent] = useState<CustomEventInput | null>(
     null
   );
+  const [editMode, setEditMode] = useState<boolean>(false);
+  const [editEventTitle, setEditEventTitle] = useState<string>("");
+  const [editEventStartTime, setEditEventStartTime] = useState<string>("");
+  const [editEventEndTime, setEditEventEndTime] = useState<string>("");
+  const [editEventLocation, setEditEventLocation] = useState<string>("");
+  const [editEventNotes, setEditEventNotes] = useState<string>("");
   const calendarRef = useRef<FullCalendar>(null);
 
   useEffect(() => {
@@ -113,6 +135,8 @@ export default function Calendar() {
     const events: CustomEventInput[] = [];
     const today = new Date();
 
+    console.log("📋 Generating events from schedules:", schedules);
+
     const dayMap: Record<string, number> = {
       SUN: 0,
       MON: 1,
@@ -126,7 +150,6 @@ export default function Calendar() {
     for (let i = 0; i < 90; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-
       const dayOfWeek = date.getDay();
 
       for (const schedule of schedules) {
@@ -137,29 +160,69 @@ export default function Calendar() {
         if (dayCode && schedule.workingDays.includes(dayCode)) {
           const dateStr = date.toISOString().split("T")[0];
 
+          // Skip deleted dates
+          if (schedule.deletedDates?.includes(dateStr)) {
+            console.log(`⏭️ Skipping deleted date: ${dateStr}`);
+            continue;
+          }
+
+          // Check for edits - IMPORTANT: Log to debug
+          const editedDatesForDate = schedule.editedDates?.[dateStr];
+          const workEdits = editedDatesForDate?.work;
+          const childcareEdits = editedDatesForDate?.childcare;
+
+          if (workEdits) {
+            console.log(`✏️ Applying work edits for ${dateStr}:`, workEdits);
+          }
+          if (childcareEdits) {
+            console.log(
+              `✏️ Applying childcare edits for ${dateStr}:`,
+              childcareEdits
+            );
+          }
+
+          // Create work event with edits applied
+          const workTitle =
+            workEdits?.title || `Work: ${schedule.location || "Work"}`;
+          const workTimeFrom = workEdits?.timeFrom || schedule.timeFrom;
+          const workTimeTo = workEdits?.timeTo || schedule.timeTo;
+          const workLocation = workEdits?.location || schedule.location || "";
+          const workNotes = workEdits?.notes || schedule.notes || "";
+
           events.push({
             id: `work-${schedule.id}-${dateStr}`,
-            title: `Work: ${schedule.location || "Work"}`,
-            start: `${dateStr}T${schedule.timeFrom}`,
-            end: `${dateStr}T${schedule.timeTo}`,
+            title: workTitle,
+            start: `${dateStr}T${workTimeFrom}`,
+            end: `${dateStr}T${workTimeTo}`,
             allDay: false,
             backgroundColor: "#D4E3F0",
             borderColor: "#D4E3F0",
             extendedProps: {
-              location: schedule.location,
+              location: workLocation,
+              notes: workNotes,
               type: "work",
             },
           });
 
+          // Create childcare event with edits applied
+          const childcareTitle = childcareEdits?.title || "No Childcare";
+          const childcareTimeFrom =
+            childcareEdits?.timeFrom || schedule.timeFrom;
+          const childcareTimeTo = childcareEdits?.timeTo || schedule.timeFrom;
+          const childcareLocation = childcareEdits?.location || "";
+          const childcareNotes = childcareEdits?.notes || "";
+
           events.push({
             id: `childcare-${schedule.id}-${dateStr}`,
-            title: "No Childcare",
-            start: `${dateStr}T${schedule.timeFrom}`,
-            end: `${dateStr}T${schedule.timeFrom}`,
+            title: childcareTitle,
+            start: `${dateStr}T${childcareTimeFrom}`,
+            end: `${dateStr}T${childcareTimeTo}`,
             allDay: false,
             backgroundColor: "#C8D3BC",
             borderColor: "#C8D3BC",
             extendedProps: {
+              location: childcareLocation,
+              notes: childcareNotes,
               type: "childcare",
             },
           });
@@ -167,10 +230,11 @@ export default function Calendar() {
       }
     }
 
+    console.log(`✅ Generated ${events.length} events`);
     return events;
   };
 
-  const saveCustomEvents = () => {
+  const saveCustomEvents = useCallback(() => {
     const customEvents = currentEvents
       .filter(
         (event) =>
@@ -189,13 +253,13 @@ export default function Calendar() {
       }));
 
     localStorage.setItem("customEvents", JSON.stringify(customEvents));
-  };
+  }, [currentEvents]);
 
   useEffect(() => {
     if (currentEvents.length > 0) {
       saveCustomEvents();
     }
-  }, [currentEvents]);
+  }, [currentEvents, saveCustomEvents]);
 
   const getEventsForDate = (date: Date) => {
     const filtered = allEvents.filter((event) => {
@@ -256,6 +320,52 @@ export default function Calendar() {
     setDialogOpen(true);
   };
 
+  const handleAddEvent = () => {
+    if (
+      !selectedDate ||
+      !newEventTitle ||
+      !newEventStartTime ||
+      !newEventEndTime
+    ) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    const calendarApi = calendarRef.current?.getApi();
+    if (!calendarApi) return;
+
+    const dateString = selectedDate.startStr;
+    const startDateTime = new Date(`${dateString}T${newEventStartTime}`);
+    const endDateTime = new Date(`${dateString}T${newEventEndTime}`);
+
+    const eventType = activeTab === "shift" ? "shift" : "nanny";
+    const eventColor = getEventColor(eventType);
+
+    const newEvent: CustomEventInput = {
+      id: `${eventType}-${Date.now()}`,
+      title: newEventTitle,
+      start: startDateTime,
+      end: endDateTime,
+      allDay: false,
+      backgroundColor: eventColor.bg,
+      borderColor: eventColor.border,
+      extendedProps: {
+        location: newEventLocation,
+        notes: newEventNotes,
+        type: eventType,
+      },
+    };
+
+    // Add to calendar
+    calendarApi.addEvent(newEvent);
+
+    // Add to allEvents state
+    setAllEvents((prev) => [...prev, newEvent]);
+
+    // Close dialog and reset form
+    handleCloseDialog();
+  };
+
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setNewEventTitle("");
@@ -264,74 +374,152 @@ export default function Calendar() {
     setNewEventLocation("");
     setNewEventNotes("");
     setActiveTab("shift");
+    setSelectedDate(null);
+  };
+
+  const parseScheduleEventId = (
+    eventId: string
+  ): { scheduleId: string; date: string } | null => {
+    const parts = eventId?.split("-") ?? [];
+    if (parts.length < 5) return null;
+
+    const date = parts.slice(-3).join("-");
+    const scheduleId = parts.slice(1, -3).join("-");
+    return scheduleId && date ? { scheduleId, date } : null;
   };
 
   const handleEventClick = (clickInfo: EventClickArg) => {
-    if (
-      clickInfo.event.extendedProps?.type === "work" ||
-      clickInfo.event.extendedProps?.type === "childcare"
-    ) {
-      alert(
-        "Schedule events cannot be deleted. Please update your schedule in the schedule page."
-      );
-      return;
+    const event = clickInfo.event;
+    setSelectedEvent({
+      id: event.id,
+      title: event.title,
+      start: event.start || undefined,
+      end: event.end || undefined,
+      allDay: event.allDay,
+      backgroundColor: event.backgroundColor || undefined,
+      borderColor: event.borderColor || undefined,
+      extendedProps: event.extendedProps,
+    });
+
+    // Pre-fill edit form
+    setEditEventTitle(event.title);
+
+    if (event.start && event.end) {
+      const startTime = event.start.toTimeString().slice(0, 5);
+      const endTime = event.end.toTimeString().slice(0, 5);
+      setEditEventStartTime(startTime);
+      setEditEventEndTime(endTime);
     }
 
-    if (
-      window.confirm(
-        `Are you sure you want to delete the event '${clickInfo.event.title}'?`
-      )
-    ) {
-      clickInfo.event.remove();
+    setEditEventLocation(event.extendedProps?.location || "");
+    setEditEventNotes(event.extendedProps?.notes || "");
+    setEditMode(false); // Make sure edit mode is off when opening
+    setEventDetailOpen(true);
+  };
+
+  // Add a handler for when the dialog closes
+  const handleEventDetailClose = (open: boolean) => {
+    setEventDetailOpen(open);
+    if (!open) {
+      // Reset edit mode when dialog closes
+      setEditMode(false);
+      setSelectedEvent(null);
     }
   };
 
-const handleAddEvent = () => {
-  if (selectedDate && newEventTitle) {
-    const calendarApi = selectedDate.view.calendar;
-    calendarApi.unselect();
+  const handleSaveEdit = async () => {
+    if (!selectedEvent || !editEventTitle) return;
 
-    let startDate = selectedDate.start;
-    let endDate = selectedDate.start;
-    let isAllDay = selectedDate.allDay;
+    const calendarApi = calendarRef.current?.getApi();
+    if (!calendarApi) return;
 
-    if (newEventStartTime && newEventEndTime) {
-      const dateString = startDate.toISOString().split("T")[0];
-      startDate = new Date(`${dateString}T${newEventStartTime}`);
-      endDate = new Date(`${dateString}T${newEventEndTime}`);
-      isAllDay = false;
-    } else {
-      endDate = startDate;
-      isAllDay = true;
+    const calEvent = calendarApi.getEventById(selectedEvent.id as string);
+    if (!calEvent) return;
+
+    // Update event properties
+    calEvent.setProp("title", editEventTitle);
+
+    if (editEventStartTime && editEventEndTime && calEvent.start) {
+      const dateString = calEvent.start.toISOString().split("T")[0];
+      const newStart = new Date(`${dateString}T${editEventStartTime}`);
+      const newEnd = new Date(`${dateString}T${editEventEndTime}`);
+      calEvent.setStart(newStart);
+      calEvent.setEnd(newEnd);
+      calEvent.setAllDay(false);
     }
 
-    const eventType = activeTab;
-    const backgroundColor = eventType === "shift" ? "#c8e6c9" : "#bbdefb";
-    const borderColor = eventType === "shift" ? "#4caf50" : "#2196f3";
+    calEvent.setExtendedProp("location", editEventLocation);
+    calEvent.setExtendedProp("notes", editEventNotes);
 
-    const newEvent: CustomEventInput = {
-      id: `${eventType}-${Date.now()}-${newEventTitle}`,
-      title: newEventTitle,
-      start: startDate,
-      end: endDate,
-      allDay: isAllDay,
-      backgroundColor: backgroundColor,
-      borderColor: borderColor,
+    // Update allEvents state
+    setAllEvents((prevEvents) =>
+      prevEvents.map((event) =>
+        event.id === selectedEvent.id
+          ? {
+              ...event,
+              title: editEventTitle,
+              start: calEvent.start || event.start,
+              end: calEvent.end || event.end,
+              extendedProps: {
+                ...event.extendedProps,
+                location: editEventLocation,
+                notes: editEventNotes,
+              },
+            }
+          : event
+      )
+    );
+
+    // If it's a schedule event (work or childcare), update in database
+    if (
+      selectedEvent.extendedProps?.type === "work" ||
+      selectedEvent.extendedProps?.type === "childcare"
+    ) {
+      try {
+        const eventId = selectedEvent.id as string;
+        const meta = parseScheduleEventId(eventId);
+        if (meta && calEvent.start && calEvent.end) {
+          const response = await fetch("/api/schedule/event", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scheduleId: meta.scheduleId,
+              date: meta.date,
+              type: selectedEvent.extendedProps?.type,
+              updates: {
+                title: editEventTitle,
+                timeFrom: editEventStartTime,
+                timeTo: editEventEndTime,
+                location: editEventLocation,
+                notes: editEventNotes,
+              },
+            }),
+          });
+
+          if (!response.ok) {
+            console.error("Failed to update schedule event");
+          }
+        }
+      } catch (error) {
+        console.error("Error updating schedule event:", error);
+      }
+    }
+
+    // Update selectedEvent
+    setSelectedEvent({
+      ...selectedEvent,
+      title: editEventTitle,
+      start: calEvent.start || selectedEvent.start,
+      end: calEvent.end || selectedEvent.end,
       extendedProps: {
-        location: newEventLocation,
-        notes: newEventNotes,
-        type: eventType,
+        ...selectedEvent.extendedProps,
+        location: editEventLocation,
+        notes: editEventNotes,
       },
-    };
-    
-    calendarApi.addEvent(newEvent);
-    
-    // ADD THIS: Update allEvents state immediately
-    setAllEvents(prevEvents => [...prevEvents, newEvent]);
-    
-    handleCloseDialog();
-  }
-};
+    });
+
+    setEditMode(false);
+  };
 
   const handlePrevMonth = () => {
     const calendarApi = calendarRef.current?.getApi();
@@ -413,15 +601,35 @@ const handleAddEvent = () => {
   const getEventColor = (eventType: string) => {
     switch (eventType) {
       case "shift":
-        return { bg: "#E8F5E9", circle: "#4CAF50", border: "#2E7D32" };
+        return {
+          bg: "#dcfce7",
+          border: "#16a34a",
+          circle: "#16a34a",
+        };
       case "nanny":
-        return { bg: "#E3F2FD", circle: "#2196F3", border: "#1565C0" };
+        return {
+          bg: "#dbeafe",
+          border: "#2563eb",
+          circle: "#2563eb",
+        };
       case "work":
-        return { bg: "#C8D3BC", circle: "#C8D3BC", border: "#708D51" };
+        return {
+          bg: "#fef3c7",
+          border: "#f59e0b",
+          circle: "#f59e0b",
+        };
       case "childcare":
-        return { bg: "#D4E4F7", circle: "#D4E4F7", border: "#5369A5" };
+        return {
+          bg: "#fce7f3",
+          border: "#ec4899",
+          circle: "#ec4899",
+        };
       default:
-        return { bg: "#F5F5F5", circle: "#9E9E9E", border: "#616161" };
+        return {
+          bg: "#f3f4f6",
+          border: "#6b7280",
+          circle: "#6b7280",
+        };
     }
   };
 
@@ -555,7 +763,7 @@ const handleAddEvent = () => {
               select={handleDateClick}
               eventClick={handleEventClick}
               eventsSet={(events) => setCurrentEvents(events)}
-                dateClick={(info) => {
+              dateClick={(info) => {
                 if (window.innerWidth <= 1024) {
                   const calendarApi = calendarRef.current?.getApi();
                   if (calendarApi) {
@@ -959,8 +1167,6 @@ const handleAddEvent = () => {
         </div>
       </div>
 
-      <BottomNav />
-
       {/* Month Picker Dialog */}
       <Dialog open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
         <DialogContent className="sm:max-w-2xl">
@@ -1042,319 +1248,415 @@ const handleAddEvent = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Event Dialog with Tabs */}
+      {/* Add Event Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Add Event</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Add New Event
+            </DialogTitle>
           </DialogHeader>
 
-          {/* Tabs */}
-          <div className="flex gap-2 border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab("shift")}
-              className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
-                activeTab === "shift"
-                  ? "text-green-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Add Shift
-              {activeTab === "shift" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600"></div>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("nanny")}
-              className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
-                activeTab === "nanny"
-                  ? "text-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Add Nanny
-              {activeTab === "nanny" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
-              )}
-            </button>
-          </div>
-
-          <div className="space-y-4 mt-4">
-            {selectedDate && (
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <span className="text-lg font-semibold text-blue-900">
-                  {formatDate(selectedDate.start, {
+          {selectedDate && (
+            <div className="space-y-4">
+              {/* Date Display */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-600">Date</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {formatDate(new Date(selectedDate.startStr), {
                     weekday: "long",
-                    day: "numeric",
                     month: "long",
+                    day: "numeric",
                     year: "numeric",
                   })}
-                </span>
+                </p>
               </div>
-            )}
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {activeTab === "shift" ? "Shift Title" : "Nanny Name"}
-              </label>
-              <input
-                type="text"
-                placeholder={
-                  activeTab === "shift"
-                    ? "Enter shift title"
-                    : "Enter nanny name"
-                }
-                value={newEventTitle}
-                onChange={(e) => setNewEventTitle(e.target.value)}
-                className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-              />
-            </div>
+              {/* Tab Selection */}
+              <div className="flex border-b-2 border-gray-200">
+                <button
+                  onClick={() => setActiveTab("shift")}
+                  className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
+                    activeTab === "shift"
+                      ? "text-green-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Add Shift
+                  {activeTab === "shift" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600"></div>
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab("nanny")}
+                  className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
+                    activeTab === "nanny"
+                      ? "text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Add Nanny
+                  {activeTab === "nanny" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
+                  )}
+                </button>
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
+              {/* Form Fields */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Start Time
+                  Event Title <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="time"
-                  value={newEventStartTime}
-                  onChange={(e) => setNewEventStartTime(e.target.value)}
+                  type="text"
+                  placeholder="Enter event title"
+                  value={newEventTitle}
+                  onChange={(e) => setNewEventTitle(e.target.value)}
+                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Start Time <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={newEventStartTime}
+                    onChange={(e) => setNewEventStartTime(e.target.value)}
+                    className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    End Time <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={newEventEndTime}
+                    onChange={(e) => setNewEventEndTime(e.target.value)}
+                    className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  placeholder="Add location"
+                  value={newEventLocation}
+                  onChange={(e) => setNewEventLocation(e.target.value)}
                   className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  End Time
+                  Additional Notes
                 </label>
-                <input
-                  type="time"
-                  value={newEventEndTime}
-                  onChange={(e) => setNewEventEndTime(e.target.value)}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                <textarea
+                  placeholder="Add any additional notes here..."
+                  value={newEventNotes}
+                  onChange={(e) => setNewEventNotes(e.target.value)}
+                  rows={4}
+                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors resize-none"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Location
-              </label>
-              <input
-                type="text"
-                placeholder="Add location"
-                value={newEventLocation}
-                onChange={(e) => setNewEventLocation(e.target.value)}
-                className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-              />
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={handleCloseDialog}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-4 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddEvent}
+                  className={`flex-1 text-white font-semibold py-3 px-4 rounded-xl transition-colors ${
+                    activeTab === "shift"
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  Add Event
+                </button>
+              </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Additional Notes
-              </label>
-              <textarea
-                placeholder="Add any additional notes here..."
-                value={newEventNotes}
-                onChange={(e) => setNewEventNotes(e.target.value)}
-                rows={4}
-                className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors resize-none"
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold p-4 rounded-xl transition-colors"
-                onClick={handleCloseDialog}
-              >
-                Cancel
-              </button>
-              <button
-                className={`flex-1 text-white font-semibold p-4 rounded-xl transition-colors shadow-lg ${
-                  activeTab === "shift"
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-                onClick={handleAddEvent}
-              >
-                Save
-              </button>
-            </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
 
       {/* Event Detail Dialog */}
-      <Dialog open={eventDetailOpen} onOpenChange={setEventDetailOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={eventDetailOpen} onOpenChange={handleEventDetailClose}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">
-              Event Details
+              {editMode ? "Edit Event" : "Event Details"}
             </DialogTitle>
           </DialogHeader>
 
           {selectedEvent && (
             <div className="space-y-4">
-              {/* Event Type Badge */}
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 rounded-full flex-shrink-0"
-                  style={{
-                    backgroundColor: getEventColor(
-                      selectedEvent.extendedProps?.type || ""
-                    ).circle,
-                  }}
-                ></div>
-                <span className="text-sm font-medium text-gray-500 uppercase">
-                  {selectedEvent.extendedProps?.type === "shift"
-                    ? "Shift"
-                    : selectedEvent.extendedProps?.type === "nanny"
-                    ? "Nanny"
-                    : selectedEvent.extendedProps?.type === "work"
-                    ? "Work Schedule"
-                    : selectedEvent.extendedProps?.type === "childcare"
-                    ? "Childcare Reminder"
-                    : "Event"}
-                </span>
-              </div>
+              {!editMode ? (
+                <>
+                  {/* View Mode */}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-4 h-4 rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor: getEventColor(
+                          selectedEvent.extendedProps?.type || ""
+                        ).circle,
+                      }}
+                    ></div>
+                    <span className="text-sm font-medium text-gray-500 uppercase">
+                      {selectedEvent.extendedProps?.type === "shift"
+                        ? "Shift"
+                        : selectedEvent.extendedProps?.type === "nanny"
+                        ? "Nanny"
+                        : selectedEvent.extendedProps?.type === "work"
+                        ? "Work Schedule"
+                        : selectedEvent.extendedProps?.type === "childcare"
+                        ? "Childcare Reminder"
+                        : "Event"}
+                    </span>
+                  </div>
 
-              {/* Event Title */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Title
-                </label>
-                <p className="text-lg font-medium text-gray-900">
-                  {selectedEvent.title}
-                </p>
-              </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Title
+                    </label>
+                    <p className="text-lg font-medium text-gray-900">
+                      {selectedEvent.title}
+                    </p>
+                  </div>
 
-              {/* Date & Time */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Date & Time
-                </label>
-                <div className="space-y-1">
-                  {(() => {
-                    const eventStart =
-                      selectedEvent.start instanceof Date
-                        ? selectedEvent.start
-                        : new Date(selectedEvent.start as string);
-                    const eventEnd =
-                      selectedEvent.end instanceof Date
-                        ? selectedEvent.end
-                        : selectedEvent.end
-                        ? new Date(selectedEvent.end as string)
-                        : null;
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Date & Time
+                    </label>
+                    <div className="space-y-1">
+                      {(() => {
+                        const eventStart =
+                          selectedEvent.start instanceof Date
+                            ? selectedEvent.start
+                            : new Date(selectedEvent.start as string);
+                        const eventEnd =
+                          selectedEvent.end instanceof Date
+                            ? selectedEvent.end
+                            : selectedEvent.end
+                            ? new Date(selectedEvent.end as string)
+                            : null;
 
-                    return (
-                      <>
-                        <p className="text-gray-900">
-                          📅{" "}
-                          {formatDate(eventStart, {
-                            weekday: "long",
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </p>
-                        <p className="text-gray-900">
-                          🕐{" "}
-                          {formatDate(eventStart, {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          })}
-                          {eventEnd &&
-                            ` - ${formatDate(eventEnd, {
-                              hour: "numeric",
-                              minute: "2-digit",
-                              hour12: true,
-                            })}`}
-                        </p>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Location */}
-              {selectedEvent.extendedProps?.location && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Location
-                  </label>
-                  <p className="text-gray-900">
-                    📍 {selectedEvent.extendedProps.location}
-                  </p>
-                </div>
-              )}
-
-              {/* Notes */}
-              {selectedEvent.extendedProps?.notes && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Additional Notes
-                  </label>
-                  <p className="text-gray-900 whitespace-pre-wrap">
-                    {selectedEvent.extendedProps.notes}
-                  </p>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-4">
-                {(selectedEvent.extendedProps?.type === "shift" ||
-                  selectedEvent.extendedProps?.type === "nanny") && (
-                <button
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Are you sure you want to delete "${selectedEvent.title}"?`
-                      )
-                    ) {
-                      const calendarApi = calendarRef.current?.getApi();
-                      if (calendarApi && selectedEvent.id) {
-                        const calEvent = calendarApi.getEventById(
-                          selectedEvent.id as string
+                        return (
+                          <>
+                            <p className="text-gray-900">
+                              📅{" "}
+                              {formatDate(eventStart, {
+                                weekday: "long",
+                                month: "long",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </p>
+                            <p className="text-gray-900">
+                              🕐{" "}
+                              {formatDate(eventStart, {
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              })}
+                              {eventEnd &&
+                                ` - ${formatDate(eventEnd, {
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })}`}
+                            </p>
+                          </>
                         );
-                        if (calEvent) calEvent.remove();
-                        
-                        
-                        setAllEvents(prevEvents => 
-                          prevEvents.filter(event => event.id !== selectedEvent.id)
-                        );
-                      }
-                      setEventDetailOpen(false);
-                    }
-                  }}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
-                >
-                  Delete Event
-                </button>
-                )}
+                      })()}
+                    </div>
+                  </div>
 
-                <button
-                  onClick={() => setEventDetailOpen(false)}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-4 rounded-xl transition-colors"
-                >
-                  Close
-                </button>
-              </div>
+                  {selectedEvent.extendedProps?.location && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Location
+                      </label>
+                      <p className="text-gray-900">
+                        📍 {selectedEvent.extendedProps.location}
+                      </p>
+                    </div>
+                  )}
 
-              {/* Note for schedule events */}
-              {(selectedEvent.extendedProps?.type === "work" ||
-                selectedEvent.extendedProps?.type === "childcare") && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                  <p className="text-sm text-blue-900">
-                    ℹ️ This is a schedule event and cannot be deleted here.
-                    Please update your schedule in the Schedule page.
-                  </p>
-                </div>
+                  {selectedEvent.extendedProps?.notes && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Additional Notes
+                      </label>
+                      <p className="text-gray-900 whitespace-pre-wrap">
+                        {selectedEvent.extendedProps.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-4">
+                    {/* Show edit button for all event types */}
+                    <button
+                      onClick={() => setEditMode(true)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                    >
+                      Edit Event
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        if (
+                          window.confirm(
+                            `Are you sure you want to delete "${selectedEvent.title}"?`
+                          )
+                        ) {
+                          const calendarApi = calendarRef.current?.getApi();
+                          if (calendarApi && selectedEvent.id) {
+                            const calEvent = calendarApi.getEventById(
+                              selectedEvent.id as string
+                            );
+                            if (calEvent) calEvent.remove();
+
+                            setAllEvents((prevEvents) =>
+                              prevEvents.filter(
+                                (event) => event.id !== selectedEvent.id
+                              )
+                            );
+
+                            if (
+                              selectedEvent.extendedProps?.type === "work" ||
+                              selectedEvent.extendedProps?.type === "childcare"
+                            ) {
+                              const eventId = selectedEvent.id as string;
+                              const meta = parseScheduleEventId(eventId);
+                              if (meta) {
+                                await fetch("/api/schedule/event", {
+                                  method: "DELETE",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    scheduleId: meta.scheduleId,
+                                    date: meta.date,
+                                    type: selectedEvent.extendedProps?.type,
+                                  }),
+                                });
+                              }
+                            }
+                          }
+                          setEventDetailOpen(false);
+                          setEditMode(false); // Reset edit mode after delete
+                          setSelectedEvent(null);
+                        }
+                      }}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Edit Mode */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Event Title
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter event title"
+                      value={editEventTitle}
+                      onChange={(e) => setEditEventTitle(e.target.value)}
+                      className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Start Time
+                      </label>
+                      <input
+                        type="time"
+                        value={editEventStartTime}
+                        onChange={(e) => setEditEventStartTime(e.target.value)}
+                        className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        End Time
+                      </label>
+                      <input
+                        type="time"
+                        value={editEventEndTime}
+                        onChange={(e) => setEditEventEndTime(e.target.value)}
+                        className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Location
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Add location"
+                      value={editEventLocation}
+                      onChange={(e) => setEditEventLocation(e.target.value)}
+                      className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Additional Notes
+                    </label>
+                    <textarea
+                      placeholder="Add any additional notes here..."
+                      value={editEventNotes}
+                      onChange={(e) => setEditEventNotes(e.target.value)}
+                      rows={4}
+                      className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <button
+                      onClick={() => setEditMode(false)}
+                      className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-4 rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveEdit}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      <BottomNav />
     </div>
   );
 }

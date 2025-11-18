@@ -189,7 +189,7 @@ export default function ScheduleUploadPage() {
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNav onUploadClick={handleUploadClick} />
+      <BottomNav/>
 
       {/* Voice Input Modal */}
       {showVoiceInput && (
