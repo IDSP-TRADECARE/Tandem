@@ -1,200 +1,291 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { ScheduleData } from '@/app/schedule/upload/page';
+import { useState } from 'react';
 
 interface FileUploadProps {
-  onComplete: (data: ScheduleData) => void;
+  onComplete: (data: any) => void;
   onBack: () => void;
   hideBackButton?: boolean;
 }
 
-export function FileUpload({ onComplete, onBack, hideBackButton = false }: FileUploadProps) {
+export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [dragActive, setDragActive] = useState(false);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
-      setError(null);
-    }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'image/png': ['.png'],
-      'image/jpeg': ['.jpg', '.jpeg'],
-    },
-    maxFiles: 1,
-  });
-
-  const handleUpload = async () => {
-    if (!file) return;
-
-    setUploading(true);
-    setProgress(0);
-    setError(null);
-
-    try {
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/schedule/parse-pdf', {
-        method: 'POST',
-        body: formData,
-      });
-
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      if (!response.ok) {
-        throw new Error('Failed to parse file');
-      }
-
-      const data = await response.json();
-      
-      const saveResponse = await fetch('/api/schedule/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data.schedule),
-      });
-
-      if (!saveResponse.ok) {
-        throw new Error('Failed to save schedule');
-      }
-
-      setTimeout(() => {
-        onComplete(data.schedule);
-      }, 500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-      setUploading(false);
-      setProgress(0);
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
     }
   };
 
-  return (
-    <div>
-      {!hideBackButton && (
-        <div className="mb-4">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </button>
-        </div>
-      )}
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
 
-      {!file && !uploading && (
-        <div
-          {...getRootProps()}
-          className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-colors ${
-            isDragActive
-              ? 'border-[#1e3a5f] bg-blue-50'
-              : 'border-gray-300 hover:border-gray-400'
-          }`}
-        >
-          <input {...getInputProps()} />
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center">
-              <svg className="w-10 h-10 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0];
+      if (
+        droppedFile.type === "application/pdf" ||
+        droppedFile.type.startsWith("image/")
+      ) {
+        setFile(droppedFile);
+      } else {
+        alert("Please upload a PDF or image file");
+      }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+const handleUpload = async () => {
+  if (!file) return;
+
+  setUploading(true);
+  setUploadProgress(0);
+
+  // Simulate upload progress
+  const interval = setInterval(() => {
+    setUploadProgress((prev) => {
+      if (prev >= 90) {
+        return 90;
+      }
+      return prev + 10;
+    });
+  }, 200);
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    console.log('🚀 Starting upload:', file.name);
+    
+    // Step 1: Parse the PDF
+    const response = await fetch("/api/schedule/parse-pdf", {
+      method: "POST",
+      body: formData,
+    });
+
+    console.log('📡 Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Upload failed:', errorText);
+      throw new Error(`Upload failed: ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Upload successful:', result);
+    
+    const scheduleData = result.schedule;
+    console.log('📋 Schedule data:', scheduleData);
+    
+    // Step 2: Save to database
+    console.log('💾 Saving to database...');
+    const saveResponse = await fetch('/api/schedule/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(scheduleData),
+    });
+
+    if (!saveResponse.ok) {
+      throw new Error('Failed to save schedule to database');
+    }
+
+    const saveResult = await saveResponse.json();
+    console.log('✅ Saved to database:', saveResult);
+    
+    clearInterval(interval);
+    setUploadProgress(100);
+    
+    setTimeout(() => {
+      onComplete(scheduleData);
+    }, 500);
+  } catch (error) {
+    console.error("❌ Upload error:", error);
+    clearInterval(interval);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    alert(`Failed to upload schedule: ${errorMessage}\n\nPlease check the console for details.`);
+    
+    setUploading(false);
+    setUploadProgress(0);
+    setFile(null);
+  }
+};
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+  };
+
+  if (uploading) {
+    return (
+      <div className="w-full">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl p-8 text-center relative overflow-hidden">
+          {/* Animated spinner */}
+          <div className="mb-6 relative">
+            <div className="w-24 h-24 mx-auto">
+              <svg className="w-full h-full animate-spin" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.2)"
+                  strokeWidth="8"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="8"
+                  strokeDasharray="283"
+                  strokeDashoffset="70"
+                  strokeLinecap="round"
+                />
               </svg>
             </div>
-            <div>
-              <p className="text-xl font-bold text-[#0a1628] mb-2">Choose a file to upload</p>
-              <p className="text-sm text-gray-500">png, pdf, jpg accepted</p>
-            </div>
-            <button className="px-8 py-3 bg-[#1e3a5f] text-[#c8ff00] font-bold rounded-xl hover:bg-[#2d4a6f] transition-colors">
-              Browse
-            </button>
           </div>
-        </div>
-      )}
 
-      {file && !uploading && (
-        <div className="space-y-4">
-          <div className="border-2 border-gray-200 rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          <h3 className="text-xl font-bold text-white mb-2">
+            Uploading Schedule
+          </h3>
+          <p className="text-white/90 text-sm mb-6">
+            {file?.name}
+          </p>
+
+          {/* Progress bar */}
+          {file && (
+            <div className="mt-4">
+              <div className="flex items-center gap-2 bg-white/20 rounded-lg p-3">
+                <svg className="w-6 h-6 text-white flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
                 </svg>
+                <div className="flex-1">
+                  <div className="flex justify-between text-xs text-white mb-1">
+                    <span className="truncate max-w-[150px]">{file.name}</span>
+                    <span>({formatFileSize(file.size)})</span>
+                  </div>
+                  <div className="w-full bg-white/30 rounded-full h-2">
+                    <div 
+                      className="bg-white h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-gray-900">{file.name}</p>
-                <p className="text-sm text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (file && !uploading) {
+    return (
+      <div className="w-full space-y-4">
+        <div className="border-3 border-gray-300 rounded-2xl p-4 bg-white">
+          <div className="flex items-center gap-3">
+            <svg className="w-10 h-10 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900 truncate text-sm">
+                {file.name} ({formatFileSize(file.size)})
+              </p>
+              <div className="w-full bg-blue-100 rounded-full h-2 mt-2">
+                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '100%' }} />
               </div>
             </div>
             <button
               onClick={() => setFile(null)}
-              className="text-gray-400 hover:text-gray-600"
+              className="flex-shrink-0 text-gray-400 hover:text-red-600 ml-2"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
             </button>
           </div>
-
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          <button
-            onClick={handleUpload}
-            className="w-full py-4 px-4 bg-[#1e3a5f] text-white font-bold rounded-xl hover:bg-[#2d4a6f] transition-colors text-lg"
-          >
-            Upload Schedule
-          </button>
         </div>
-      )}
 
-      {uploading && (
-        <div className="space-y-6">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center">
-              <svg className="w-10 h-10 text-[#1e3a5f] animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-            </div>
-            <p className="text-xl font-bold text-gray-900">Uploading Schedule</p>
-          </div>
+        <button
+          onClick={handleUpload}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-colors text-lg"
+        >
+          Upload
+        </button>
+      </div>
+    );
+  }
 
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Progress</span>
-              <span className="text-gray-900 font-bold">{progress}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-              <div
-                className="bg-[#1e3a5f] h-full rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+  return (
+    <div
+      className={`border-3 border-dashed rounded-2xl p-12 text-center transition-colors ${
+        dragActive
+          ? "border-blue-500 bg-blue-50"
+          : "border-gray-300 bg-white"
+      }`}
+      onDragEnter={handleDrag}
+      onDragLeave={handleDrag}
+      onDragOver={handleDrag}
+      onDrop={handleDrop}
+    >
+      <div className="mb-6">
+        <svg
+          className="w-16 h-16 mx-auto text-blue-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+          />
+        </svg>
+      </div>
+
+      <div className="mb-4">
+        <p className="text-gray-900 font-medium mb-1">
+          Choose a <span className="text-blue-600">file, image</span> to upload
+        </p>
+        <p className="text-sm text-gray-500">
+          <span className="text-blue-600">png pdf jpg</span> accepted
+        </p>
+      </div>
+
+      <label className="inline-block">
+        <input
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        <span className="px-8 py-3 bg-white border-2 border-blue-600 text-blue-600 rounded-full font-medium hover:bg-blue-50 transition-colors cursor-pointer inline-block">
+          Browse
+        </span>
+      </label>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { ScheduleData } from '@/app/schedule/upload/page';
 
 interface ScheduleOverviewProps {
@@ -8,120 +9,232 @@ interface ScheduleOverviewProps {
   onBack: () => void;
 }
 
-const DAY_LABELS: Record<string, string> = {
-  MON: 'Monday',
-  TUE: 'Tuesday',
-  WED: 'Wednesday',
-  THU: 'Thursday',
-  FRI: 'Friday',
-  SAT: 'Saturday',
-  SUN: 'Sunday',
-};
-
-const DAY_ABBREV: Record<string, string> = {
-  MON: 'M',
-  TUE: 'T',
-  WED: 'W',
-  THU: 'T',
-  FRI: 'F',
-  SAT: 'S',
-  SUN: 'S',
-};
-
 export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps) {
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState<ScheduleData>(data);
+
+  const daysOfWeek = [
+    { code: 'SUN', label: 'S' },
+    { code: 'MON', label: 'M' },
+    { code: 'TUE', label: 'T' },
+    { code: 'WED', label: 'W' },
+    { code: 'THU', label: 'T' },
+    { code: 'FRI', label: 'F' },
+    { code: 'SAT', label: 'S' },
+  ];
+
+  const handleDayToggle = (dayCode: string) => {
+    if (!isEditing) return;
+    
+    const newDays = editedData.workingDays.includes(dayCode)
+      ? editedData.workingDays.filter(d => d !== dayCode)
+      : [...editedData.workingDays, dayCode];
+    
+    setEditedData({ ...editedData, workingDays: newDays });
+  };
+
+  const handleConfirm = async () => {
+    // TODO: Save to database
+    console.log('Saving schedule:', editedData);
+    
+    // Navigate to calendar
+    window.location.href = '/calendar';
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setEditedData(data);
+    setIsEditing(false);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="mb-4">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
-      </div>
-
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Overview</h2>
-
-      <div className="space-y-6">
-        {/* Title */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Title</label>
-          <p className="text-gray-900">{data.title}</p>
-        </div>
-
-        {/* Working Days */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Working Days</label>
-          <div className="flex gap-2">
-            {Object.keys(DAY_ABBREV).map((day) => (
-              <div
-                key={day}
-                className={`flex-1 h-10 rounded-lg flex items-center justify-center font-semibold ${
-                  data.workingDays.includes(day)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-400'
-                }`}
-              >
-                {DAY_ABBREV[day]}
-              </div>
-            ))}
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            {data.workingDays.map((day) => DAY_LABELS[day]).join(', ')}
+    <div className="fixed inset-0 bg-gradient-primary">
+      <div className="h-full overflow-y-auto flex flex-col p-4 pt-6 pb-32">
+        {/* Header */}
+        <div className="mb-6">
+          <button
+            onClick={onBack}
+            className="mb-4 text-white hover:opacity-80 transition-opacity"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          
+          <h1 className="text-3xl font-bold text-white mb-3">
+            {isEditing ? 'Schedule Editing' : 'Overview'}
+          </h1>
+          <p className="text-white text-sm">
+            {isEditing 
+              ? 'If everything looks correct, please click the upload button to proceed.'
+              : 'Please review your schedule, and if everything looks correct, click the upload button to proceed.'}
           </p>
         </div>
 
-        {/* Time Range */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">From</label>
-            <p className="text-gray-900">{formatTime(data.timeFrom)}</p>
+        {/* Form Card */}
+        <div className="bg-white rounded-3xl p-6 shadow-xl mb-4">
+          {/* Title */}
+          <div className="mb-6">
+            <label className="block text-lg font-bold text-gray-900 mb-2">
+              Title
+            </label>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editedData.title}
+                onChange={(e) => setEditedData({ ...editedData, title: e.target.value })}
+                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
+              />
+            ) : (
+              <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
+                {editedData.title}
+              </div>
+            )}
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">To</label>
-            <p className="text-gray-900">{formatTime(data.timeTo)}</p>
+
+          {/* Working Days */}
+          <div className="mb-6">
+            <label className="block text-lg font-bold text-gray-900 mb-3">
+              Working Days
+            </label>
+            <div className="flex gap-2">
+              {daysOfWeek.map((day) => {
+                const isSelected = editedData.workingDays.includes(day.code);
+                return (
+                  <button
+                    key={day.code}
+                    onClick={() => handleDayToggle(day.code)}
+                    disabled={!isEditing}
+                    className={`w-12 h-12 rounded-full font-bold text-lg transition-colors ${
+                      isSelected
+                        ? 'bg-green-400 text-white'
+                        : 'bg-gray-200 text-gray-400'
+                    } ${isEditing ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                  >
+                    {day.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* Working Location */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Working Location</label>
-          <p className="text-gray-900">{data.location || 'Not specified'}</p>
-        </div>
-
-        {/* Additional Note */}
-        {data.notes && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Additional Note</label>
-            <p className="text-gray-900">{data.notes}</p>
+          {/* Label Section */}
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex-1">
+              <label className="block text-lg font-bold text-gray-900 mb-2">
+                Label
+              </label>
+              <div className="flex items-center gap-2 pb-2 border-b-2 border-gray-900">
+                <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    placeholder="Content"
+                    className="flex-1 focus:outline-none text-gray-500"
+                  />
+                ) : (
+                  <span className="text-gray-500">Content</span>
+                )}
+              </div>
+            </div>
+            <div className="flex-1">
+              <label className="block text-lg font-bold text-gray-900 mb-2">
+                &nbsp;
+              </label>
+              <div className="flex items-center gap-2 pb-2 border-b-2 border-gray-900">
+                <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    placeholder="Content"
+                    className="flex-1 focus:outline-none text-gray-500"
+                  />
+                ) : (
+                  <span className="text-gray-500">Content</span>
+                )}
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
-          <button
-            onClick={onEdit}
-            className="flex-1 py-3 px-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Edit
-          </button>
-          <button
-            onClick={onBack}
-            className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Done
-          </button>
+          {/* Working Location */}
+          <div className="mb-6">
+            <label className="block text-lg font-bold text-gray-900 mb-2">
+              Working Location
+            </label>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editedData.location}
+                onChange={(e) => setEditedData({ ...editedData, location: e.target.value })}
+                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
+              />
+            ) : (
+              <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
+                {editedData.location}
+              </div>
+            )}
+          </div>
+
+          {/* Additional Note */}
+          <div className="mb-8">
+            <label className="block text-lg font-bold text-gray-900 mb-2">
+              Additional Note
+            </label>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editedData.notes || 'N/A'}
+                onChange={(e) => setEditedData({ ...editedData, notes: e.target.value })}
+                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
+              />
+            ) : (
+              <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
+                {editedData.notes || 'N/A'}
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 py-4 px-4 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-colors text-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  className="flex-1 py-4 px-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors text-lg"
+                >
+                  Confirm
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleEdit}
+                  className="flex-1 py-4 px-4 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-colors text-lg"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  className="flex-1 py-4 px-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors text-lg"
+                >
+                  Confirm
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
