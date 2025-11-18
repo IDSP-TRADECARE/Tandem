@@ -40,9 +40,9 @@ export default function TestPage() {
             <div>
             <DateCardContainer 
               cards={[
-                { id: 1, text: "No Childcare booked !", onClick: () => {} },
-                { id: 2, text: "2 appointments today", onClick: () => {} },
-                { id: 3, text: "Meeting at 3 PM", onClick: () => {} },
+                { id: 1, text: "No Childcare booked !" , isEmpty: true, isWork: false, type: activeTab, onClick: () => {} },
+                { id: 2, text: "2 appointments today", isEmpty: false, isWork: false, type: activeTab, onClick: () => {} },
+                { id: 3, text: "Work from 9 AM to 5 PM", isEmpty: false, isWork: true, type: activeTab, onClick: () => {} },
               ]}
             />
             </div>
@@ -50,13 +50,25 @@ export default function TestPage() {
 
           {activeTab === 'Weekly' && (
             <div>
-              <h2>Weekly View</h2>
+              <DateCardContainer 
+              cards={[
+                { id: 1, text: "No Childcare booked !" , isEmpty: true, isWork: false, type: activeTab, onClick: () => {} },
+                { id: 2, text: "2 appointments today", isEmpty: false, isWork: false, type: activeTab, onClick: () => {} },
+                { id: 3, text: "Work from 9 AM to 5 PM", isEmpty: false, isWork: true, type: activeTab, onClick: () => {} },
+              ]}
+            />
             </div>
           )}
 
           {activeTab === 'Monthly' && (
             <div>
-              <h2>Monthly View</h2>
+              <DateCardContainer 
+              cards={[
+                { id: 1, text: "No Childcare booked !" , isEmpty: true, isWork: false, type: activeTab, onClick: () => {} },
+                { id: 2, text: "2 appointments today", isEmpty: false, isWork: false, type: activeTab, onClick: () => {} },
+                { id: 3, text: "Work from 9 AM to 5 PM", isEmpty: false, isWork: true, type: activeTab, onClick: () => {} },
+              ]}
+            />
             </div>
           )}
         </div>
