@@ -8,6 +8,7 @@ import {
   getHeightForView, 
   createMonthHandlers
 } from '../components/calendar/viewHelpers';
+import {DateCardContainer } from '../components/ui/calendar/DateCard';
 
 // Calendar layout
 const tabs = ['Today', 'Weekly', 'Monthly'];
@@ -37,7 +38,13 @@ export default function TestPage() {
         <div className="">
           {activeTab === 'Today' && (
             <div>
-              <h2>Today View</h2>
+            <DateCardContainer 
+              cards={[
+                { id: 1, text: "No Childcare booked !", onClick: () => {} },
+                { id: 2, text: "2 appointments today", onClick: () => {} },
+                { id: 3, text: "Meeting at 3 PM", onClick: () => {} },
+              ]}
+            />
             </div>
           )}
 
