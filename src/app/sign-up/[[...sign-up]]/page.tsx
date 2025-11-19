@@ -11,7 +11,7 @@ export default function SignUpPage() {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2 flex justify-center">
             <Image 
-              src="/writtenLogo.png" 
+              src="brand/nameWhite.svg" 
               alt="Logo"
               width={200}      
               height={200}     
