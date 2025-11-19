@@ -206,7 +206,7 @@ if (!saveResponse.ok) {
             <div className="text-center">
               <div className="mb-8 relative mx-auto w-80 h-64 flex items-center justify-center">
                 <img 
-                  src="upload/voiceInput.svg" 
+                  src="/upload/voiceInput.svg" 
                   alt="Processing illustration" 
                   className="w-full h-full object-contain"
                 />
