@@ -6,6 +6,8 @@ import { ManualInput } from '../../components/schedule/manualnput';
 import { VoiceInput } from '../../components/schedule/voiceInput';
 import { ScheduleOverview } from '../../components/schedule/scheduleOverview';
 import { BottomNav } from '../../components/Layout/BottomNav';
+import {auth} from "@clerk/nextjs/server";
+import { redirect } from 'next/navigation';
 
 export type InputMethod = 'file' | 'voice' | 'manual';
 export type UploadStep = 'select' | 'uploading' | 'complete' | 'overview';
@@ -24,6 +26,11 @@ export default function ScheduleUploadPage() {
   const [step, setStep] = useState<UploadStep>('select');
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
+  // const { userId } = auth();
+
+  // if (!userId) {
+  //   redirect('/sign-in?redirect_url=/schedule/upload');
+  // }
 
   const handleMethodSelect = (method: InputMethod) => {
     setInputMethod(method);

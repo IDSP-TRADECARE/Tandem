@@ -91,16 +91,17 @@ const handleUpload = async () => {
     console.log('📋 Schedule data:', scheduleData);
     
     // Step 2: Save to database
-    console.log('💾 Saving to database...');
     const saveResponse = await fetch('/api/schedule/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(scheduleData),
-    });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(scheduleData),
+});
 
-    if (!saveResponse.ok) {
-      throw new Error('Failed to save schedule to database');
-    }
+if (!saveResponse.ok) {
+  const errorData = await saveResponse.json();
+  console.error('Save error:', errorData);
+  throw new Error(errorData.error || 'Failed to save schedule to database');
+}
 
     const saveResult = await saveResponse.json();
     console.log('✅ Saved to database:', saveResult);

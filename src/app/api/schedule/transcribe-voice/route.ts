@@ -66,6 +66,7 @@ Return ONLY the JSON object, no other text.`,
     if (!jsonMatch) {
       throw new Error('Could not extract schedule data from transcript');
     }
+    console.log('🤖 Groq response for voice transcript:', jsonMatch);
 
     const schedule = JSON.parse(jsonMatch[0]);
 

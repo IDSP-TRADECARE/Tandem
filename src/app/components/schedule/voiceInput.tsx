@@ -78,14 +78,18 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
 
           // Save to database
           const saveResponse = await fetch('/api/schedule/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(schedule),
-          });
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(schedule),
+});
 
-          if (!saveResponse.ok) {
-            throw new Error('Failed to save schedule');
-          }
+if (!saveResponse.ok) {
+  const errorData = await saveResponse.json();
+  console.error('Save error:', errorData);
+  throw new Error(errorData.error || 'Failed to save schedule');
+}
 
           console.log('✅ Schedule saved successfully');
 
@@ -116,17 +120,19 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
   return (
     <div className="relative min-h-[600px] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 pb-4">
-        <h2 className="text-2xl font-bold text-gray-900">Voice to Text Input</h2>
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+      <div className="flex items-center justify-between p-6 pb-4 relative z-20 bg-white">
+  <h2 className="text-2xl font-bold text-gray-900">Voice to Text Input</h2>
+
+  <button
+    onClick={onBack}
+    className="p-2 hover:bg-gray-100 rounded-full transition-colors relative z-30"
+  >
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
       </div>
+
 
       {/* Content - Absolutely Centered */}
       <div className="absolute inset-0 flex items-center justify-center pt-16 pb-8">
