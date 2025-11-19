@@ -14,45 +14,105 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    console.log('PDF file received:', file.name, file.size);
+    console.log('📄 File received:', file.name, file.type, file.size);
 
-    // Extract text from PDF
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    let pdfText = '';
-    
-    try {
-      // Try to parse PDF
-      const pdf = require('pdf-parse/lib/pdf-parse.js');
-      const data = await pdf(buffer);
-      pdfText = data.text;
-    } catch (parseError) {
-      console.error('PDF parse error:', parseError);
+    let scheduleText = '';
+    let extractionMethod = '';
+
+    // Handle different file types
+    if (file.type === 'application/pdf') {
+      // PDF Processing
+      console.log('📑 Processing PDF...');
+      extractionMethod = 'PDF';
       
-      // Fallback: Try alternative method
       try {
-        const pdfParse = require('pdf-parse');
-        const data = await pdfParse(buffer);
-        pdfText = data.text;
-      } catch (fallbackError) {
-        console.error('Fallback parse error:', fallbackError);
-        throw new Error('Could not parse PDF. Please ensure it is a valid text-based PDF.');
+        const pdf = require('pdf-parse/lib/pdf-parse.js');
+        const data = await pdf(buffer);
+        scheduleText = data.text;
+      } catch (parseError) {
+        console.error('PDF parse error:', parseError);
+        
+        try {
+          const pdfParse = require('pdf-parse');
+          const data = await pdfParse(buffer);
+          scheduleText = data.text;
+        } catch (fallbackError) {
+          console.error('Fallback parse error:', fallbackError);
+          throw new Error('Could not parse PDF. Please ensure it is a valid text-based PDF.');
+        }
       }
-    }
 
-    console.log('PDF text extracted, length:', pdfText.length);
-    console.log('First 200 chars:', pdfText.substring(0, 200));
+      console.log('PDF text extracted, length:', scheduleText.length);
 
-    // Check if PDF has readable text
-    if (!pdfText || pdfText.trim().length === 0) {
+      if (!scheduleText || scheduleText.trim().length === 0) {
+        return NextResponse.json({ 
+          error: 'Could not extract text from PDF. Make sure it is not a scanned image.' 
+        }, { status: 400 });
+      }
+
+    } else if (file.type.startsWith('image/')) {
+      // Image Processing using OCR Space API
+      console.log('🖼️ Processing image with OCR Space API...');
+      extractionMethod = 'IMAGE';
+      
+      if (!process.env.OCR_SPACE_API_KEY) {
+        throw new Error('OCR_SPACE_API_KEY is not configured');
+      }
+
+      // Convert buffer to base64
+      const base64Image = buffer.toString('base64');
+      
+      // Create form data for OCR Space API
+      const ocrFormData = new FormData();
+      ocrFormData.append('base64Image', `data:${file.type};base64,${base64Image}`);
+      ocrFormData.append('apikey', process.env.OCR_SPACE_API_KEY);
+      ocrFormData.append('language', 'eng');
+      ocrFormData.append('isOverlayRequired', 'false');
+      ocrFormData.append('detectOrientation', 'true');
+      ocrFormData.append('scale', 'true');
+      ocrFormData.append('OCREngine', '2'); // Use OCR Engine 2 for better accuracy
+
+      // Call OCR Space API
+      const ocrResponse = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: ocrFormData,
+      });
+
+      if (!ocrResponse.ok) {
+        throw new Error(`OCR API request failed: ${ocrResponse.statusText}`);
+      }
+
+      const ocrResult = await ocrResponse.json();
+      console.log('📝 OCR result:', ocrResult);
+
+      if (ocrResult.IsErroredOnProcessing) {
+        throw new Error(`OCR processing failed: ${ocrResult.ErrorMessage || 'Unknown error'}`);
+      }
+
+      if (!ocrResult.ParsedResults || ocrResult.ParsedResults.length === 0) {
+        throw new Error('No text found in image');
+      }
+
+      scheduleText = ocrResult.ParsedResults[0].ParsedText;
+      console.log('📝 Extracted text from image:', scheduleText.substring(0, 200));
+
+      if (!scheduleText || scheduleText.trim().length === 0) {
+        return NextResponse.json({ 
+          error: 'Could not extract text from image. Please ensure the image is clear and readable.' 
+        }, { status: 400 });
+      }
+
+    } else {
       return NextResponse.json({ 
-        error: 'Could not extract text from PDF. Make sure it is not a scanned image.' 
+        error: 'Unsupported file type. Please upload a PDF or image (PNG, JPG, JPEG).' 
       }, { status: 400 });
     }
 
-    // Use Groq to extract schedule information from PDF text
-    console.log('Sending to Groq for parsing...');
+    // Parse the extracted text using Groq
+    console.log('🤖 Parsing schedule information...');
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
@@ -62,27 +122,28 @@ export async function POST(request: NextRequest) {
         },
         {
           role: 'user',
-          content: `Extract the work schedule information from this PDF text and return it in the following JSON format:
+          content: `Extract the work schedule information from this ${extractionMethod.toLowerCase()} and return it in the following JSON format:
 {
   "title": "Schedule title or period",
   "workingDays": ["MON", "TUE", "WED", "THU", "FRI"],
-  "timeFrom": "08:00",
+  "timeFrom": "09:00",
   "timeTo": "17:00",
   "location": "Work location",
-  "notes": "Any additional notes"
+  "notes": "Extracted from uploaded ${extractionMethod.toLowerCase()}"
 }
 
-Rules:
-- workingDays should be an array of day codes: MON, TUE, WED, THU, FRI, SAT, SUN
-- timeFrom and timeTo should be in 24-hour format (HH:MM)
+CRITICAL RULES:
+- workingDays MUST be an array of day codes: MON, TUE, WED, THU, FRI, SAT, SUN (never empty)
+- If "weekdays" or "Monday to Friday" is mentioned, use ["MON", "TUE", "WED", "THU", "FRI"]
+- timeFrom and timeTo MUST be in 24-hour format (HH:MM) and NEVER empty
+- If NO time is mentioned, use "09:00" for timeFrom and "17:00" for timeTo
 - Extract any relevant location information
-- Include any important notes or special instructions
-- If weekdays or "Monday to Friday" is mentioned, use ["MON", "TUE", "WED", "THU", "FRI"]
+- notes should say "Extracted from uploaded ${extractionMethod.toLowerCase()}"
 
 Return ONLY the JSON object, no other text.
 
-PDF Text:
-${pdfText}`,
+Extracted Text:
+${scheduleText}`,
         },
       ],
       temperature: 0.1,
@@ -90,24 +151,39 @@ ${pdfText}`,
     });
 
     const responseText = completion.choices[0]?.message?.content || '';
-    console.log('Groq response:', responseText);
+    console.log('🤖 Groq response:', responseText);
 
     // Extract JSON from response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error('Could not find JSON in response');
-      throw new Error('Could not extract schedule data from PDF');
+      throw new Error('Could not extract schedule data from file');
     }
 
     const schedule = JSON.parse(jsonMatch[0]);
-    console.log('Parsed schedule:', schedule);
+    
+    // Validate and provide defaults
+    if (!schedule.timeFrom || schedule.timeFrom === '') {
+      schedule.timeFrom = '09:00';
+    }
+    if (!schedule.timeTo || schedule.timeTo === '') {
+      schedule.timeTo = '17:00';
+    }
+    if (!schedule.workingDays || schedule.workingDays.length === 0) {
+      schedule.workingDays = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+    }
+    if (!schedule.title || schedule.title === '') {
+      schedule.title = 'Work Schedule';
+    }
+    
+    console.log('✅ Parsed schedule:', schedule);
 
     return NextResponse.json({ schedule });
   } catch (error) {
-    console.error('Error parsing PDF:', error);
+    console.error('❌ Error parsing file:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to parse PDF schedule',
+        error: 'Failed to parse schedule',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
