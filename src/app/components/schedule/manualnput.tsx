@@ -19,6 +19,39 @@ const DAYS = [
   { id: 'SAT', label: 'S' },
 ];
 
+// helper: parse common time strings into "HH:MM" (24h) or return null
+function normalizeToHHMM(input: string): string | null {
+  if (!input) return null;
+  const s = input.trim().toLowerCase();
+
+  // already in HH:MM or H:MM or HH:MM:SS
+  const matchHM = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (matchHM) {
+    let h = Number(matchHM[1]);
+    const m = Number(matchHM[2]);
+    if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    return null;
+  }
+
+  // formats like "8am", "8:30am", "8 am", "8:30 am"
+  const matchAmPm = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+  if (matchAmPm) {
+    let h = Number(matchAmPm[1]);
+    const m = Number(matchAmPm[2] ?? '0');
+    const ampm = matchAmPm[3];
+    if (h === 12 && ampm === 'am') h = 0;
+    if (h < 12 && ampm === 'pm') h += 12;
+    if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    return null;
+  }
+
+  return null;
+}
+
 export function ManualInput({ onComplete, onBack, hideBackButton = false }: ManualInputProps) {
   const [formData, setFormData] = useState<ScheduleData>({
     title: '',
@@ -54,19 +87,25 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
       return;
     }
 
-    if (!formData.timeFrom || !formData.timeTo) {
-      setError('Please enter both start and end times');
+    // normalize/validate times
+    const normalizedFrom = normalizeToHHMM(formData.timeFrom);
+    const normalizedTo = normalizeToHHMM(formData.timeTo);
+
+    if (!normalizedFrom || !normalizedTo) {
+      setError('Please enter start and end times in a valid format (e.g. 08:30 or 8:30 AM).');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      const payload = { ...formData, timeFrom: normalizedFrom, timeTo: normalizedTo };
+
       // Save to database
       const response = await fetch('/api/schedule/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -74,7 +113,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
       }
 
       setTimeout(() => {
-        onComplete(formData);
+        onComplete(payload);
       }, 500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save schedule');
@@ -93,7 +132,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
           <input
             type="text"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
             placeholder="Content"
             className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
           />
@@ -129,10 +168,20 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
               From
             </label>
             <input
-              type="time"
+              type="text"
+              inputMode="numeric"
               value={formData.timeFrom}
-              onChange={(e) => setFormData({ ...formData, timeFrom: e.target.value })}
-              placeholder="Time Start"
+              onChange={(e) => setFormData(prev => ({ ...prev, timeFrom: e.target.value }))}
+              onBlur={(e) => {
+                const n = normalizeToHHMM(e.target.value);
+                if (n) {
+                  setFormData(prev => ({ ...prev, timeFrom: n }));
+                  setError(null);
+                } else {
+                  setError('Please enter a valid start time (e.g. 08:30 or 8:30 AM).');
+                }
+              }}
+              placeholder="08:30 or 8:30 AM"
               className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
             />
           </div>
@@ -141,10 +190,20 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
               To
             </label>
             <input
-              type="time"
+              type="text"
+              inputMode="numeric"
               value={formData.timeTo}
-              onChange={(e) => setFormData({ ...formData, timeTo: e.target.value })}
-              placeholder="Time End"
+              onChange={(e) => setFormData(prev => ({ ...prev, timeTo: e.target.value }))}
+              onBlur={(e) => {
+                const n = normalizeToHHMM(e.target.value);
+                if (n) {
+                  setFormData(prev => ({ ...prev, timeTo: n }));
+                  setError(null);
+                } else {
+                  setError('Please enter a valid end time (e.g. 17:00 or 5:00 PM).');
+                }
+              }}
+              placeholder="17:00 or 5:00 PM"
               className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
             />
           </div>
@@ -158,7 +217,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
           <input
             type="text"
             value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
             placeholder="Location"
             className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
           />
@@ -172,7 +231,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
           <input
             type="text"
             value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
             placeholder="N/A"
             className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
           />
