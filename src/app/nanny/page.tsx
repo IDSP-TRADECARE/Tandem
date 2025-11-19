@@ -3,17 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { BottomNav } from '@/app/components/Layout/BottomNav';
-import { GradientBackground } from '@/app/components/ui/nanny/backgrounds/GradientBackground';
-import { HalfBackground } from '@/app/components/ui/nanny/backgrounds/HalfBackground';
+import { GradientBackgroundFull } from '../components/ui/backgrounds/GradientBackgroundFull';
+import { HalfBackground } from '@/app/components/ui/backgrounds/HalfBackground';
 import { PageHeader } from '@/app/components/ui/nanny/PageHeader';
-import { TabBar } from '@/app/components/ui/nanny/TabBar';
+import { TabBar } from '@/app/components/ui/backgrounds/TabBar';
 import { ShareRequestCard } from '@/app/components/ui/nanny/cards/ShareRequestCard';
 import type { NannyShare } from '@/db/schema';
 
-type Tab = 'requests' | 'available';
-
 export default function NannySharePage() {
-  const [activeTab, setActiveTab] = useState<Tab>('requests');
+  const [activeTab, setActiveTab] = useState('Requests');
   const [myShares, setMyShares] = useState<NannyShare[]>([]);
   const [availableShares, setAvailableShares] = useState<NannyShare[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +58,7 @@ export default function NannySharePage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'requests') fetchMyShares();
+    if (activeTab === 'Requests') fetchMyShares();
     else fetchAvailable();
   }, [activeTab, fetchMyShares, fetchAvailable]);
 
@@ -79,16 +77,23 @@ export default function NannySharePage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   };
 
-  const shares = activeTab === 'requests' ? myShares : availableShares;
+  const shares = activeTab === 'Requests' ? myShares : availableShares;
+
+  // Define tabs
+  const tabs = ['Requests', 'Available'];
 
   return (
-    <GradientBackground>
+    <GradientBackgroundFull>
       <div className="pt-8">
         <PageHeader title="Nanny Sharing" />
       </div>
 
       <HalfBackground>
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabBar 
+          tabs={tabs} 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+        />
 
         <div className="p-4 space-y-4 overflow-y-auto pb-32" style={{ height: 'calc(85.7vh - 120px)' }}>
           {/* Error State */}
@@ -107,7 +112,7 @@ export default function NannySharePage() {
           )}
 
           {/* Empty State - Requests */}
-          {!isLoading && activeTab === 'requests' && shares.length === 0 && (
+          {!isLoading && activeTab === 'Requests' && shares.length === 0 && (
             <div className="text-center py-16">
               <div className="mb-6">
                 <svg className="w-32 h-32 mx-auto text-primary opacity-50" viewBox="0 0 200 200" fill="none">
@@ -128,7 +133,7 @@ export default function NannySharePage() {
           )}
 
           {/* Empty State - Available */}
-          {!isLoading && activeTab === 'available' && shares.length === 0 && (
+          {!isLoading && activeTab === 'Available' && shares.length === 0 && (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">📅</div>
               <h3 className="text-xl font-bold text-neutral-900 mb-2">No shares available</h3>
@@ -143,7 +148,7 @@ export default function NannySharePage() {
           )}
 
           {/* Requests List */}
-          {!isLoading && activeTab === 'requests' && shares.length > 0 && (
+          {!isLoading && activeTab === 'Requests' && shares.length > 0 && (
             <div className="space-y-4">
               {shares.map((share) => (
                 <Link key={share.id} href={`/nanny/${share.id}`}>
@@ -160,7 +165,7 @@ export default function NannySharePage() {
           )}
 
           {/* Available List */}
-          {!isLoading && activeTab === 'available' && shares.length > 0 && (
+          {!isLoading && activeTab === 'Available' && shares.length > 0 && (
             <div className="space-y-4">
               {shares.map((share) => {
                 const availableSpots = share.maxSpots ? share.maxSpots - share.members.length : 0;
@@ -183,6 +188,6 @@ export default function NannySharePage() {
       </HalfBackground>
 
       <BottomNav />
-    </GradientBackground>
+    </GradientBackgroundFull>
   );
 }
