@@ -182,6 +182,35 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
             )}
           </div>
 
+          {/* Working Hours */}
+<div className="mb-6">
+  <label className="block text-lg font-bold text-gray-900 mb-2">
+    Working Hours
+  </label>
+  {isEditing ? (
+    <div className="flex gap-4">
+      <input
+        type="time"
+        value={editedData.timeFrom}
+        onChange={(e) => setEditedData({ ...editedData, timeFrom: e.target.value })}
+        className="pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
+      />
+      <span className="text-gray-900 font-bold">to</span>
+      <input
+        type="time"
+        value={editedData.timeTo}
+        onChange={(e) => setEditedData({ ...editedData, timeTo: e.target.value })}
+        className="pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
+      />
+    </div>
+  ) : (
+    <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
+      {editedData.timeFrom} &ndash; {editedData.timeTo}
+    </div>
+  )}
+</div>
+
+
           {/* Additional Note */}
           <div className="mb-8">
             <label className="block text-lg font-bold text-gray-900 mb-2">

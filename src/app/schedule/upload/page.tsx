@@ -26,11 +26,6 @@ export default function ScheduleUploadPage() {
   const [step, setStep] = useState<UploadStep>('select');
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
-  // const { userId } = auth();
-
-  // if (!userId) {
-  //   redirect('/sign-in?redirect_url=/schedule/upload');
-  // }
 
   const handleMethodSelect = (method: InputMethod) => {
     setInputMethod(method);
