@@ -1,5 +1,12 @@
+import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
-export default function HomePage() {
-  redirect('/calendar');
+export default async function HomePage() {
+  const { userId } = await auth();
+  
+  if (userId) {
+    redirect('/calendar');
+  } else {
+    redirect('/boarding/features');
+  }
 }

@@ -24,6 +24,8 @@ export const users = pgTable("users", {
   phone: varchar("phone", { length: 20 }),
   address: text("address"),
   occupation: varchar("occupation", { length: 100 }),
+  bio: text("bio"),
+  profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -59,6 +61,9 @@ export const schedules = pgTable(
         >
       >()
       .default({}),
+    originalFileUrl: text("original_file_url"), // <--- new column
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dailyTimes: jsonb("daily_times").$type<Record<string, any>>().notNull().default({}), // <--- new column
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },

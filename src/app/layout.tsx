@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-page-custom-font */
 import { ClerkProvider } from '@clerk/nextjs'
 import { SocketProvider } from '@/lib/socket/SocketContext'
 import './globals.css'
 import type { Metadata } from "next";
+import { AuthWrapper } from './components/auth/AuthWrapper';
 
 
 export const metadata: Metadata = {
@@ -31,7 +33,9 @@ export default function RootLayout({
         </head>
         <body className="antialiased">
           <SocketProvider>
-            {children}
+            <AuthWrapper>
+              {children}
+            </AuthWrapper>
           </SocketProvider>
         </body>
       </html>
