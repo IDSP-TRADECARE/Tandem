@@ -280,14 +280,14 @@ export function DateHeader({
           </button>
         </div>
 
-        {/* Calendar Grid - No background container */}
+        {/* Calendar Grid - Reduced cell size */}
         <div className="px-2">
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-2 mb-3">
+          <div className="grid grid-cols-7 gap-1 mb-1.5">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
               <div
                 key={day}
-                className="text-center text-sm font-bold text-black py-2"
+                className="text-center text-xs font-bold text-black py-0.5"
               >
                 {day}
               </div>
@@ -295,9 +295,9 @@ export function DateHeader({
           </div>
 
           {/* Calendar days */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             {calendarGrid.map((week, weekIndex) => (
-              <div key={weekIndex} className="grid grid-cols-7 gap-2">
+              <div key={weekIndex} className="grid grid-cols-7 gap-1">
                 {week.map((day, dayIndex) => {
                   const isToday = day.fullDate.toDateString() === todayStr;
                   const isSelected =
@@ -317,11 +317,11 @@ export function DateHeader({
                       }}
                       disabled={!day.isCurrentMonth}
                       className={`
-                        relative aspect-square rounded-2xl flex flex-col items-center justify-center
-                        transition-all text-lg font-bold
+                        relative w-8 h-8 mx-auto rounded-xl flex flex-col items-center justify-center
+                        transition-all text-base font-bold
                         ${
                           !day.isCurrentMonth
-                            ? "text-white opacity-30 cursor-default pointer-events-none"
+                            ? "text-white opacity-20 cursor-default pointer-events-none"
                             : ""
                         }
                         ${
@@ -345,17 +345,17 @@ export function DateHeader({
 
                       {/* Event indicators - dots below date - only show for current month */}
                       {day.isCurrentMonth && hasAnyEvent && (
-                        <div className="absolute bottom-1 flex gap-1">
+                        <div className="absolute bottom-0.5 flex gap-0.5">
                           {(hasShift || hasNanny) && (
                             <div
-                              className={`w-1.5 h-1.5 rounded-full ${
+                              className={`w-1 h-1 rounded-full ${
                                 isSelected ? "bg-blue-500" : "bg-white"
                               }`}
                             />
                           )}
                           {(hasWork || hasChildcare) && (
                             <div
-                              className={`w-1.5 h-1.5 rounded-full ${
+                              className={`w-1 h-1 rounded-full ${
                                 isSelected ? "bg-orange-500" : "bg-white/70"
                               }`}
                             />
