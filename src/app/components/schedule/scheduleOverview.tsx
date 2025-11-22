@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { IoIosArrowBack } from "react-icons/io";
 import { ScheduleData } from '@/app/schedule/upload/page';
+import { DaySelector } from '../../components/ui/schedule/DaySelector';
+import { UnderlineInput } from '../../components/ui/schedule/UnderlineInput';
 
 interface ScheduleOverviewProps {
   data: ScheduleData;
@@ -38,7 +40,7 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
     { code: 'SAT', label: 'S', fullName: 'Saturday' },
   ];
 
-  const handleDayClick = (dayCode: string) => {
+  const handleDayToggle = (dayCode: string) => {
     if (isEditing) {
       // In edit mode: toggle days on/off
       const isCurrentlySelected = editedData.workingDays.includes(dayCode);
@@ -111,6 +113,11 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
     setSelectedDay(data.workingDays.length > 0 ? data.workingDays[0] : null);
   };
 
+  const handleSaveChanges = () => {
+    setIsEditing(false);
+    // Could add API save logic here if needed
+  };
+
   // Get the schedule for the currently selected day
   const currentDaySchedule = selectedDay && editedData.daySchedules?.[selectedDay];
 
@@ -139,69 +146,27 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
         {/* Form Card */}
         <div className="bg-white rounded-3xl p-6 shadow-xl mb-4">
           {/* Title */}
-          <div className="mb-6">
-            <label className="block text-xl font-bold text-gray-900 mb-3">
-              Title
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editedData.title}
-                onChange={(e) => setEditedData({ ...editedData, title: e.target.value })}
-                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
-              />
-            ) : (
-              <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
-                {editedData.title}
-              </div>
-            )}
-          </div>
+          <UnderlineInput 
+            label="Title"
+            value={editedData.title}
+            onChange={(value) => setEditedData({ ...editedData, title: value })}
+            disabled={!isEditing}
+          />
 
           {/* Working Days */}
-          <div className="mb-6">
-            <label className="block text-xl font-bold text-gray-900 mb-3">
-              Working Days
-            </label>
-            <div className="flex gap-2">
-              {daysOfWeek.map((day) => {
-                const isSelected = editedData.workingDays.includes(day.code);
-                const isActiveView = selectedDay === day.code;
-                
-                return (
-                  <button
-                    key={day.code}
-                    type="button"
-                    onClick={() => handleDayClick(day.code)}
-                    className={`w-12 h-12 rounded-full font-bold text-lg transition-all ${
-                      isSelected
-                        ? isActiveView
-                          ? 'bg-green-500 text-white ring-4 ring-green-300'
-                          : 'bg-green-400 text-white hover:bg-green-500'
-                        : isEditing
-                          ? 'bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-pointer'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {day.label}
-                  </button>
-                );
-              })}
-            </div>
-            {selectedDay && (
-              <p className="text-xs text-blue-600 mt-2 font-semibold">
-                {isEditing ? 'Editing' : 'Viewing'}: {daysOfWeek.find(d => d.code === selectedDay)?.fullName}
-              </p>
-            )}
-            {isEditing && (
-              <p className="text-xs text-gray-500 mt-1">
-                Click days to add or remove them
-              </p>
-            )}
+          <div className="mt-6">
+            <DaySelector 
+              selectedDays={editedData.workingDays}
+              onDayToggle={handleDayToggle}
+              activeDay={selectedDay}
+              disabled={!isEditing}
+              showHint={isEditing}
+            />
           </div>
 
           {/* Working Hours - Side by Side for Selected Day */}
           {currentDaySchedule && (
-            <div className="mb-6 grid grid-cols-2 gap-4">
+            <div className="mt-6 mb-6 grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xl font-bold text-gray-900 mb-3">
                   From
@@ -240,42 +205,24 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
           )}
 
           {/* Working Location */}
-          <div className="mb-6">
-            <label className="block text-xl font-bold text-gray-900 mb-3">
-              Working Location
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editedData.location}
-                onChange={(e) => setEditedData({ ...editedData, location: e.target.value })}
-                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
-              />
-            ) : (
-              <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
-                {editedData.location}
-              </div>
-            )}
+          <div className="mt-6">
+            <UnderlineInput 
+              label="Working Location"
+              value={editedData.location}
+              onChange={(value) => setEditedData({ ...editedData, location: value })}
+              disabled={!isEditing}
+            />
           </div>
 
           {/* Additional Note */}
-          <div className="mb-8">
-            <label className="block text-xl font-bold text-gray-900 mb-3">
-              Additional Note
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editedData.notes || ''}
-                onChange={(e) => setEditedData({ ...editedData, notes: e.target.value })}
-                placeholder="N/A"
-                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400"
-              />
-            ) : (
-              <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
-                {editedData.notes || 'N/A'}
-              </div>
-            )}
+          <div className="mt-6 mb-8">
+            <UnderlineInput 
+              label="Additional Note"
+              value={editedData.notes || ''}
+              onChange={(value) => setEditedData({ ...editedData, notes: value })}
+              placeholder="N/A"
+              disabled={!isEditing}
+            />
           </div>
 
           {/* Action Buttons */}
@@ -289,10 +236,7 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    // Could add save logic here if needed
-                  }}
+                  onClick={handleSaveChanges}
                   className="flex-1 py-4 px-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors text-lg"
                 >
                   Save Changes

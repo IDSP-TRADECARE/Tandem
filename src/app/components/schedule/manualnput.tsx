@@ -3,23 +3,15 @@
 import { useState } from 'react';
 import { ScheduleData } from '@/app/schedule/upload/page';
 import { MdCancel } from "react-icons/md";
-
+import { DaySelector } from '../../components/ui/schedule/DaySelector';
+import { TimeRangeInput } from '../../components/ui/schedule/TimeRangeInput';
+import { UnderlineInput } from '../../components/ui/schedule/UnderlineInput';
 
 interface ManualInputProps {
   onComplete: (data: ScheduleData) => void;
   onBack: () => void;
   hideBackButton?: boolean;
 }
-
-const DAYS = [
-  { id: 'SUN', label: 'S', fullName: 'Sunday' },
-  { id: 'MON', label: 'M', fullName: 'Monday' },
-  { id: 'TUE', label: 'T', fullName: 'Tuesday' },
-  { id: 'WED', label: 'W', fullName: 'Wednesday' },
-  { id: 'THU', label: 'T', fullName: 'Thursday' },
-  { id: 'FRI', label: 'F', fullName: 'Friday' },
-  { id: 'SAT', label: 'S', fullName: 'Saturday' },
-];
 
 interface DaySchedule {
   timeFrom: string;
@@ -67,16 +59,24 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleDayClick = (dayId: string) => {
+  const handleDayToggle = (dayId: string) => {
     if (!daySchedules[dayId]) {
       // Add day with empty times
       setDaySchedules(prev => ({
         ...prev,
         [dayId]: { timeFrom: '', timeTo: '' }
       }));
+      setSelectedDay(dayId);
+    } else {
+      // Remove day
+      const newSchedules = { ...daySchedules };
+      delete newSchedules[dayId];
+      setDaySchedules(newSchedules);
+      if (selectedDay === dayId) {
+        setSelectedDay(null);
+      }
     }
-    setSelectedDay(dayId);
-    setError(null); // Clear error when switching days
+    setError(null);
   };
 
   const updateCurrentDayTime = (field: 'timeFrom' | 'timeTo', value: string) => {
@@ -111,15 +111,6 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
     }
   };
 
-  const removeDaySchedule = (dayId: string) => {
-    const newSchedules = { ...daySchedules };
-    delete newSchedules[dayId];
-    setDaySchedules(newSchedules);
-    if (selectedDay === dayId) {
-      setSelectedDay(null);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -140,6 +131,15 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
       const schedule = daySchedules[dayId];
       
       if (!schedule.timeFrom || !schedule.timeTo) {
+        const DAYS = [
+          { id: 'SUN', fullName: 'Sunday' },
+          { id: 'MON', fullName: 'Monday' },
+          { id: 'TUE', fullName: 'Tuesday' },
+          { id: 'WED', fullName: 'Wednesday' },
+          { id: 'THU', fullName: 'Thursday' },
+          { id: 'FRI', fullName: 'Friday' },
+          { id: 'SAT', fullName: 'Saturday' },
+        ];
         const day = DAYS.find(d => d.id === dayId);
         setError(`Please enter times for ${day?.fullName}`);
         return;
@@ -149,6 +149,15 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
       const normalizedTo = normalizeToHHMM(schedule.timeTo);
 
       if (!normalizedFrom || !normalizedTo) {
+        const DAYS = [
+          { id: 'SUN', fullName: 'Sunday' },
+          { id: 'MON', fullName: 'Monday' },
+          { id: 'TUE', fullName: 'Tuesday' },
+          { id: 'WED', fullName: 'Wednesday' },
+          { id: 'THU', fullName: 'Thursday' },
+          { id: 'FRI', fullName: 'Friday' },
+          { id: 'SAT', fullName: 'Saturday' },
+        ];
         const day = DAYS.find(d => d.id === dayId);
         setError(`Please enter valid times for ${day?.fullName}`);
         return;
@@ -211,71 +220,23 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
     <div>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
-        <div>
-          <label className="block text-lg font-bold text-gray-900 mb-2">
-            Title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Content"
-            className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
-          />
-        </div>
+        <UnderlineInput 
+          label="Title"
+          value={title}
+          onChange={setTitle}
+          placeholder="Content"
+        />
 
         {/* Working Days */}
-        <div>
-          <label className="block text-lg font-bold text-gray-900 mb-3">
-            Working Days
-          </label>
-          <div className="flex gap-2">
-            {DAYS.map((day) => {
-              const isSelected = daySchedules[day.id];
-              const isActiveEdit = selectedDay === day.id;
-              
-              return (
-                <div key={day.id} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => handleDayClick(day.id)}
-                    className={`w-12 h-12 rounded-full font-bold text-lg transition-all ${
-                      isSelected
-                        ? isActiveEdit
-                          ? 'bg-green-500 text-white ring-4 ring-green-300'
-                          : 'bg-green-400 text-white'
-                        : 'bg-gray-200 text-gray-400'
-                    }`}
-                  >
-                    {day.label}
-                  </button>
-                  {isSelected && (
-                   <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeDaySchedule(day.id);
-                      }}
-                      title={`Remove ${day.fullName}`}
-                      aria-label={`Remove ${day.fullName} schedule`}
-                      className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
-                    >
-                      <MdCancel size={14} />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {selectedDay && (
-            <p className="text-xs text-blue-600 mt-2 font-semibold">
-              Editing: {DAYS.find(d => d.id === selectedDay)?.fullName}
-            </p>
-          )}
-        </div>
+        <DaySelector 
+          selectedDays={Object.keys(daySchedules)}
+          onDayToggle={handleDayToggle}
+          activeDay={selectedDay}
+          showHint={Object.keys(daySchedules).length > 0}
+        />
 
         {/* Time Range - Only show when a day is selected */}
-        {selectedDay && currentSchedule && (
+        {selectedDay && currentSchedule ? (
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-lg font-bold text-gray-900 mb-2">
@@ -306,10 +267,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
               />
             </div>
           </div>
-        )}
-
-        {/* Placeholder when no day selected */}
-        {!selectedDay && (
+        ) : (
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-lg font-bold text-gray-900 mb-2">
@@ -337,32 +295,20 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
         )}
 
         {/* Working Location */}
-        <div>
-          <label className="block text-lg font-bold text-gray-900 mb-2">
-            Working Location
-          </label>
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Location"
-            className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
-          />
-        </div>
+        <UnderlineInput 
+          label="Working Location"
+          value={location}
+          onChange={setLocation}
+          placeholder="Location"
+        />
 
         {/* Additional Note */}
-        <div>
-          <label className="block text-lg font-bold text-gray-900 mb-2">
-            Additional Note
-          </label>
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="N/A"
-            className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
-          />
-        </div>
+        <UnderlineInput 
+          label="Additional Note"
+          value={notes}
+          onChange={setNotes}
+          placeholder="N/A"
+        />
 
         {error && (
           <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl">
