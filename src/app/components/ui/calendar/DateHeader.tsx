@@ -251,7 +251,7 @@ export function DateHeader({
 
     return (
       <div className="px-4 pb-4">
-        {/* Month/Year navigation */}
+        {/* Month/Year navigation - Keep as is */}
         <div
           className="px-4 py-3 flex items-center justify-between rounded-2xl mb-4"
           style={{
@@ -280,14 +280,14 @@ export function DateHeader({
           </button>
         </div>
 
-        {/* Calendar Grid */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 shadow-lg">
+        {/* Calendar Grid - No background container */}
+        <div className="px-2">
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
+          <div className="grid grid-cols-7 gap-2 mb-3">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
               <div
                 key={day}
-                className="text-center text-xs font-bold text-gray-700 py-1"
+                className="text-center text-sm font-bold text-black py-2"
               >
                 {day}
               </div>
@@ -295,9 +295,9 @@ export function DateHeader({
           </div>
 
           {/* Calendar days */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             {calendarGrid.map((week, weekIndex) => (
-              <div key={weekIndex} className="grid grid-cols-7 gap-1">
+              <div key={weekIndex} className="grid grid-cols-7 gap-2">
                 {week.map((day, dayIndex) => {
                   const isToday = day.fullDate.toDateString() === todayStr;
                   const isSelected =
@@ -315,43 +315,48 @@ export function DateHeader({
                           handleDayClick(day.fullDate);
                         }
                       }}
+                      disabled={!day.isCurrentMonth}
                       className={`
-                        relative aspect-square rounded-xl flex items-center justify-center
-                        transition-all text-sm font-semibold
+                        relative aspect-square rounded-2xl flex flex-col items-center justify-center
+                        transition-all text-lg font-bold
                         ${
                           !day.isCurrentMonth
-                            ? "text-gray-300 cursor-default"
+                            ? "text-white opacity-30 cursor-default pointer-events-none"
                             : ""
                         }
                         ${
                           day.isCurrentMonth && !isSelected && !isToday
-                            ? "text-gray-900 hover:bg-blue-50"
+                            ? "text-white hover:bg-white/20"
                             : ""
                         }
                         ${
-                          isToday && !isSelected
-                            ? "bg-blue-100 text-blue-600"
+                          isToday && !isSelected && day.isCurrentMonth
+                            ? "bg-white/30 text-white ring-2 ring-white/50"
                             : ""
                         }
-                        ${isSelected ? "bg-blue-600 text-white shadow-md" : ""}
+                        ${
+                          isSelected && day.isCurrentMonth
+                            ? "bg-white text-blue-600 shadow-lg scale-105"
+                            : ""
+                        }
                       `}
                     >
                       <span className="relative z-10">{day.date}</span>
 
-                      {/* Event indicators */}
+                      {/* Event indicators - dots below date - only show for current month */}
                       {day.isCurrentMonth && hasAnyEvent && (
-                        <div className="absolute top-1 right-1 flex gap-0.5">
+                        <div className="absolute bottom-1 flex gap-1">
                           {(hasShift || hasNanny) && (
                             <div
                               className={`w-1.5 h-1.5 rounded-full ${
-                                hasNanny ? "bg-green-500" : "bg-blue-500"
+                                isSelected ? "bg-blue-500" : "bg-white"
                               }`}
                             />
                           )}
                           {(hasWork || hasChildcare) && (
                             <div
                               className={`w-1.5 h-1.5 rounded-full ${
-                                hasWork ? "bg-yellow-500" : "bg-pink-500"
+                                isSelected ? "bg-orange-500" : "bg-white/70"
                               }`}
                             />
                           )}
