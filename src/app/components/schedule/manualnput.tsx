@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { ScheduleData } from '@/app/schedule/upload/page';
+import { MdCancel } from "react-icons/md";
+
 
 interface ManualInputProps {
   onComplete: (data: ScheduleData) => void;
@@ -10,21 +12,25 @@ interface ManualInputProps {
 }
 
 const DAYS = [
-  { id: 'SUN', label: 'S' },
-  { id: 'MON', label: 'M' },
-  { id: 'TUE', label: 'T' },
-  { id: 'WED', label: 'W' },
-  { id: 'THU', label: 'T' },
-  { id: 'FRI', label: 'F' },
-  { id: 'SAT', label: 'S' },
+  { id: 'SUN', label: 'S', fullName: 'Sunday' },
+  { id: 'MON', label: 'M', fullName: 'Monday' },
+  { id: 'TUE', label: 'T', fullName: 'Tuesday' },
+  { id: 'WED', label: 'W', fullName: 'Wednesday' },
+  { id: 'THU', label: 'T', fullName: 'Thursday' },
+  { id: 'FRI', label: 'F', fullName: 'Friday' },
+  { id: 'SAT', label: 'S', fullName: 'Saturday' },
 ];
 
-// helper: parse common time strings into "HH:MM" (24h) or return null
+interface DaySchedule {
+  timeFrom: string;
+  timeTo: string;
+}
+
 function normalizeToHHMM(input: string): string | null {
   if (!input) return null;
   const s = input.trim().toLowerCase();
 
-  // already in HH:MM or H:MM or HH:MM:SS
+  // Match HH:MM or H:MM format
   const matchHM = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
   if (matchHM) {
     let h = Number(matchHM[1]);
@@ -35,7 +41,7 @@ function normalizeToHHMM(input: string): string | null {
     return null;
   }
 
-  // formats like "8am", "8:30am", "8 am", "8:30 am"
+  // Match formats like "8am", "8:30am", "8 am", "8:30 am"
   const matchAmPm = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
   if (matchAmPm) {
     let h = Number(matchAmPm[1]);
@@ -53,73 +59,153 @@ function normalizeToHHMM(input: string): string | null {
 }
 
 export function ManualInput({ onComplete, onBack, hideBackButton = false }: ManualInputProps) {
-  const [formData, setFormData] = useState<ScheduleData>({
-    title: '',
-    workingDays: [],
-    timeFrom: '',
-    timeTo: '',
-    location: '',
-    notes: '',
-  });
+  const [title, setTitle] = useState('');
+  const [location, setLocation] = useState('');
+  const [notes, setNotes] = useState('');
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [daySchedules, setDaySchedules] = useState<Record<string, DaySchedule>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const toggleDay = (day: string) => {
-    setFormData((prev) => ({
+  const handleDayClick = (dayId: string) => {
+    if (!daySchedules[dayId]) {
+      // Add day with empty times
+      setDaySchedules(prev => ({
+        ...prev,
+        [dayId]: { timeFrom: '', timeTo: '' }
+      }));
+    }
+    setSelectedDay(dayId);
+    setError(null); // Clear error when switching days
+  };
+
+  const updateCurrentDayTime = (field: 'timeFrom' | 'timeTo', value: string) => {
+    if (!selectedDay) return;
+    
+    setDaySchedules(prev => ({
       ...prev,
-      workingDays: prev.workingDays.includes(day)
-        ? prev.workingDays.filter((d) => d !== day)
-        : [...prev.workingDays, day],
+      [selectedDay]: {
+        ...prev[selectedDay],
+        [field]: value
+      }
     }));
+  };
+
+  const handleTimeBlur = (field: 'timeFrom' | 'timeTo') => {
+    if (!selectedDay) return;
+    
+    const currentValue = daySchedules[selectedDay][field];
+    const normalized = normalizeToHHMM(currentValue);
+    
+    if (currentValue && !normalized) {
+      setError('Please enter a valid time (e.g., 9:00, 09:00, 9am, 5:30pm)');
+    } else if (normalized) {
+      setDaySchedules(prev => ({
+        ...prev,
+        [selectedDay]: {
+          ...prev[selectedDay],
+          [field]: normalized
+        }
+      }));
+      setError(null);
+    }
+  };
+
+  const removeDaySchedule = (dayId: string) => {
+    const newSchedules = { ...daySchedules };
+    delete newSchedules[dayId];
+    setDaySchedules(newSchedules);
+    if (selectedDay === dayId) {
+      setSelectedDay(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!formData.title.trim()) {
+    if (!title.trim()) {
       setError('Please enter a title');
       return;
     }
 
-    if (formData.workingDays.length === 0) {
+    const workingDays = Object.keys(daySchedules);
+    if (workingDays.length === 0) {
       setError('Please select at least one working day');
       return;
     }
 
-    // normalize/validate times
-    const normalizedFrom = normalizeToHHMM(formData.timeFrom);
-    const normalizedTo = normalizeToHHMM(formData.timeTo);
+    // Validate all day times
+    for (const dayId of workingDays) {
+      const schedule = daySchedules[dayId];
+      
+      if (!schedule.timeFrom || !schedule.timeTo) {
+        const day = DAYS.find(d => d.id === dayId);
+        setError(`Please enter times for ${day?.fullName}`);
+        return;
+      }
 
-    if (!normalizedFrom || !normalizedTo) {
-      setError('Please enter start and end times in a valid format (e.g. 08:30 or 8:30 AM).');
-      return;
+      const normalizedFrom = normalizeToHHMM(schedule.timeFrom);
+      const normalizedTo = normalizeToHHMM(schedule.timeTo);
+
+      if (!normalizedFrom || !normalizedTo) {
+        const day = DAYS.find(d => d.id === dayId);
+        setError(`Please enter valid times for ${day?.fullName}`);
+        return;
+      }
     }
 
     setIsSubmitting(true);
 
     try {
-      const payload = { ...formData, timeFrom: normalizedFrom, timeTo: normalizedTo };
+      // Save each day as a separate schedule entry
+      const savePromises = workingDays.map(async (dayId) => {
+        const schedule = daySchedules[dayId];
+        const normalizedFrom = normalizeToHHMM(schedule.timeFrom)!;
+        const normalizedTo = normalizeToHHMM(schedule.timeTo)!;
+        
+        const payload = {
+          title: title,
+          workingDays: [dayId],
+          timeFrom: normalizedFrom,
+          timeTo: normalizedTo,
+          location: location || null,
+          notes: notes || null,
+        };
 
-      // Save to database
-      const response = await fetch('/api/schedule/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        const response = await fetch('/api/schedule/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save schedule');
+        }
+
+        return response.json();
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to save schedule');
-      }
+      await Promise.all(savePromises);
 
       setTimeout(() => {
-        onComplete(payload);
+        onComplete({
+          title,
+          workingDays,
+          timeFrom: '',
+          timeTo: '',
+          location,
+          notes,
+          daySchedules,
+        });
       }, 500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save schedule');
       setIsSubmitting(false);
     }
   };
+
+  const currentSchedule = selectedDay ? daySchedules[selectedDay] : null;
 
   return (
     <div>
@@ -131,8 +217,8 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
           </label>
           <input
             type="text"
-            value={formData.title}
-            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder="Content"
             className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
           />
@@ -144,70 +230,111 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
             Working Days
           </label>
           <div className="flex gap-2">
-            {DAYS.map((day) => (
-              <button
-                key={day.id}
-                type="button"
-                onClick={() => toggleDay(day.id)}
-                className={`w-12 h-12 rounded-full font-bold text-lg transition-colors ${
-                  formData.workingDays.includes(day.id)
-                    ? 'bg-green-400 text-white'
-                    : 'bg-gray-200 text-gray-400'
-                }`}
-              >
-                {day.label}
-              </button>
-            ))}
+            {DAYS.map((day) => {
+              const isSelected = daySchedules[day.id];
+              const isActiveEdit = selectedDay === day.id;
+              
+              return (
+                <div key={day.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => handleDayClick(day.id)}
+                    className={`w-12 h-12 rounded-full font-bold text-lg transition-all ${
+                      isSelected
+                        ? isActiveEdit
+                          ? 'bg-green-500 text-white ring-4 ring-green-300'
+                          : 'bg-green-400 text-white'
+                        : 'bg-gray-200 text-gray-400'
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                  {isSelected && (
+                   <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeDaySchedule(day.id);
+                      }}
+                      title={`Remove ${day.fullName}`}
+                      aria-label={`Remove ${day.fullName} schedule`}
+                      className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+                    >
+                      <MdCancel size={14} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
+          {selectedDay && (
+            <p className="text-xs text-blue-600 mt-2 font-semibold">
+              Editing: {DAYS.find(d => d.id === selectedDay)?.fullName}
+            </p>
+          )}
         </div>
 
-        {/* Time Range */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-lg font-bold text-gray-900 mb-2">
-              From
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={formData.timeFrom}
-              onChange={(e) => setFormData(prev => ({ ...prev, timeFrom: e.target.value }))}
-              onBlur={(e) => {
-                const n = normalizeToHHMM(e.target.value);
-                if (n) {
-                  setFormData(prev => ({ ...prev, timeFrom: n }));
-                  setError(null);
-                } else {
-                  setError('Please enter a valid start time (e.g. 08:30 or 8:30 AM).');
-                }
-              }}
-              placeholder="08:30 or 8:30 AM"
-              className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
-            />
+        {/* Time Range - Only show when a day is selected */}
+        {selectedDay && currentSchedule && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-lg font-bold text-gray-900 mb-2">
+                From
+              </label>
+              <input
+                type="text"
+                inputMode="text"
+                value={currentSchedule.timeFrom}
+                onChange={(e) => updateCurrentDayTime('timeFrom', e.target.value)}
+                onBlur={() => handleTimeBlur('timeFrom')}
+                placeholder="9:00 or 9am"
+                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-lg font-bold text-gray-900 mb-2">
+                To
+              </label>
+              <input
+                type="text"
+                inputMode="text"
+                value={currentSchedule.timeTo}
+                onChange={(e) => updateCurrentDayTime('timeTo', e.target.value)}
+                onBlur={() => handleTimeBlur('timeTo')}
+                placeholder="5:00 or 5pm"
+                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-lg font-bold text-gray-900 mb-2">
-              To
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={formData.timeTo}
-              onChange={(e) => setFormData(prev => ({ ...prev, timeTo: e.target.value }))}
-              onBlur={(e) => {
-                const n = normalizeToHHMM(e.target.value);
-                if (n) {
-                  setFormData(prev => ({ ...prev, timeTo: n }));
-                  setError(null);
-                } else {
-                  setError('Please enter a valid end time (e.g. 17:00 or 5:00 PM).');
-                }
-              }}
-              placeholder="17:00 or 5:00 PM"
-              className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
-            />
+        )}
+
+        {/* Placeholder when no day selected */}
+        {!selectedDay && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-lg font-bold text-gray-900 mb-2">
+                From
+              </label>
+              <input
+                type="text"
+                disabled
+                placeholder="Time Start"
+                className="w-full pb-2 border-b-2 border-gray-300 focus:outline-none text-gray-400 placeholder-gray-400 bg-transparent cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="block text-lg font-bold text-gray-900 mb-2">
+                To
+              </label>
+              <input
+                type="text"
+                disabled
+                placeholder="Time End"
+                className="w-full pb-2 border-b-2 border-gray-300 focus:outline-none text-gray-400 placeholder-gray-400 bg-transparent cursor-not-allowed"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Working Location */}
         <div>
@@ -216,8 +343,8 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
           </label>
           <input
             type="text"
-            value={formData.location}
-            onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
             placeholder="Location"
             className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
           />
@@ -230,8 +357,8 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
           </label>
           <input
             type="text"
-            value={formData.notes}
-            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
             placeholder="N/A"
             className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
           />
