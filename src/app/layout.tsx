@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Tandem",
   description: "Share childcare with your community",
   icons: {
-    icon: '/favicon.png',
+    icon: 'brand/logoColor.svg',
   },
 };
 

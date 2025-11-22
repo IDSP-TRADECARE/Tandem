@@ -10,21 +10,54 @@ interface ManualInputProps {
 }
 
 const DAYS = [
+  { id: 'SUN', label: 'S' },
   { id: 'MON', label: 'M' },
   { id: 'TUE', label: 'T' },
   { id: 'WED', label: 'W' },
   { id: 'THU', label: 'T' },
   { id: 'FRI', label: 'F' },
   { id: 'SAT', label: 'S' },
-  { id: 'SUN', label: 'S' },
 ];
+
+// helper: parse common time strings into "HH:MM" (24h) or return null
+function normalizeToHHMM(input: string): string | null {
+  if (!input) return null;
+  const s = input.trim().toLowerCase();
+
+  // already in HH:MM or H:MM or HH:MM:SS
+  const matchHM = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (matchHM) {
+    let h = Number(matchHM[1]);
+    const m = Number(matchHM[2]);
+    if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    return null;
+  }
+
+  // formats like "8am", "8:30am", "8 am", "8:30 am"
+  const matchAmPm = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+  if (matchAmPm) {
+    let h = Number(matchAmPm[1]);
+    const m = Number(matchAmPm[2] ?? '0');
+    const ampm = matchAmPm[3];
+    if (h === 12 && ampm === 'am') h = 0;
+    if (h < 12 && ampm === 'pm') h += 12;
+    if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    return null;
+  }
+
+  return null;
+}
 
 export function ManualInput({ onComplete, onBack, hideBackButton = false }: ManualInputProps) {
   const [formData, setFormData] = useState<ScheduleData>({
     title: '',
-    workingDays: ['MON'],
-    timeFrom: '08:00',
-    timeTo: '17:00',
+    workingDays: [],
+    timeFrom: '',
+    timeTo: '',
     location: '',
     notes: '',
   });
@@ -54,13 +87,25 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
       return;
     }
 
+    // normalize/validate times
+    const normalizedFrom = normalizeToHHMM(formData.timeFrom);
+    const normalizedTo = normalizeToHHMM(formData.timeTo);
+
+    if (!normalizedFrom || !normalizedTo) {
+      setError('Please enter start and end times in a valid format (e.g. 08:30 or 8:30 AM).');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      const payload = { ...formData, timeFrom: normalizedFrom, timeTo: normalizedTo };
+
+      // Save to database
       const response = await fetch('/api/schedule/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -68,7 +113,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
       }
 
       setTimeout(() => {
-        onComplete(formData);
+        onComplete(payload);
       }, 500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save schedule');
@@ -78,38 +123,24 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
 
   return (
     <div>
-      {!hideBackButton && (
-        <div className="mb-4">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </button>
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-lg font-bold text-gray-900 mb-2">
             Title
           </label>
           <input
             type="text"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="e.g., November 2025 Work Schedule"
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all text-gray-900"
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            placeholder="Content"
+            className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
           />
         </div>
 
         {/* Working Days */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-lg font-bold text-gray-900 mb-3">
             Working Days
           </label>
           <div className="flex gap-2">
@@ -118,72 +149,91 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
                 key={day.id}
                 type="button"
                 onClick={() => toggleDay(day.id)}
-                className={`flex-1 h-12 rounded-xl font-bold transition-all ${
+                className={`w-12 h-12 rounded-full font-bold text-lg transition-colors ${
                   formData.workingDays.includes(day.id)
-                    ? 'bg-[#1e3a5f] text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-green-400 text-white'
+                    : 'bg-gray-200 text-gray-400'
                 }`}
               >
                 {day.label}
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            M = Monday, T = Tuesday, W = Wednesday, T = Thursday, F = Friday, S = Saturday, S = Sunday
-          </p>
         </div>
 
         {/* Time Range */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-lg font-bold text-gray-900 mb-2">
               From
             </label>
             <input
-              type="time"
+              type="text"
+              inputMode="numeric"
               value={formData.timeFrom}
-              onChange={(e) => setFormData({ ...formData, timeFrom: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all text-gray-900"
+              onChange={(e) => setFormData(prev => ({ ...prev, timeFrom: e.target.value }))}
+              onBlur={(e) => {
+                const n = normalizeToHHMM(e.target.value);
+                if (n) {
+                  setFormData(prev => ({ ...prev, timeFrom: n }));
+                  setError(null);
+                } else {
+                  setError('Please enter a valid start time (e.g. 08:30 or 8:30 AM).');
+                }
+              }}
+              placeholder="08:30 or 8:30 AM"
+              className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-lg font-bold text-gray-900 mb-2">
               To
             </label>
             <input
-              type="time"
+              type="text"
+              inputMode="numeric"
               value={formData.timeTo}
-              onChange={(e) => setFormData({ ...formData, timeTo: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all text-gray-900"
+              onChange={(e) => setFormData(prev => ({ ...prev, timeTo: e.target.value }))}
+              onBlur={(e) => {
+                const n = normalizeToHHMM(e.target.value);
+                if (n) {
+                  setFormData(prev => ({ ...prev, timeTo: n }));
+                  setError(null);
+                } else {
+                  setError('Please enter a valid end time (e.g. 17:00 or 5:00 PM).');
+                }
+              }}
+              placeholder="17:00 or 5:00 PM"
+              className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
             />
           </div>
         </div>
 
         {/* Working Location */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-lg font-bold text-gray-900 mb-2">
             Working Location
           </label>
           <input
             type="text"
             value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            placeholder="e.g., Surrey, Vancouver"
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all text-gray-900"
+            onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+            placeholder="Location"
+            className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
           />
         </div>
 
         {/* Additional Note */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-lg font-bold text-gray-900 mb-2">
             Additional Note
           </label>
-          <textarea
+          <input
+            type="text"
             value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            placeholder="Any special notes or requirements..."
-            rows={4}
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all resize-none text-gray-900"
+            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="N/A"
+            className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
           />
         </div>
 
@@ -194,20 +244,18 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
-          {!hideBackButton && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="flex-1 py-4 px-4 border-2 border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-          )}
+        <div className="flex gap-3 pt-4 pb-24">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex-1 py-4 px-4 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-colors text-lg"
+          >
+            Cancel
+          </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`${hideBackButton ? 'w-full' : 'flex-1'} py-4 px-4 bg-[#1e3a5f] text-white font-bold rounded-xl hover:bg-[#2d4a6f] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md`}
+            className="flex-1 py-4 px-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
           >
             {isSubmitting ? 'Saving...' : 'Confirm'}
           </button>

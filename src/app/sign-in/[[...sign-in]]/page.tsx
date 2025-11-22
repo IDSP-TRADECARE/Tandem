@@ -9,7 +9,7 @@ export default function SignInPage() {
         <div className="text-center mb-8 flex flex-col items-center">
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-4">
             <Image
-              src="/writtenLogo.png" 
+              src="brand/nameWhite.svg" 
               alt="Logo"
               width={200}      
               height={200}     
