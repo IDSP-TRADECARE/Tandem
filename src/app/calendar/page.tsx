@@ -29,6 +29,7 @@ import {
 } from "../components/calendar/viewHelpers";
 import { DateCardContainer } from "../components/ui/calendar/DateCard";
 
+// Update the DateCard interface to include timeRange
 interface DateCard {
   id: string;
   text: string;
@@ -36,6 +37,7 @@ interface DateCard {
   isWork: boolean;
   type: ViewType;
   date?: string;
+  timeRange?: string; // Add this property
   onClick: () => void;
 }
 
@@ -474,162 +476,93 @@ export default function Calendar() {
               },
             });
           }
+
+          // New: Add shift/nanny events with time details
+          const shiftEvents = dayEvents.filter(
+            (e) => e.extendedProps?.type === "shift"
+          );
+          const nannyEvents = dayEvents.filter(
+            (e) => e.extendedProps?.type === "nanny"
+          );
+
+          // Add shift events with time details
+          shiftEvents.forEach((event, idx) => {
+            const start =
+              event.start instanceof Date
+                ? event.start
+                : new Date(event.start as string);
+            const end =
+              event.end instanceof Date
+                ? event.end
+                : new Date(event.end as string);
+
+            const timeRange = `${start.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })} - ${end.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })}`;
+
+            cards.push({
+              id: `${date.toISOString()}-shift-${idx}`,
+              text: event.title || "Shift",
+              date: `${dayName}, ${dateStr}`,
+              timeRange: timeRange,
+              isEmpty: false,
+              isWork: false,
+              type: "Weekly",
+              onClick: () => {
+                setSelectedEvent(event);
+                setEventDetailOpen(true);
+              },
+            });
+          });
+
+          // Add nanny events with time details
+          nannyEvents.forEach((event, idx) => {
+            const start =
+              event.start instanceof Date
+                ? event.start
+                : new Date(event.start as string);
+            const end =
+              event.end instanceof Date
+                ? event.end
+                : new Date(event.end as string);
+
+            const timeRange = `${start.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })} - ${end.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })}`;
+
+            cards.push({
+              id: `${date.toISOString()}-nanny-${idx}`,
+              text: event.title || "Nanny",
+              date: `${dayName}, ${dateStr}`,
+              timeRange: timeRange,
+              isEmpty: false,
+              isWork: false,
+              type: "Weekly",
+              onClick: () => {
+                setSelectedEvent(event);
+                setEventDetailOpen(true);
+              },
+            });
+          });
         });
 
         return cards;
       }
 
       case "Monthly": {
-        // If a date is selected, show its events
-        if (selectedMonthDate) {
-          const cards: DateCard[] = [];
-          const dayEvents = getEventsForDate(selectedMonthDate);
-          const workEvents = dayEvents.filter(
-            (e) => e.extendedProps?.type === "work"
-          );
-          const childcareEvents = dayEvents.filter(
-            (e) => e.extendedProps?.type === "childcare"
-          );
-          const otherEvents = dayEvents.filter(
-            (e) =>
-              e.extendedProps?.type !== "work" &&
-              e.extendedProps?.type !== "childcare"
-          );
-
-          const dayName = selectedMonthDate.toLocaleDateString("en-US", {
-            weekday: "short",
-          });
-          const dateStr = selectedMonthDate.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          });
-
-          // Add childcare card
-          if (childcareEvents.length === 0) {
-            cards.push({
-              id: `${selectedMonthDate.toISOString()}-no-childcare`,
-              text: "No Childcare",
-              date: `${dayName}, ${dateStr}`,
-              isEmpty: true,
-              isWork: false,
-              type: "Monthly",
-              onClick: () => {
-                const calendarApi = calendarRef.current?.getApi();
-                if (!calendarApi) return;
-                const selectInfo: DateSelectArg = {
-                  start: selectedMonthDate,
-                  end: selectedMonthDate,
-                  startStr: selectedMonthDate.toISOString().split("T")[0],
-                  endStr: selectedMonthDate.toISOString().split("T")[0],
-                  allDay: true,
-                  view: calendarApi.view,
-                  jsEvent: new MouseEvent("click"),
-                };
-                handleDateClick(selectInfo);
-              },
-            });
-          } else {
-            const childcareEvent = childcareEvents[0];
-            if (childcareEvent.title !== "No Childcare") {
-              cards.push({
-                id: `${selectedMonthDate.toISOString()}-childcare`,
-                text: childcareEvent.title || "Childcare",
-                date: `${dayName}, ${dateStr}`,
-                isEmpty: false,
-                isWork: false,
-                type: "Monthly",
-                onClick: () => {
-                  setSelectedEvent(childcareEvent);
-                  setEventDetailOpen(true);
-                },
-              });
-            } else {
-              cards.push({
-                id: `${selectedMonthDate.toISOString()}-no-childcare`,
-                text: "No Childcare",
-                date: `${dayName}, ${dateStr}`,
-                isEmpty: true,
-                isWork: false,
-                type: "Monthly",
-                onClick: () => {
-                  const calendarApi = calendarRef.current?.getApi();
-                  if (!calendarApi) return;
-                  const selectInfo: DateSelectArg = {
-                    start: selectedMonthDate,
-                    end: selectedMonthDate,
-                    startStr: selectedMonthDate.toISOString().split("T")[0],
-                    endStr: selectedMonthDate.toISOString().split("T")[0],
-                    allDay: true,
-                    view: calendarApi.view,
-                    jsEvent: new MouseEvent("click"),
-                  };
-                  handleDateClick(selectInfo);
-                },
-              });
-            }
-          }
-
-          // Add other events
-          if (otherEvents.length > 0) {
-            cards.push({
-              id: `${selectedMonthDate.toISOString()}-other`,
-              text: `${otherEvents.length} appointment${
-                otherEvents.length > 1 ? "s" : ""
-              }`,
-              date: `${dayName}, ${dateStr}`,
-              isEmpty: false,
-              isWork: false,
-              type: "Monthly",
-              onClick: () => {
-                if (otherEvents[0]) {
-                  setSelectedEvent(otherEvents[0]);
-                  setEventDetailOpen(true);
-                }
-              },
-            });
-          }
-
-          // Add work card
-          if (workEvents.length > 0) {
-            const workEvent = workEvents[0];
-            const start =
-              workEvent.start instanceof Date
-                ? workEvent.start
-                : new Date(workEvent.start as string);
-            const end =
-              workEvent.end instanceof Date
-                ? workEvent.end
-                : new Date(workEvent.end as string);
-
-            const startTime = start.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            });
-            const endTime = end.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            });
-
-            cards.push({
-              id: `${selectedMonthDate.toISOString()}-work`,
-              text: `Work from ${startTime} to ${endTime}`,
-              date: `${dayName}, ${dateStr}`,
-              isEmpty: false,
-              isWork: true,
-              type: "Monthly",
-              onClick: () => {
-                setSelectedEvent(workEvent);
-                setEventDetailOpen(true);
-              },
-            });
-          }
-
-          return cards;
-        }
-
-        // If no date selected, show month overview
+        // Always show the month overview, regardless of date selection
         const monthEvents = getEventsForCurrentMonth();
         const groupedByDate = groupEventsByDate(monthEvents);
         const cards: DateCard[] = [];
@@ -646,40 +579,44 @@ export default function Calendar() {
               day: "numeric",
             });
 
-            const workEvents = dayEvents.filter(
-              (e) => e.extendedProps?.type === "work"
-            );
-            const childcareEvents = dayEvents.filter(
-              (e) => e.extendedProps?.type === "childcare"
-            );
+            // Create separate cards for each event
+            dayEvents.forEach((event, index) => {
+              // Skip "No Childcare" events in overview
+              if (event.title === "No Childcare") return;
 
-            const totalEvents = dayEvents.length;
-            const hasWork = workEvents.length > 0;
-            const hasChildcare =
-              childcareEvents.length > 0 &&
-              childcareEvents[0].title !== "No Childcare";
+              const start =
+                event.start instanceof Date
+                  ? event.start
+                  : new Date(event.start as string);
+              const end =
+                event.end instanceof Date
+                  ? event.end
+                  : new Date(event.end as string);
 
-            let summaryText = "";
-            if (hasWork && hasChildcare) {
-              summaryText = `Work + Childcare`;
-            } else if (hasWork) {
-              summaryText = `Work`;
-            } else if (hasChildcare) {
-              summaryText = `Childcare`;
-            } else {
-              summaryText = `${totalEvents} event${totalEvents > 1 ? "s" : ""}`;
-            }
+              const timeRange = `${start.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })} - ${end.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}`;
 
-            cards.push({
-              id: dateStr,
-              text: summaryText,
-              date: `${dayName}, ${dateDisplay}`,
-              isEmpty: false,
-              isWork: hasWork,
-              type: "Monthly",
-              onClick: () => {
-                setSelectedMonthDate(date);
-              },
+              cards.push({
+                id: `${dateStr}-${event.extendedProps?.type}-${index}`,
+                text: event.title || "Event",
+                date: `${dayName}, ${dateDisplay}`,
+                timeRange: timeRange,
+                isEmpty: false,
+                isWork: event.extendedProps?.type === "work",
+                type: "Monthly",
+                onClick: () => {
+                  // Keep the original onClick behavior to open details
+                  setSelectedEvent(event);
+                  setEventDetailOpen(true);
+                },
+              });
             });
           });
 
@@ -716,12 +653,24 @@ export default function Calendar() {
     const calendarApi = calendarRef.current?.getApi();
     if (!calendarApi) return;
 
+    // Extract the date components directly to avoid timezone issues
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+
+    // Create a new date using the local date constructor to ensure no timezone shift
+    const localDate = new Date(year, month, day, 0, 0, 0, 0);
+
+    const monthStr = (month + 1).toString().padStart(2, "0");
+    const dayStr = day.toString().padStart(2, "0");
+    const dateString = `${year}-${monthStr}-${dayStr}`;
+
     // Create a DateSelectArg-like object for consistency
     const selectInfo: DateSelectArg = {
-      start: date,
-      end: date,
-      startStr: date.toISOString().split("T")[0],
-      endStr: date.toISOString().split("T")[0],
+      start: localDate,
+      end: localDate,
+      startStr: dateString,
+      endStr: dateString,
       allDay: true,
       view: calendarApi.view,
       jsEvent: new MouseEvent("click"),
