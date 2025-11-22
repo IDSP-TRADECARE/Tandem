@@ -49,11 +49,11 @@ export default function BeforeScan() {
                 </svg>
             </div>
             <HalfBackground>
-                <div className='justify-center'>
-                    <h1 className='font-bold text-4xl font-alan p-8'>
+                <div className='justify-center p-8'>
+                    <h1 className='font-bold text-4xl font-alan'>
                         Before you scan your ID
                     </h1>
-                    <ul className='pt-8 p-8 pb-16 text-sm'>
+                    <ul className='pt-8 pb-16 text-sm'>
                         <li>1. Scan your driver's license or services card.</li>
                         <li>
                             2. Ensure all details are visible and easy to read.
