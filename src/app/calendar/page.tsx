@@ -942,7 +942,10 @@ export default function Calendar() {
           activeTab={activeView}
           onTabChange={(tab) => setActiveView(tab as ViewType)}
         />
-        <div className="">
+        <div
+          className="overflow-y-auto"
+          style={{ height: "calc(100vh - 280px)" }}
+        >
           <DateCardContainer cards={generateDateCards()} />
         </div>
       </HalfBackground>
