@@ -48,7 +48,20 @@ export default function BeforeScan() {
                 </svg>
             </div>
             <HalfBackground>
-                <div></div>
+                <div className='justify-center'>
+                    <h1 className='font-bold text-4xl font-alan p-6'>
+                        Before you scan your ID
+                    </h1>
+                    <ul className='pt-16 p-8'>
+                        <li>1. Scan your driver's license or services card.</li>
+                        <li>
+                            2. Ensure all details are visible and easy to read.
+                        </li>
+                    </ul>
+                    <button className='p-2 text-white flex justify-center rounded-3xl bg-primary-hover justify-self-stretch font-semibold px-4 ml-6 mr-6 mt-4'>
+                        Ready to Scan
+                    </button>
+                </div>
             </HalfBackground>
         </GradientBackgroundFull>
     );
