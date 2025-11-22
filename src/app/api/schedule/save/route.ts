@@ -5,12 +5,18 @@ import { schedules } from "../../../../db/schema";
 import { eq, desc } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
+  console.log('🔐 Save route hit');
+  
   const { userId } = await auth();
+  console.log('👤 User ID from auth():', userId);
+  
   if (!userId) {
+    console.error('❌ No userId - user not authenticated');
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const payload = await request.json();
+  console.log('📦 Payload:', payload);
 
   // Insert schedule into database
   const [created] = await db
@@ -27,32 +33,10 @@ export async function POST(request: NextRequest) {
     })
     .returning();
 
+  console.log('✅ Schedule created:', created.id);
+
   return NextResponse.json({
     success: true,
     scheduleId: created.id,
   });
-}
-
-// Get user's schedules
-export async function GET(request: NextRequest) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userSchedules = await db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.userId, userId))
-      .orderBy(desc(schedules.createdAt));
-
-    return NextResponse.json({ schedules: userSchedules });
-  } catch (error) {
-    console.error("Error fetching schedules:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch schedules" },
-      { status: 500 }
-    );
-  }
 }
