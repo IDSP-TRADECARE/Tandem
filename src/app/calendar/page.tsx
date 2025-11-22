@@ -368,6 +368,10 @@ export default function Calendar() {
 
         weekDates.forEach((date) => {
           const dayEvents = getEventsForDate(date);
+
+          // Skip if no events for this day
+          if (dayEvents.length === 0) return;
+
           const workEvents = dayEvents.filter(
             (e) => e.extendedProps?.type === "work"
           );
@@ -388,23 +392,20 @@ export default function Calendar() {
             day: "numeric",
           });
 
-          // Add childcare card
-          if (childcareEvents.length === 0) {
-            cards.push({
-              id: `${date.toISOString()}-childcare`,
-              text: "No Childcare booked!",
-              date: `${dayName}, ${dateStr}`,
-              isEmpty: true,
-              isWork: false,
-              type: "Weekly",
-              onClick: () => {
-                setSelectedDate({
-                  startStr: date.toISOString().split("T")[0],
-                } as DateSelectArg);
-                setDialogOpen(true);
-              },
-            });
-          } else {
+          // Only add cards if there are actual events (not "No Childcare")
+          const hasRealEvents =
+            workEvents.length > 0 ||
+            otherEvents.length > 0 ||
+            (childcareEvents.length > 0 &&
+              childcareEvents[0].title !== "No Childcare");
+
+          if (!hasRealEvents) return;
+
+          // Add childcare card only if it's a real booking
+          if (
+            childcareEvents.length > 0 &&
+            childcareEvents[0].title !== "No Childcare"
+          ) {
             childcareEvents.forEach((event, idx) => {
               cards.push({
                 id: `${date.toISOString()}-childcare-${idx}`,
@@ -452,6 +453,7 @@ export default function Calendar() {
               workEvent.end instanceof Date
                 ? workEvent.end
                 : new Date(workEvent.end as string);
+
             const startTime = start.toLocaleTimeString("en-US", {
               hour: "numeric",
               minute: "2-digit",
@@ -477,7 +479,7 @@ export default function Calendar() {
             });
           }
 
-          // New: Add shift/nanny events with time details
+          // Add shift events with time details
           const shiftEvents = dayEvents.filter(
             (e) => e.extendedProps?.type === "shift"
           );
@@ -485,7 +487,6 @@ export default function Calendar() {
             (e) => e.extendedProps?.type === "nanny"
           );
 
-          // Add shift events with time details
           shiftEvents.forEach((event, idx) => {
             const start =
               event.start instanceof Date
@@ -521,7 +522,6 @@ export default function Calendar() {
             });
           });
 
-          // Add nanny events with time details
           nannyEvents.forEach((event, idx) => {
             const start =
               event.start instanceof Date
@@ -562,8 +562,13 @@ export default function Calendar() {
       }
 
       case "Monthly": {
-        // Always show the month overview, regardless of date selection
         const monthEvents = getEventsForCurrentMonth();
+
+        // If no events exist for the month, return empty array
+        if (monthEvents.length === 0) {
+          return [];
+        }
+
         const groupedByDate = groupEventsByDate(monthEvents);
         const cards: DateCard[] = [];
 
@@ -612,7 +617,6 @@ export default function Calendar() {
                 isWork: event.extendedProps?.type === "work",
                 type: "Monthly",
                 onClick: () => {
-                  // Keep the original onClick behavior to open details
                   setSelectedEvent(event);
                   setEventDetailOpen(true);
                 },
@@ -946,7 +950,26 @@ export default function Calendar() {
           className="overflow-y-auto"
           style={{ height: "calc(100vh - 280px)" }}
         >
-          <DateCardContainer cards={generateDateCards()} />
+          {generateDateCards().length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4">
+              <div className="text-6xl mb-4">📅</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                No Events Yet
+              </h3>
+              <p className="text-gray-600 text-center mb-6">
+                You don&apos;t have any scheduled events. Start by adding your work
+                schedule or booking a nanny.
+              </p>
+              <button
+                onClick={() => (window.location.href = "/schedule/upload")}
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-lg hover:shadow-xl"
+              >
+                Upload Schedule
+              </button>
+            </div>
+          ) : (
+            <DateCardContainer cards={generateDateCards()} />
+          )}
         </div>
       </HalfBackground>
 
