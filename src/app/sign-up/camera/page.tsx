@@ -4,6 +4,7 @@ import { HalfBackground } from "@/app/components/ui/backgrounds/HalfBackground";
 import Image from "next/image";
 import Link from "next/link";
 import BackButton from "@/app/components/forms/backButton";
+import styles from "@/app/sign-up/camera/page.module.css";
 
 export default function CameraPage() {
     return (
