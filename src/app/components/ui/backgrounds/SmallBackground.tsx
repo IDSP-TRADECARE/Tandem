@@ -8,7 +8,7 @@ export type HalfBackgroundProps = {
 
 export function SmallBackground({ 
   children, 
-  startFrom = '70vh', 
+  startFrom = '75vh', 
   borderRadius = '35px' 
 }: HalfBackgroundProps) {
   return (
