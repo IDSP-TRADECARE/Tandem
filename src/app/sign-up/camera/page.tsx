@@ -7,7 +7,7 @@ export default function CameraPage() {
     return (
         <GradientBackgroundFull>
             {/* Header */}
-            <div className='flex justify-between pt-13 pl-4 pr-4'>
+            <div className='flex justify-between pt-20 pl-4 pr-4'>
                 {/* Left Arrow */}
                 <svg
                     xmlns='http://www.w3.org/2000/svg'
