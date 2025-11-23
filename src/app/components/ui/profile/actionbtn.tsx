@@ -3,13 +3,15 @@
 interface ActionButtonProps {
   text: string;
   onClick?: () => void;
+  className?: string;
+  icon?: string;
 }
 
-export function ActionButton({ text, onClick }: ActionButtonProps) {
+export function ActionButton({ text, onClick, className, icon }: ActionButtonProps) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-center transition-opacity hover:opacity-80 cursor-pointer"
+      className={`flex items-center justify-center ${icon ? 'gap-2' : ''} transition-opacity hover:opacity-80 cursor-pointer ${className || ''}`}
       style={{
         width: '368px',
         height: '50px',
@@ -17,11 +19,11 @@ export function ActionButton({ text, onClick }: ActionButtonProps) {
         backgroundColor: '#92F189',
         fontFamily: 'Alan Sans', 
         fontSize: '20px',
-        fontWeight: 'medium',
         color: '#000000',
         border: 'none',
       }}>
       {text}
+      {icon && <img src={icon} alt="icon" width={20} height={20} />}
     </button>
   );
 }
