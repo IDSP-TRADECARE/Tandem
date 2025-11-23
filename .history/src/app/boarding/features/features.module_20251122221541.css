@@ -1,0 +1,43 @@
+.title {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+.description {
+    font-size: 1.125rem;
+    color: #ffffff;
+    margin-bottom: 2rem;
+}
+
+.contentButtons {
+    background: linear-gradient(135deg, #3373cc 0%, #6db6ae 46%, #9dee95 100%);
+    margin-top: 5rem;
+}
+
+.container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+.imageContainer {
+    height: 24rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 1.5rem 0;
+}
+.navigation {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+.navigation button {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #333;
+}

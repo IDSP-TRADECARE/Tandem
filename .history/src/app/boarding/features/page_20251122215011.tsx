@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { GradientBackgroundFull } from "@/app/components/ui/backgrounds/GradientBackgroundFull";
+import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import styles from "./features.module.css";
+import { HalfBackground } from "@/app/components/ui/backgrounds/HalfBackground";
 
 const features = [
     {
@@ -39,10 +42,6 @@ export default function FeaturesPage() {
         }
     };
 
-    const handleSkip = () => {
-        router.push("./sign-up");
-    };
-
     const handlePrevious = () => {
         if (currentIndex > 0) {
             setCurrentIndex(currentIndex - 1);
@@ -50,53 +49,37 @@ export default function FeaturesPage() {
     };
 
     const currentFeature = features[currentIndex];
-    const showPrevious = currentIndex > 0;
 
     return (
         <div className={styles.container}>
-            <button className={styles.skipButton} onClick={handleSkip}>
-                Skip
-            </button>
-            
-            <div className={styles.imageSection}>
-                <div className={styles.imageContainer}>
-                    <img
-                        src={currentFeature.imgSrc}
-                        alt={`Feature ${currentFeature.id}`}
-                    />
-                </div>
-                <div className={styles.progressDots}>
-                    {features.map((_, index) => (
-                        <div
-                            key={index}
-                            className={`${styles.dot} ${
-                                index === currentIndex ? styles.active : ""
-                            }`}
-                        />
-                    ))}
-                </div>
+            <div className={styles.imageContainer}>
+                <img
+                    src={currentFeature.imgSrc}
+                    alt={`Feature ${currentFeature.id}`}
+                />
             </div>
+            <div className='content-buttons'>
+                <HalfBackground>
+                    <div className={styles.content}>
+                        <h1 className={styles.title}>{currentFeature.title}</h1>
 
-            <div className={styles.contentButtons}>
-                <div className={styles.content}>
-                    <h1 className={styles.title}>{currentFeature.title}</h1>
-                    <p className={styles.description}>
-                        {currentFeature.description}
-                    </p>
-                </div>
-                <div className={styles.navigationButtons}>
-                    {showPrevious && (
+                        <p className={styles.description}>
+                            {currentFeature.description}
+                        </p>
+                    </div>
+                    <div className={styles.navigation}>
                         <button
-                            className={styles.previousButton}
                             onClick={handlePrevious}
+                            disabled={currentIndex === 0}
                         >
-                            Previous
+                            <IoIosArrowBack size={32} />
                         </button>
-                    )}
-                    <button className={styles.nextButton} onClick={handleNext}>
-                        Next
-                    </button>
-                </div>
+
+                        <button onClick={handleNext}>
+                            <IoIosArrowForward size={32} />
+                        </button>
+                    </div>
+                </HalfBackground>
             </div>
         </div>
     );

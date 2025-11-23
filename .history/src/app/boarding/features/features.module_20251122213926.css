@@ -1,0 +1,30 @@
+.title {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+.description {
+    font-size: 1.125rem;
+    color: #555;
+    margin-bottom: 2rem;
+}
+.container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+.imageContainer {
+    height: 24rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 1.5rem 0;
+}
+.navigation {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
