@@ -49,7 +49,7 @@ export const LabeledInput: React.FC<LabeledInputProps> = ({
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     disabled={disabled}
-                    className={`font-omnes
+                    className={`font-omnes 
                 ${leftIcon ? "pl-12" : "pl-4"}
                 ${rightIcon ? "pr-12" : "pr-4"}
                 ${error ? "border-red-500" : ""}

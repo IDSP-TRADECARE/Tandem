@@ -8,8 +8,8 @@ import BackButton from "@/app/components/forms/backButton";
 
 export default function Form() {
     const [firstName, setFirstName] = useState("");
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
+    const [lastName, setLastName] = useState("");
+    const [phone, setPhone] = useState("");
 
     return (
         <GradientBackgroundFull>
@@ -48,45 +48,71 @@ export default function Form() {
                         edit as needed.
                     </h1>
                     {/* Form Inputs */}
-                    <div>
+                    <div className='flex flex-col gap-8'>
                         <LabeledInput
-                            label='Password'
-                            placeholder='Password'
-                            value={password}
-                            onChange={setPassword}
-                            type={showPassword ? "text" : "password"}
-                            rightIcon={
-                                <svg
-                                    width='20'
-                                    height='20'
-                                    viewBox='0 0 24 24'
-                                    fill='none'
-                                    stroke='currentColor'
-                                    strokeWidth='2'>
-                                    {showPassword ? (
-                                        // Eye open
-                                        <>
-                                            <path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z' />
-                                            <circle
-                                                cx='12'
-                                                cy='12'
-                                                r='3'
-                                            />
-                                        </>
-                                    ) : (
-                                        // Eye closed
-                                        <>
-                                            <path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a21.94 21.94 0 0 1 5.94-5.94' />
-                                            <path d='M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a21.94 21.94 0 0 1-2.06 3.76' />
-                                            <path d='m1 1 22 22' />
-                                        </>
-                                    )}
-                                </svg>
-                            }
-                            onRightIconClick={() =>
-                                setShowPassword(!showPassword)
-                            }
+                            label='First Name'
+                            placeholder='First Name'
+                            value={firstName}
+                            onChange={setFirstName}
                         />
+                        <LabeledInput
+                            label='Last Name'
+                            placeholder='Last Name'
+                            value={lastName}
+                            onChange={setLastName}
+                        />
+                        <LabeledInput
+                            label='Phone Number'
+                            placeholder='+1 604-123-1234'
+                            value={phone}
+                            type='tel'
+                            onChange={setPhone}
+                        />
+                        {/* Buttons */}
+                        <div className='flex flex-row justify-between'>
+                            <div className='border-2 rounded-2xl p-2 pr-6 pl-6 border-primary-active'>
+                                <button className='flex items-center font-alan text-xl font-700 text-primary-active '>
+                                    <div className='pr-2'>
+                                        <svg
+                                            xmlns='http://www.w3.org/2000/svg'
+                                            width='10'
+                                            height='18'
+                                            viewBox='0 0 10 18'
+                                            fill='none'>
+                                            <path
+                                                d='M8.54166 15.8335L1.25 8.54183L8.54167 1.25016'
+                                                stroke='#255495'
+                                                strokeWidth='2.5'
+                                                strokeLinecap='round'
+                                                strokeLinejoin='round'
+                                            />
+                                        </svg>
+                                    </div>
+                                    Back
+                                </button>
+                            </div>
+                            <div className='bg-primary-active rounded-2xl p-2 pr-6 pl-6'>
+                                <button className='flex items-center font-alan text-xl font-700 text-white'>
+                                    Next
+                                    <div className='pl-2'>
+                                        <svg
+                                            xmlns='http://www.w3.org/2000/svg'
+                                            width='10'
+                                            height='18'
+                                            viewBox='0 0 10 18'
+                                            fill='none'>
+                                            <path
+                                                d='M1.25 1.25L8.54167 8.54167L1.25 15.8333'
+                                                stroke='white'
+                                                strokeWidth='2.5'
+                                                strokeLinecap='round'
+                                                strokeLinejoin='round'
+                                            />
+                                        </svg>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </HalfBackground>
