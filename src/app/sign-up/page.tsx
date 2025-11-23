@@ -1,7 +1,13 @@
+"use client";
 import Image from "next/image";
 import { GradientBackgroundFull } from "@/app/components/ui/backgrounds/GradientBackgroundFull";
 import { HalfBackground } from "@/app/components/ui/backgrounds/HalfBackground";
+import { LabeledInput } from "@/app/components/forms/textinput";
+import React, { useState } from "react";
 export default function SignInPage() {
+    const [firstName, setFirstName] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     return (
         <GradientBackgroundFull>
             <div className="flex min-h-screen flex-col items-center justify-start pt-15 px-4">
@@ -15,20 +21,113 @@ export default function SignInPage() {
                 </h1>
             </div>
             <HalfBackground>
-                <div>
-                    <h1 className="font-bold text-3xl font-alan p-8">Log In</h1>
-                    <div className="flex min-h-[50vh] items-center justify-center px-4">
-                        <div className="flex flex-col gap-4 w-full max-w-sm">
+                <div className="px-6 pt-8 pb-12">
+                    <h1 className="font-bold text-3xl font-alan mb-8">
+                        Sign Up
+                    </h1>
+
+                    <div className="flex justify-center">
+                        <div className="w-full max-w-sm space-y-8">
+                            <LabeledInput
+                                label="Email"
+                                placeholder="Enter your email"
+                                value={firstName}
+                                onChange={setFirstName}
+                                type="text"
+                            />
+                            <div>
+                                <LabeledInput
+                                    label="Password"
+                                    placeholder="Password"
+                                    value={password}
+                                    onChange={setPassword}
+                                    type={showPassword ? "text" : "password"}
+                                    rightIcon={
+                                        <svg
+                                            width="20"
+                                            height="20"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2">
+                                            {showPassword ? (
+                                                // Eye open
+                                                <>
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                    <circle
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="3"
+                                                    />
+                                                </>
+                                            ) : (
+                                                // Eye closed
+                                                <>
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a21.94 21.94 0 0 1 5.94-5.94" />
+                                                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a21.94 21.94 0 0 1-2.06 3.76" />
+                                                    <path d="m1 1 22 22" />
+                                                </>
+                                            )}
+                                        </svg>
+                                    }
+                                    onRightIconClick={() =>
+                                        setShowPassword(!showPassword)
+                                    }
+                                />
+                                
+                            </div>
+                            <div>
+                                <LabeledInput
+                                    label="Re-enter Password"
+                                    placeholder="Password"
+                                    value={password}
+                                    onChange={setPassword}
+                                    type={showPassword ? "text" : "password"}
+                                    rightIcon={
+                                        <svg
+                                            width="20"
+                                            height="20"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2">
+                                            {showPassword ? (
+                                                // Eye open
+                                                <>
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                    <circle
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="3"
+                                                    />
+                                                </>
+                                            ) : (
+                                                // Eye closed
+                                                <>
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a21.94 21.94 0 0 1 5.94-5.94" />
+                                                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a21.94 21.94 0 0 1-2.06 3.76" />
+                                                    <path d="m1 1 22 22" />
+                                                </>
+                                            )}
+                                        </svg>
+                                    }
+                                    onRightIconClick={() =>
+                                        setShowPassword(!showPassword)
+                                    }
+                                />
+                                
+                            </div>
+
                             <button
                                 type="submit"
-                                className="w-full py-4 px-8 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg shadow-lg">
+                                className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors text-lg shadow-lg">
                                 Login
                             </button>
 
                             <button
                                 type="button"
-                                className="w-full py-4 px-8 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 active:bg-blue-100 transition-colors text-lg">
-                                New user? Sign up now
+                                className="w-full py-4 border-2 border-gray-500 text-gray-700 font-bold rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors text-lg">
+                                Already a user? Login
                             </button>
                         </div>
                     </div>
