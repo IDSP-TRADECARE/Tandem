@@ -28,6 +28,7 @@ import {
   createMonthHandlers as createMonthNavigationHandlers,
 } from "../components/calendar/viewHelpers";
 import { DateCardContainer } from "../components/ui/calendar/DateCard";
+import Image from "next/image";
 
 // Update the DateCard interface to include timeRange
 interface DateCard {
@@ -947,18 +948,29 @@ export default function Calendar() {
           onTabChange={(tab) => setActiveView(tab as ViewType)}
         />
         <div
-          className="overflow-y-auto"
-          style={{ height: "calc(100vh - 280px)" }}
+          className="overflow-y-auto overflow-x-hidden overscroll-contain"
+          style={{
+            height: "calc(100vh - 280px)",
+            WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
+          }}
         >
           {generateDateCards().length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4">
-              <div className="text-6xl mb-4">📅</div>
+              <div className="mb-4">
+                <Image
+                  src="/schedule/noTasks.svg"
+                  alt="No tasks"
+                  width={200}
+                  height={200}
+                  priority
+                />
+              </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 No Events Yet
               </h3>
               <p className="text-gray-600 text-center mb-6">
-                You don&apos;t have any scheduled events. Start by adding your work
-                schedule or booking a nanny.
+                You don&apos;t have any scheduled events. Start by adding your
+                work schedule or booking a nanny.
               </p>
               <button
                 onClick={() => (window.location.href = "/schedule/upload")}
