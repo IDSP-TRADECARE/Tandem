@@ -26,18 +26,35 @@ export async function POST(request: NextRequest) {
     const transcript = transcription.text;
     console.log('📝 Transcript:', transcript);
 
-    // Parse the transcript using Groq LLM
+    // Initialize Watsonx AI (same as PDF route)
+    let watsonxAI;
+    try {
+      const { WatsonXAI } = require('@ibm-cloud/watsonx-ai');
+      const { IamAuthenticator } = require('ibm-cloud-sdk-core');
+      
+      const authenticator = new IamAuthenticator({
+        apikey: process.env.WATSONX_API_KEY!,
+      });
+      
+      watsonxAI = WatsonXAI.newInstance({
+        version: '2024-05-31',
+        authenticator: authenticator,
+        serviceUrl: process.env.WATSONX_URL || 'https://us-south.ml.cloud.ibm.com',
+      });
+      
+      console.log('✅ Watsonx AI initialized');
+    } catch (sdkError) {
+      console.error('❌ Failed to initialize Watsonx AI:', sdkError);
+      return NextResponse.json({ 
+        error: 'Failed to initialize Watsonx AI',
+        details: sdkError instanceof Error ? sdkError.message : 'Unknown error'
+      }, { status: 500 });
+    }
+
+    // Parse using Watsonx AI (same model as PDF route)
     console.log('🤖 Parsing schedule from transcript...');
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that extracts work schedule information from voice transcripts. Always respond with valid JSON only.'
-        },
-        {
-          role: 'user',
-          content: `Extract the work schedule information from this transcript and return it in the following JSON format:
+    
+    const prompt = `Extract the work schedule information from this transcript and return it in the following JSON format:
 
 {
   "title": "Work Schedule",
@@ -67,19 +84,39 @@ CRITICAL RULES:
 
 Return ONLY the JSON object with all required fields filled, no other text.
 
-Transcript: "${transcript}"`,
-        },
-      ],
-      temperature: 0.1,
-      max_tokens: 512,
-    });
+Transcript: "${transcript}"`;
 
-    const responseText = completion.choices[0]?.message?.content || '';
-    console.log('🤖 Groq response:', responseText);
+    let responseText;
+    try {
+      const response = await watsonxAI.generateText({
+        input: prompt,
+        modelId: 'meta-llama/llama-3-3-70b-instruct', // Same as PDF route
+        projectId: process.env.WATSONX_PROJECT_ID!,
+        parameters: {
+          max_new_tokens: 512,
+          temperature: 0.1,
+          decoding_method: 'greedy',
+        },
+      });
+
+      console.log('🤖 Watsonx AI response:', JSON.stringify(response.result, null, 2));
+      
+      responseText = response.result?.results?.[0]?.generated_text || '';
+      responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
+      console.log('🤖 Response text (cleaned):', responseText);
+    } catch (aiError) {
+      console.error('❌ Watsonx AI API call failed:', aiError);
+      return NextResponse.json({ 
+        error: 'Failed to process with Watsonx AI',
+        details: aiError instanceof Error ? aiError.message : 'Unknown error'
+      }, { status: 500 });
+    }
 
     // Extract JSON from response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('Could not find JSON in response:', responseText);
       throw new Error('Could not extract schedule data from transcript');
     }
 
