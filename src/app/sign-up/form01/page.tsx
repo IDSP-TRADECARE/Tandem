@@ -5,11 +5,18 @@ import { LabeledInput } from "@/app/components/forms/textInput";
 import React, { useState } from "react";
 import Image from "next/image";
 import BackButton from "@/app/components/forms/backButton";
+import { useRouter } from "next/navigation";
 
 export default function Form() {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [phone, setPhone] = useState("");
+
+    const router = useRouter();
+
+    const goBack = () => {
+        router.back();
+    };
 
     return (
         <GradientBackgroundFull>
@@ -47,8 +54,8 @@ export default function Form() {
                         We've filled in details from your ID. Please review and
                         edit as needed.
                     </h1>
-                    {/* Form Inputs */}
                     <div className='flex flex-col gap-8'>
+                        {/* Form Inputs */}
                         <LabeledInput
                             label='First Name'
                             placeholder='First Name'
@@ -70,8 +77,10 @@ export default function Form() {
                         />
                         {/* Buttons */}
                         <div className='flex flex-row justify-between'>
-                            <div className='border-2 rounded-2xl p-2 pr-6 pl-6 border-primary-active'>
-                                <button className='flex items-center font-alan text-xl font-700 text-primary-active '>
+                            <div
+                                className='border-2 rounded-2xl p-2 pr-6 pl-6 border-primary-active  cursor-pointer'
+                                onClick={goBack}>
+                                <button className='flex items-center font-alan text-xl font-700 text-primary-active cursor-pointer'>
                                     <div className='pr-2'>
                                         <svg
                                             xmlns='http://www.w3.org/2000/svg'
@@ -91,8 +100,8 @@ export default function Form() {
                                     Back
                                 </button>
                             </div>
-                            <div className='bg-primary-active rounded-2xl p-2 pr-6 pl-6'>
-                                <button className='flex items-center font-alan text-xl font-700 text-white'>
+                            <div className='bg-primary-active rounded-2xl p-2 pr-6 pl-6  cursor-pointer'>
+                                <button className='flex items-center font-alan text-xl font-700 text-white cursor-pointer'>
                                     Next
                                     <div className='pl-2'>
                                         <svg
