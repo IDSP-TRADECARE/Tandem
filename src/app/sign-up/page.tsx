@@ -1,11 +1,7 @@
-"use client";
 import Image from "next/image";
 import { GradientBackgroundFull } from "@/app/components/ui/backgrounds/GradientBackgroundFull";
 import { HalfBackground } from "@/app/components/ui/backgrounds/HalfBackground";
-import { LabeledInput } from "@/app/components/forms/textinput";
-import React, { useState } from "react";
 export default function SignInPage() {
-    const [firstName, setFirstName] = useState("");
     return (
         <GradientBackgroundFull>
             <div className="flex min-h-screen flex-col items-center justify-start pt-15 px-4">
@@ -23,26 +19,6 @@ export default function SignInPage() {
                     <h1 className="font-bold text-3xl font-alan p-8">Log In</h1>
                     <div className="flex min-h-[50vh] items-center justify-center px-4">
                         <div className="flex flex-col gap-4 w-full max-w-sm">
-                            <div className=" p-4">
-                                <div className=" p-4">
-                                    <LabeledInput
-                                        label="Email"
-                                        placeholder="Enter your email"
-                                        value={firstName}
-                                        onChange={setFirstName}
-                                        type="text"
-                                    />
-                                </div>
-                                <div className=" p-4">
-                                    <LabeledInput
-                                        label="Password"
-                                        placeholder="Enter your password"
-                                        value={firstName}
-                                        onChange={setFirstName}
-                                        type="text"
-                                    />
-                                </div>
-                            </div>
                             <button
                                 type="submit"
                                 className="w-full py-4 px-8 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg shadow-lg">
@@ -51,7 +27,7 @@ export default function SignInPage() {
 
                             <button
                                 type="button"
-                                className="w-full py-4 px-8 border-2 border-gray-500 text-gray-700 font-bold rounded-xl hover:bg-blue-50 active:bg-blue-100 transition-colors text-lg">
+                                className="w-full py-4 px-8 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 active:bg-blue-100 transition-colors text-lg">
                                 New user? Sign up now
                             </button>
                         </div>
