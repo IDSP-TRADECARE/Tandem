@@ -21,8 +21,12 @@ export const LabeledInput: React.FC<LabeledInputProps> = ({
     ...rest
 }) => {
     return (
-        <div className=''>
-            {label && <label>{label}</label>}
+        <div className='flex flex-col'>
+            {label && (
+                <label className='font-alan text-xl font-500 pb-2'>
+                    {label}
+                </label>
+            )}
 
             <input
                 type={type}
@@ -30,7 +34,11 @@ export const LabeledInput: React.FC<LabeledInputProps> = ({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 disabled={disabled}
-                className={className}
+                className='font-omnes border-b-2 pb-1 pt-1 
+                
+                /*active*/
+                focus:outline-1
+                '
             />
         </div>
     );

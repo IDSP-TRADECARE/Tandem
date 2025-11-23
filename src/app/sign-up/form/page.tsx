@@ -5,18 +5,20 @@ import { LabeledInput } from "@/app/components/forms/textInput";
 import React, { useState } from "react";
 
 export default function Form() {
-    const [email, setEmail] = useState("");
+    const [firstName, setFirstName] = useState("");
 
     return (
         <GradientBackgroundFull>
             <HalfBackground>
-                <LabeledInput
-                    label='Email Address'
-                    placeholder='you@example.com'
-                    value={email}
-                    onChange={setEmail}
-                    type='email'
-                />
+                <div className=' p-4'>
+                    <LabeledInput
+                        label='First Name'
+                        placeholder='John'
+                        value={firstName}
+                        onChange={setFirstName}
+                        type='text'
+                    />
+                </div>
             </HalfBackground>
         </GradientBackgroundFull>
     );
