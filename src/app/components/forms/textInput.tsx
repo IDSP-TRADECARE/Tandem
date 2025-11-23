@@ -54,7 +54,7 @@ export const LabeledInput: React.FC<LabeledInputProps> = ({
                 ${rightIcon ? "pr-12" : "pr-4"}
                 ${error ? "border-red-500" : ""}
                 /*active*/
-                focus:outline-1`}
+                focus:outline-none`}
                 />
                 {/* Right Icon (clickable if handler provided) */}
                 {rightIcon && (

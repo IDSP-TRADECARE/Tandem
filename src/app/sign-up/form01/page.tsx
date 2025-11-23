@@ -8,6 +8,8 @@ import BackButton from "@/app/components/forms/backButton";
 
 export default function Form() {
     const [firstName, setFirstName] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     return (
         <GradientBackgroundFull>
@@ -48,42 +50,41 @@ export default function Form() {
                     {/* Form Inputs */}
                     <div>
                         <LabeledInput
-                            label='First Name'
-                            placeholder='John'
-                            value={firstName}
-                            onChange={setFirstName}
-                            type='text'
+                            label='Password'
+                            placeholder='Password'
+                            value={password}
+                            onChange={setPassword}
+                            type={showPassword ? "text" : "password"}
                             rightIcon={
                                 <svg
-                                    xmlns='http://www.w3.org/2000/svg'
-                                    width='24'
-                                    height='24'
+                                    width='20'
+                                    height='20'
                                     viewBox='0 0 24 24'
-                                    fill='none'>
-                                    <path
-                                        d='M15.3333 15.3333L22 22M9.77778 17.5556C8.75639 17.5556 7.74499 17.3544 6.80135 16.9635C5.85771 16.5726 5.00029 15.9997 4.27806 15.2775C3.55582 14.5553 2.98292 13.6978 2.59205 12.7542C2.20118 11.8106 2 10.7992 2 9.77778C2 8.75639 2.20118 7.74499 2.59205 6.80135C2.98292 5.85771 3.55582 5.00029 4.27806 4.27806C5.00029 3.55582 5.85771 2.98292 6.80135 2.59205C7.74499 2.20118 8.75639 2 9.77778 2C11.8406 2 13.8189 2.81944 15.2775 4.27806C16.7361 5.73667 17.5556 7.71498 17.5556 9.77778C17.5556 11.8406 16.7361 13.8189 15.2775 15.2775C13.8189 16.7361 11.8406 17.5556 9.77778 17.5556Z'
-                                        stroke='black'
-                                        strokeWidth='2'
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                    />
+                                    fill='none'
+                                    stroke='currentColor'
+                                    strokeWidth='2'>
+                                    {showPassword ? (
+                                        // Eye open
+                                        <>
+                                            <path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z' />
+                                            <circle
+                                                cx='12'
+                                                cy='12'
+                                                r='3'
+                                            />
+                                        </>
+                                    ) : (
+                                        // Eye closed
+                                        <>
+                                            <path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a21.94 21.94 0 0 1 5.94-5.94' />
+                                            <path d='M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a21.94 21.94 0 0 1-2.06 3.76' />
+                                            <path d='m1 1 22 22' />
+                                        </>
+                                    )}
                                 </svg>
                             }
-                            leftIcon={
-                                <svg
-                                    xmlns='http://www.w3.org/2000/svg'
-                                    width='24'
-                                    height='24'
-                                    viewBox='0 0 24 24'
-                                    fill='none'>
-                                    <path
-                                        d='M15.3333 15.3333L22 22M9.77778 17.5556C8.75639 17.5556 7.74499 17.3544 6.80135 16.9635C5.85771 16.5726 5.00029 15.9997 4.27806 15.2775C3.55582 14.5553 2.98292 13.6978 2.59205 12.7542C2.20118 11.8106 2 10.7992 2 9.77778C2 8.75639 2.20118 7.74499 2.59205 6.80135C2.98292 5.85771 3.55582 5.00029 4.27806 4.27806C5.00029 3.55582 5.85771 2.98292 6.80135 2.59205C7.74499 2.20118 8.75639 2 9.77778 2C11.8406 2 13.8189 2.81944 15.2775 4.27806C16.7361 5.73667 17.5556 7.71498 17.5556 9.77778C17.5556 11.8406 16.7361 13.8189 15.2775 15.2775C13.8189 16.7361 11.8406 17.5556 9.77778 17.5556Z'
-                                        stroke='black'
-                                        strokeWidth='2'
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                    />
-                                </svg>
+                            onRightIconClick={() =>
+                                setShowPassword(!showPassword)
                             }
                         />
                     </div>
