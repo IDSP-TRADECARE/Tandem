@@ -658,22 +658,16 @@ export default function Calendar() {
     const calendarApi = calendarRef.current?.getApi();
     if (!calendarApi) return;
 
-    // Extract the date components directly to avoid timezone issues
+    // Use the date directly without timezone conversion
     const year = date.getFullYear();
-    const month = date.getMonth();
-    const day = date.getDate();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateString = `${year}-${month}-${day}`;
 
-    // Create a new date using the local date constructor to ensure no timezone shift
-    const localDate = new Date(year, month, day, 0, 0, 0, 0);
-
-    const monthStr = (month + 1).toString().padStart(2, "0");
-    const dayStr = day.toString().padStart(2, "0");
-    const dateString = `${year}-${monthStr}-${dayStr}`;
-
-    // Create a DateSelectArg-like object for consistency
+    // Create a DateSelectArg-like object with local date
     const selectInfo: DateSelectArg = {
-      start: localDate,
-      end: localDate,
+      start: date,
+      end: date,
       startStr: dateString,
       endStr: dateString,
       allDay: true,
@@ -704,9 +698,18 @@ export default function Calendar() {
     const calendarApi = calendarRef.current?.getApi();
     if (!calendarApi) return;
 
+    // Parse the date string correctly to avoid timezone issues
     const dateString = selectedDate.startStr;
-    const startDateTime = new Date(`${dateString}T${newEventStartTime}`);
-    const endDateTime = new Date(`${dateString}T${newEventEndTime}`);
+    const [year, month, day] = dateString.split("-").map(Number);
+
+    // Create dates using local timezone
+    const startDateTime = new Date(year, month - 1, day);
+    const [startHour, startMinute] = newEventStartTime.split(":").map(Number);
+    startDateTime.setHours(startHour, startMinute, 0, 0);
+
+    const endDateTime = new Date(year, month - 1, day);
+    const [endHour, endMinute] = newEventEndTime.split(":").map(Number);
+    endDateTime.setHours(endHour, endMinute, 0, 0);
 
     const eventType = activeTab === "shift" ? "shift" : "nanny";
     const eventColor = getEventColor(eventType);
@@ -999,12 +1002,19 @@ export default function Calendar() {
               <div className="bg-gray-50 p-3 rounded-lg">
                 <p className="text-sm text-gray-600">Date</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  {formatDate(new Date(selectedDate.startStr), {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {(() => {
+                    // Parse date string to avoid timezone issues
+                    const [year, month, day] = selectedDate.startStr
+                      .split("-")
+                      .map(Number);
+                    const localDate = new Date(year, month - 1, day);
+                    return formatDate(localDate, {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    });
+                  })()}
                 </p>
               </div>
 
