@@ -126,7 +126,7 @@
     color: #fff;
     border: 1px solid #fff;
     border-radius: 0.75rem;
-    font-size: 1.2rem;
+    font-size: 1.125rem;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -152,6 +152,10 @@
     pointer-events: none;
 }
 
+.previousButton:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
 .previousButton:active {
     opacity: 0.8;
 }
@@ -161,8 +165,8 @@
     background: #fff;
     color: var(--color-primary);
     border: none;
-    border-radius: 0.75rem;
-    font-size: 1.2rem;
+    border-radius: 0.5rem;
+    font-size: 1.125rem;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);

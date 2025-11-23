@@ -7,17 +7,16 @@
 
 .skipButton {
     position: absolute;
-    top: 1.75rem;
+    top: 1rem;
     right: 1rem;
     background: none;
     border: none;
     color: var(--color-primary);
-    font-size: 1.2rem;
+    font-size: 1rem;
     cursor: pointer;
     z-index: 10;
     padding: 0.5rem 1rem;
     text-decoration: underline;
-    opacity: 0.75;
 }
 
 .imageSection {
@@ -27,9 +26,8 @@
     align-items: center;
     justify-content: center;
     background: #fff;
-    padding: 0.5rem 0;
+    padding: 1rem 0;
     position: relative;
-    overflow: hidden;
 }
 
 .imageContainer {
@@ -38,16 +36,12 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 0 1rem;
 }
 
 .imageContainer img {
-    width: 100%;
-    max-width: 500px;
-    min-width: 350px;
+    max-width: 100%;
     height: auto;
     object-fit: contain;
-    transform: scale(1.2);
 }
 
 .progressDots {
@@ -58,27 +52,26 @@
 }
 
 .dot {
-    width: 1.5rem;
+    width: 2rem;
     height: 0.375rem;
     border-radius: 0.25rem;
-    background-color: var(--color-primary-lighter);
-    transition: all 0.5s;
+    background: transparent;
+    border: 1px solid var(--color-neutral-100);
+    transition: all 0.3s;
 }
 
 .dot.active {
     background: var(--color-primary);
-    width: 3rem;
+    border: 1px solid var(--color-primary);
 }
 
 .contentButtons {
     background: var(--gradient-primary);
-    border-top-left-radius: 2.5rem;
-    border-top-right-radius: 2.5rem;
-    padding: 3rem 1rem;
-    height: 50vh;
+    padding: 2rem;
     width: 100%;
     display: flex;
     flex-direction: column;
+    gap: 2rem;
 }
 
 .content {
@@ -89,67 +82,39 @@
 }
 
 .title {
-    font-size: 2.25rem;
-    font-family: var(--font-family-alan);
-    font-weight: 900;
-    line-height: 2.5rem;
-    letter-spacing: 0.1rem;
+    font-size: 2rem;
+    font-weight: bold;
     color: #fff;
-    margin-bottom: 2.75rem;
+    margin-bottom: 1rem;
 }
 
 .description {
-    font-size: 1.25rem;
-    font-family: var(--font-family-omnes);
+    font-size: 1.125rem;
     color: #fff;
     margin-bottom: 0;
 }
 
 .navigationButtons {
     display: flex;
-    width: 100%;
-    margin-top: auto;
-    position: relative;
-    transition: gap 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.navigationButtons.singleButton {
-    gap: 0;
-}
-
-.navigationButtons.withPrevious {
     gap: 1rem;
+    width: 100%;
 }
 
 .previousButton {
-    padding: 0.5rem;
+    flex: 1;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.2);
     color: #fff;
     border: 1px solid #fff;
-    border-radius: 0.75rem;
-    font-size: 1.2rem;
+    border-radius: 0.5rem;
+    font-size: 1.125rem;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-    white-space: nowrap;
+    transition: all 0.3s;
 }
 
-.previousButton.visible {
-    opacity: 1;
-    max-width: 1000px;
-    flex: 1;
-    margin-right: 0;
-}
-
-.previousButton.hidden {
-    opacity: 0;
-    max-width: 0;
-    flex: 0;
-    padding-left: 0;
-    padding-right: 0;
-    margin: 0;
-    border: none;
-    pointer-events: none;
+.previousButton:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .previousButton:active {
@@ -157,26 +122,16 @@
 }
 
 .nextButton {
-    padding: 0.5rem;
+    flex: 1;
+    padding: 0.75rem;
     background: #fff;
     color: var(--color-primary);
     border: none;
-    border-radius: 0.75rem;
-    font-size: 1.2rem;
+    border-radius: 0.5rem;
+    font-size: 1.125rem;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-}
-
-.nextButton.fullWidth {
-    flex: 1 1 100%;
-    width: 100%;
-}
-
-.nextButton.halfWidth {
-    flex: 1;
-    width: auto;
+    transition: opacity 0.3s;
 }
 
 .nextButton:hover {

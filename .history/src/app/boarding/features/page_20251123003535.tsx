@@ -87,23 +87,17 @@ export default function FeaturesPage() {
                         {currentFeature.description}
                     </p>
                 </div>
-                <div
-                    className={`${styles.navigationButtons} ${
-                        showPrevious ? styles.withPrevious : styles.singleButton
-                    }`}
-                >
+                <div className={styles.navigationButtons}>
+                    {showPrevious && (
+                        <button
+                            className={styles.previousButton}
+                            onClick={handlePrevious}
+                        >
+                            Previous
+                        </button>
+                    )}
                     <button
-                        className={`${styles.previousButton} ${
-                            showPrevious ? styles.visible : styles.hidden
-                        }`}
-                        onClick={handlePrevious}
-                    >
-                        Previous
-                    </button>
-                    <button
-                        className={`${styles.nextButton} ${
-                            showPrevious ? styles.halfWidth : styles.fullWidth
-                        }`}
+                        className={styles.nextButton}
                         onClick={handleNext}
                     >
                         Next

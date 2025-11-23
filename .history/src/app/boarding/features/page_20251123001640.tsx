@@ -6,7 +6,7 @@ import styles from "./features.module.css";
 const features = [
     {
         id: 1,
-        title: "AI - Powered Schedule Creation",
+        title: "AI-Powered Schedule Creation",
         description:
             "Let Tandem's smart AI scan your calendar and design the perfect childcare schedule for you.",
         imgSrc: "/boarding/Graphic-ai-powered-feature1.png",
@@ -80,30 +80,24 @@ export default function FeaturesPage() {
                 </div>
             </div>
 
-            <div className={styles.contentButtons}>
+            <div className={styles.contenSection}>
                 <div className={styles.content}>
                     <h1 className={styles.title}>{currentFeature.title}</h1>
                     <p className={styles.description}>
                         {currentFeature.description}
                     </p>
                 </div>
-                <div
-                    className={`${styles.navigationButtons} ${
-                        showPrevious ? styles.withPrevious : styles.singleButton
-                    }`}
-                >
+                <div className={styles.navigationButtons}>
+                    {showPrevious && (
+                        <button
+                            className={styles.previousButton}
+                            onClick={handlePrevious}
+                        >
+                            Previous
+                        </button>
+                    )}
                     <button
-                        className={`${styles.previousButton} ${
-                            showPrevious ? styles.visible : styles.hidden
-                        }`}
-                        onClick={handlePrevious}
-                    >
-                        Previous
-                    </button>
-                    <button
-                        className={`${styles.nextButton} ${
-                            showPrevious ? styles.halfWidth : styles.fullWidth
-                        }`}
+                        className={styles.nextButton}
                         onClick={handleNext}
                     >
                         Next
