@@ -4,6 +4,7 @@ import { ActionButton } from '../../components/ui/profile/actionbtn';
 import { ProfileInput } from '../../components/ui/profile/input';
 import { ProfileHeader } from '../../components/ui/profile/header';
 import { ProfileCardCarousel } from '../../components/ui/profile/cardCarousel';
+import { ToggleButton } from '../../components/ui/profile/togglebtn';
 import { GradientBackgroundFull } from '../../components/ui/backgrounds/GradientBackgroundFull';
 
 export default function ProfileComponentTest() {
@@ -34,6 +35,11 @@ export default function ProfileComponentTest() {
         />
 
         <ProfileCardCarousel />
+
+        <ToggleButton
+          defaultChecked={false}
+          onChange={(checked) => console.log('Toggle:', checked)}
+        />
       </div>
     </GradientBackgroundFull>
   );
