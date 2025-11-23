@@ -1,7 +1,9 @@
+"use client";
 import { GradientBackgroundFull } from "@/app/components/ui/backgrounds/GradientBackgroundFull";
 import { HalfBackground } from "@/app/components/ui/backgrounds/HalfBackground";
 import Image from "next/image";
 import Link from "next/link";
+import BackButton from "@/app/components/forms/backButton";
 
 export default function CameraPage() {
     return (
@@ -9,20 +11,7 @@ export default function CameraPage() {
             {/* Header */}
             <div className='flex justify-between pt-20 pl-4 pr-4'>
                 {/* Left Arrow */}
-                <svg
-                    xmlns='http://www.w3.org/2000/svg'
-                    width='17'
-                    height='30'
-                    viewBox='0 0 17 30'
-                    fill='none'>
-                    <path
-                        d='M14.6575 27.1699L2.14497 14.6574L14.6575 2.14492'
-                        stroke='white'
-                        strokeWidth='4.29'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                    />
-                </svg>
+                <BackButton />
                 <h1 className='text-4xl font-bold text-white mb-2 flex justify-center'>
                     <Image
                         src='/brand/nameWhite.svg'
@@ -79,7 +68,7 @@ export default function CameraPage() {
                         <li>4. Hold your phone steady while capturing.</li>
                     </ul>
                     {/* Camera Button */}
-                    <Link href={"/sign-up/id-scan"}>
+                    <Link href={"/sign-up/form"}>
                         <div className='flex justify-center'>
                             <div className='bg-neutral-50 p-1 rounded-full w-max'>
                                 <div className='bg-white p-1 rounded-full w-max'>

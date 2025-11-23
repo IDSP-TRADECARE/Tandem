@@ -23,7 +23,7 @@ export const LabeledInput: React.FC<LabeledInputProps> = ({
     return (
         <div className='flex flex-col'>
             {label && (
-                <label className='font-alan text-xl font-500 pb-2'>
+                <label className='font-alan text-xl font-700 pb-2'>
                     {label}
                 </label>
             )}
