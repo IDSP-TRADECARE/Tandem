@@ -95,6 +95,10 @@ export default function Calendar() {
   const [newEventNotes, setNewEventNotes] = useState<string>("");
   const [activeView, setActiveView] = useState<ViewType>("Weekly");
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [selectedMonthDate, setSelectedMonthDate] = useState<Date | null>(null);
+  const [weekStartDate, setWeekStartDate] = useState<Date>(
+    getStartOfCurrentWeek()
+  ); // Add this state
   const [eventDetailOpen, setEventDetailOpen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<CustomEventInput | null>(
     null
@@ -302,18 +306,34 @@ export default function Calendar() {
     return filtered;
   };
 
-  // Get events for the current week (for Weekly view)
-  const getCurrentWeekDates = () => {
+  // Helper function to get start of week (Monday)
+  function getStartOfCurrentWeek(): Date {
     const today = new Date();
     const dayOfWeek = today.getDay();
     const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - daysToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+    return startOfWeek;
+  }
 
+  // Helper function to get start of week for any date
+  function getStartOfWeek(date: Date): Date {
+    const dayOfWeek = date.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - daysToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+    return startOfWeek;
+  }
+
+  // Get events for the current week (for Weekly view)
+  const getCurrentWeekDates = () => {
+    // Use weekStartDate instead of calculating from today
     const weekDates = [];
     for (let i = 0; i < 7; i++) {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
+      const date = new Date(weekStartDate);
+      date.setDate(weekStartDate.getDate() + i);
       weekDates.push(date);
     }
     return weekDates;
@@ -651,9 +671,12 @@ export default function Calendar() {
   };
 
   // Add selected date state for monthly view
-  const [selectedMonthDate, setSelectedMonthDate] = useState<Date | null>(null);
   const handleMonthDateSelect = (date: Date) => {
     setSelectedMonthDate(date);
+
+    // When a date is selected in Monthly view, update the week start date
+    const weekStart = getStartOfWeek(date);
+    setWeekStartDate(weekStart);
 
     const calendarApi = calendarRef.current?.getApi();
     if (!calendarApi) return;
@@ -902,12 +925,12 @@ export default function Calendar() {
     return eventsByDate;
   };
 
-  // Reset selected date when switching views
+  // Reset to current week when switching to Weekly view
   useEffect(() => {
-    if (activeView !== "Monthly") {
-      setSelectedMonthDate(null);
+    if (activeView === "Weekly" && !selectedMonthDate) {
+      setWeekStartDate(getStartOfCurrentWeek());
     }
-  }, [activeView]);
+  }, [activeView, selectedMonthDate]);
 
   if (loading) {
     return (
@@ -937,7 +960,7 @@ export default function Calendar() {
       </div>
 
       {/* Render headers based on active tab */}
-      {getHeadersForView(activeView, new Date(), currentMonth, {
+      {getHeadersForView(activeView, weekStartDate, currentMonth, {
         onPrevMonth: handlePreviousMonth,
         onNextMonth: handleNextMonth,
         eventsByDate: getEventsByDate(),
@@ -954,7 +977,7 @@ export default function Calendar() {
           className="overflow-y-auto overflow-x-hidden overscroll-contain"
           style={{
             height: "calc(100vh - 280px)",
-            WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
+            WebkitOverflowScrolling: "touch",
           }}
         >
           {generateDateCards().length === 0 ? (
