@@ -73,116 +73,142 @@ export default function Form() {
             </div>
             <HalfBackground>
                 <div className=' p-6'>
-                    <h1 className='font-bold font-alan text-xl pt-2 pb-4 text-start'>
+                    <h1 className='font-bold font-alan text-xl pt-2 text-start'>
                         {step === 1 && `Let's set up your account information!`}
                         {step === 2 &&
                             `Share your location for personalized
                             recommendations.`}
                         {step === 3 && "Add your workplace details."}
                     </h1>
-                    <div className='flex flex-col gap-8'>
-                        {/* Form Step 01 */}
-                        {step === 1 && (
-                            <>
-                                {/* Form Inputs */}
-                                <LabeledInput
-                                    label='First Name'
-                                    placeholder='First Name'
-                                    value={formData.firstName}
-                                    onChange={(e) =>
-                                        updateData("firstName", e.target.value)
-                                    }
-                                />
-                                <LabeledInput
-                                    label='Last Name'
-                                    placeholder='Last Name'
-                                    value={formData.lastName}
-                                    onChange={(e) =>
-                                        updateData("lastName", e.target.value)
-                                    }
-                                />
-                                <LabeledInput
-                                    label='Phone Number'
-                                    placeholder='+1 604-123-1234'
-                                    type='tel'
-                                    value={formData.phone}
-                                    onChange={(e) =>
-                                        updateData("phone", e.target.value)
-                                    }
-                                />
-                            </>
-                        )}
+                    {/* Form Step 01 */}
+                    {step === 1 && (
+                        <div className='flex flex-col'>
+                            <div className='animate-in fade-in slide-in-from-left-10 duration-300'>
+                                <>
+                                    {/* Form Inputs */}
+                                    <LabeledInput
+                                        label='First Name'
+                                        placeholder='First Name'
+                                        value={formData.firstName}
+                                        onChange={(e) =>
+                                            updateData(
+                                                "firstName",
+                                                e.target.value
+                                            )
+                                        }
+                                    />
+                                    <LabeledInput
+                                        label='Last Name'
+                                        placeholder='Last Name'
+                                        value={formData.lastName}
+                                        onChange={(e) =>
+                                            updateData(
+                                                "lastName",
+                                                e.target.value
+                                            )
+                                        }
+                                    />
+                                    <LabeledInput
+                                        label='Phone Number'
+                                        placeholder='+1 604-123-1234'
+                                        type='tel'
+                                        value={formData.phone}
+                                        onChange={(e) =>
+                                            updateData("phone", e.target.value)
+                                        }
+                                    />
+                                </>
+                            </div>
+                        </div>
+                    )}
 
-                        {/* Form Step 02 */}
-                        {step === 2 && (
-                            <>
-                                {/* Form Inputs */}
-                                <LabeledInput
-                                    label='Street Address'
-                                    placeholder='Street Address'
-                                    value={formData.address}
-                                    onChange={(e) =>
-                                        updateData("address", e.target.value)
-                                    }
-                                />
-                                <LabeledInput
-                                    label='City'
-                                    placeholder='City'
-                                    value={formData.city}
-                                    onChange={(e) =>
-                                        updateData("city", e.target.value)
-                                    }
-                                />
-                                <LabeledInput
-                                    label='Zip Code'
-                                    placeholder='Zip Code'
-                                    value={formData.zipCode}
-                                    onChange={(e) =>
-                                        updateData("zipCode", e.target.value)
-                                    }
-                                />
-                            </>
-                        )}
+                    {/* Form Step 02 */}
+                    {step === 2 && (
+                        <div className='flex flex-col'>
+                            <div className='animate-in fade-in slide-in-from-right-10 duration-300'>
+                                <>
+                                    {/* Form Inputs */}
+                                    <LabeledInput
+                                        label='Street Address'
+                                        placeholder='Street Address'
+                                        value={formData.address}
+                                        onChange={(e) =>
+                                            updateData(
+                                                "address",
+                                                e.target.value
+                                            )
+                                        }
+                                    />
+                                    <LabeledInput
+                                        label='City'
+                                        placeholder='City'
+                                        value={formData.city}
+                                        onChange={(e) =>
+                                            updateData("city", e.target.value)
+                                        }
+                                    />
+                                    <LabeledInput
+                                        label='Zip Code'
+                                        placeholder='Zip Code'
+                                        value={formData.zipCode}
+                                        onChange={(e) =>
+                                            updateData(
+                                                "zipCode",
+                                                e.target.value
+                                            )
+                                        }
+                                    />
+                                </>
+                            </div>
+                        </div>
+                    )}
 
-                        {/* Form Step 03 */}
-                        {step === 3 && (
-                            <>
-                                {/* Form Inputs */}
-                                <LabeledInput
-                                    label='Company Name'
-                                    placeholder='Company name'
-                                    value={formData.company}
-                                    onChange={(e) =>
-                                        updateData("company", e.target.value)
-                                    }
-                                    leftIcon={
-                                        <svg
-                                            xmlns='http://www.w3.org/2000/svg'
-                                            width='22'
-                                            height='22'
-                                            viewBox='0 0 22 22'
-                                            fill='none'>
-                                            <path
-                                                d='M14.3333 14.3333L21 21M8.77778 16.5556C7.75639 16.5556 6.74499 16.3544 5.80135 15.9635C4.85771 15.5726 4.00029 14.9997 3.27806 14.2775C2.55582 13.5553 1.98292 12.6978 1.59205 11.7542C1.20118 10.8106 1 9.79917 1 8.77778C1 7.75639 1.20118 6.74499 1.59205 5.80135C1.98292 4.85771 2.55582 4.00029 3.27806 3.27806C4.00029 2.55582 4.85771 1.98292 5.80135 1.59205C6.74499 1.20118 7.75639 1 8.77778 1C10.8406 1 12.8189 1.81944 14.2775 3.27806C15.7361 4.73667 16.5556 6.71498 16.5556 8.77778C16.5556 10.8406 15.7361 12.8189 14.2775 14.2775C12.8189 15.7361 10.8406 16.5556 8.77778 16.5556Z'
-                                                stroke='black'
-                                                strokeWidth='2'
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                            />
-                                        </svg>
-                                    }
-                                />
-                                <LabeledInput
-                                    label='Employee ID'
-                                    placeholder='Employee ID'
-                                    value={formData.workID}
-                                    onChange={(e) =>
-                                        updateData("workID", e.target.value)
-                                    }
-                                />
-                            </>
-                        )}
-                    </div>
+                    {/* Form Step 03 */}
+                    {step === 3 && (
+                        <div className='flex flex-col'>
+                            <div className='animate-in fade-in slide-in-from-left-10 duration-300'>
+                                <>
+                                    {/* Form Inputs */}
+                                    <LabeledInput
+                                        label='Company Name'
+                                        placeholder='Company name'
+                                        value={formData.company}
+                                        onChange={(e) =>
+                                            updateData(
+                                                "company",
+                                                e.target.value
+                                            )
+                                        }
+                                        leftIcon={
+                                            <svg
+                                                xmlns='http://www.w3.org/2000/svg'
+                                                width='22'
+                                                height='22'
+                                                viewBox='0 0 22 22'
+                                                fill='none'>
+                                                <path
+                                                    d='M14.3333 14.3333L21 21M8.77778 16.5556C7.75639 16.5556 6.74499 16.3544 5.80135 15.9635C4.85771 15.5726 4.00029 14.9997 3.27806 14.2775C2.55582 13.5553 1.98292 12.6978 1.59205 11.7542C1.20118 10.8106 1 9.79917 1 8.77778C1 7.75639 1.20118 6.74499 1.59205 5.80135C1.98292 4.85771 2.55582 4.00029 3.27806 3.27806C4.00029 2.55582 4.85771 1.98292 5.80135 1.59205C6.74499 1.20118 7.75639 1 8.77778 1C10.8406 1 12.8189 1.81944 14.2775 3.27806C15.7361 4.73667 16.5556 6.71498 16.5556 8.77778C16.5556 10.8406 15.7361 12.8189 14.2775 14.2775C12.8189 15.7361 10.8406 16.5556 8.77778 16.5556Z'
+                                                    stroke='black'
+                                                    strokeWidth='2'
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                />
+                                            </svg>
+                                        }
+                                    />
+                                    <LabeledInput
+                                        label='Employee ID'
+                                        placeholder='Employee ID'
+                                        value={formData.workID}
+                                        onChange={(e) =>
+                                            updateData("workID", e.target.value)
+                                        }
+                                    />
+                                </>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Buttons */}
                     <div className='flex flex-row justify-between pt-8'>
                         <div
