@@ -1,12 +1,16 @@
 'use client';
 import { ProfileCard } from './card';
+import { useRouter } from 'next/navigation';
 
 export function ProfileCardCarousel() {
+  const router = useRouter();
+  
   const cards = [
     {
       title: 'Nanny Sharing',
       description: 'Find nearby families who also need a nanny and share the cost together',
       image: '/profile/ComponentIcon/Nanny sharing.svg',
+      href: '/profile/FeatureGuide',
     },
     {
       title: 'Scheduling',
@@ -48,7 +52,9 @@ export function ProfileCardCarousel() {
             style={{
               scrollSnapAlign: 'center',
               flexShrink: 0,
+              cursor: card.href ? 'pointer' : 'default',
             }}
+            onClick={() => card.href && router.push(card.href)}
           >
             <ProfileCard
               title={card.title}

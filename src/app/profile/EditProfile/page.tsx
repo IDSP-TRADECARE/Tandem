@@ -25,18 +25,19 @@ export default function EditProfilePage() {
         <ProfileHeader title="Edit Profile" onBack={() => router.push('/profile/MainProfile')} />
       </div>
 
-      <div className="flex justify-center relative z-30 mt-2 mb-[-40px]">
+      <div className="flex justify-center relative z-30 mt-[-20px] mb-[-40px]">
         <User showBio={false} />
       </div>
 
       <HalfBackground topPosition="180px">
         <div className="w-full flex justify-center px-4">
           <div className="w-full max-w-[402px] px-2 py-10 space-y-6">
-            <ProfileInput title="Name" input="Jane Doe" />
+            <div className="flex flex-col space-y-6 ml-6" style={{ width: '368px', marginTop: '100px' }}>
+              <ProfileInput title="Name" input="Jane Doe" />
 
-            <ProfileInput title="Bio" input="Hi ! I’m Jane, a woodworker in Burnaby. " />
+              <ProfileInput title="Bio" input="Hi ! I’m Jane, a woodworker in Burnaby. " />
 
-            <ProfileInput title="Email Address" input="Tandem2025@gmail.com" />
+              <ProfileInput title="Email Address" input="Tandem2025@gmail.com" />
 
             <div className="flex flex-col">
               <span
@@ -79,7 +80,10 @@ export default function EditProfilePage() {
               </div>
             </div>
 
-            <ProfileInput title="Phone Number" input="+1 012 345 6789" />
+            <ProfileInput title="Phone Number" input="+1 012 345 6789" />  
+            </div>
+
+            
 
             <div className="pt-2 flex justify-center">
               <ActionButton text="Save" onClick={() => router.push('/profile/MainProfile')} />
