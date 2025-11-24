@@ -50,6 +50,7 @@ export default function Form() {
             </div>
             <HalfBackground>
                 <div className=' p-6'>
+                    {/* Form Stage 01 */}
                     <h1 className='font-bold font-alan text-xl text-center pt-2 pb-6'>
                         We've filled in details from your ID. Please review and
                         edit as needed.
