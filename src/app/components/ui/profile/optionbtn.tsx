@@ -1,12 +1,18 @@
 'use client';
+import { ReactNode } from 'react';
 
 interface OptionButtonProps {
   icon: string;
   text: string;
   onClick?: () => void;
+  rightComponent?: ReactNode;
 }
 
-export function OptionButton({ icon, text, onClick }: OptionButtonProps) {
+export function OptionButton({ icon, text, onClick, rightComponent }: OptionButtonProps) {
+  const handleRightClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <button
       onClick={onClick}
@@ -33,13 +39,19 @@ export function OptionButton({ icon, text, onClick }: OptionButtonProps) {
         </span>
       </div>
 
-      <img
-        src="/profile/ComponentIcon/Arrows.svg"
-        alt=""
-        width={25}
-        height={25}
-        className="shrink-0"
-      />
+      {rightComponent ? (
+        <div onClick={handleRightClick}>
+          {rightComponent}
+        </div>
+      ) : (
+        <img
+          src="/profile/ComponentIcon/Arrows.svg"
+          alt=""
+          width={25}
+          height={25}
+          className="shrink-0"
+        />
+      )}
     </button>
   );
 }

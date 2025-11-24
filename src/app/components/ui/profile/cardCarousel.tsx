@@ -38,7 +38,7 @@ export function ProfileCardCarousel() {
         style={{
           display: 'flex',
           gap: '16px',
-          padding: '0 88px', 
+          padding: '0 88px 0 0', 
           width: 'max-content',
         }}
       >

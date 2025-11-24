@@ -2,10 +2,11 @@
 
 interface ProfileHeaderProps {
   title: string; 
-  onBack?: () => void; 
+  onBack?: () => void;
+  showBackButton?: boolean;
 }
 
-export function ProfileHeader({ title, onBack }: ProfileHeaderProps) {
+export function ProfileHeader({ title, onBack, showBackButton = true }: ProfileHeaderProps) {
   return (
     <div
       style={{
@@ -15,23 +16,25 @@ export function ProfileHeader({ title, onBack }: ProfileHeaderProps) {
         position: 'relative',
       }}
     >
-      <button
-        onClick={onBack}
-        style={{
-          marginLeft: '2px',
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          cursor: onBack ? 'pointer' : 'default',
-        }}
-      >
-        <img
-          src="/profile/ComponentIcon/ReturnArrows.svg"
-          alt="Back"
-          width={48}
-          height={48}
-        />
-      </button>
+      {showBackButton && (
+        <button
+          onClick={onBack}
+          style={{
+            marginLeft: '2px',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: onBack ? 'pointer' : 'default',
+          }}
+        >
+          <img
+            src="/profile/ComponentIcon/ReturnArrows.svg"
+            alt="Back"
+            width={48}
+            height={48}
+          />
+        </button>
+      )}
 
       <div
         style={{
