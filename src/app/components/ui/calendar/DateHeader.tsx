@@ -385,8 +385,6 @@ export function DateHeader({
                     day.fullDate.toDateString() === selectedDay.toDateString();
                   const { hasShift, hasNanny, hasWork, hasChildcare } =
                     getEventIndicators(day.fullDate);
-                  const hasAnyEvent =
-                    hasShift || hasNanny || hasWork || hasChildcare;
 
                   return (
                     <button
@@ -422,27 +420,19 @@ export function DateHeader({
                         }
                       `}
                     >
-                      <span className="relative z-10">{day.date}</span>
-
-                      {/* Event indicators - dots below date - only show for current month */}
-                      {day.isCurrentMonth && hasAnyEvent && (
-                        <div className="absolute bottom-0.5 flex gap-0.5">
-                          {(hasShift || hasNanny) && (
-                            <div
-                              className={`w-1 h-1 rounded-full ${
-                                isSelected ? "bg-blue-500" : "bg-white"
-                              }`}
-                            />
+                      {/* Event indicators - top right corner - only show for current month */}
+                      {day.isCurrentMonth && (
+                        <div className="absolute top-0.5 right-0.5 flex gap-0.5">
+                          {hasShift && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
                           )}
-                          {(hasWork || hasChildcare) && (
-                            <div
-                              className={`w-1 h-1 rounded-full ${
-                                isSelected ? "bg-orange-500" : "bg-white/70"
-                              }`}
-                            />
+                          {hasNanny && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                           )}
                         </div>
                       )}
+
+                      <span className="relative z-10">{day.date}</span>
                     </button>
                   );
                 })}
