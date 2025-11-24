@@ -4,6 +4,8 @@ import { GradientBackgroundFull } from "@/app/components/ui/backgrounds/Gradient
 import { HalfBackground } from "@/app/components/ui/backgrounds/HalfBackground";
 import { LabeledInput } from "@/app/components/forms/textinput";
 import React, { useState } from "react";
+import Link from "next/link";
+
 export default function SignInPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
@@ -34,7 +36,7 @@ export default function SignInPage() {
                     </h1>
 
                     <div className='flex justify-center'>
-                        <div className='w-full max-w-sm space-y-8'>
+                        <div className='w-full max-w-sm space-y-4'>
                             <LabeledInput
                                 label='Username'
                                 placeholder='Enter your username'
@@ -86,18 +88,20 @@ export default function SignInPage() {
                                     }
                                 />
                             </div>
-
-                            <button
-                                type='submit'
-                                className='w-full py-4 bg-blue-600 text-white font-bold rounded-4xl hover:bg-blue-700 active:bg-blue-800 transition-colors text-lg'>
-                                Login
-                            </button>
-
-                            <button
-                                type='button'
-                                className='w-full py-4 border-2 border-gray-500 text-gray-700 font-bold rounded-4xl hover:bg-gray-100 active:bg-gray-200 transition-colors text-lg'>
-                                New user? Sign up now
-                            </button>
+                            <Link href={"/calendar"}>
+                                <button
+                                    type='submit'
+                                    className='mb-6 mt-4 cursor-pointer w-full py-4 bg-primary-normal text-white font-bold rounded-4xl hover:bg-blue-700 active:bg-blue-800 transition-colors text-lg'>
+                                    Login
+                                </button>
+                            </Link>
+                            <Link href={"/sign-up"}>
+                                <button
+                                    type='button'
+                                    className='w-full py-4 border-2 cursor-pointer border-gray-500 text-gray-700 font-bold rounded-4xl hover:bg-gray-100 active:bg-gray-200 transition-colors text-lg'>
+                                    New user? Sign up now
+                                </button>
+                            </Link>
                         </div>
                     </div>
                 </div>

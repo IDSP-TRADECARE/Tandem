@@ -127,17 +127,17 @@ export default function SignInPage() {
                                     }
                                 />
                             </div>
-                            <Link href={"/sign-up/id-scan"}>
+                            <Link href={"/sign-up/sign-up_2"}>
                                 <button
                                     type='submit'
-                                    className='mb-6 mt-4 w-full py-4 bg-primary-normal text-white font-bold rounded-4xl hover:bg-blue-700 active:bg-blue-800 transition-colors text-lg'>
-                                    Login
+                                    className='mb-6 mt-4 w-full cursor-pointer py-4 bg-primary-normal text-white font-bold rounded-4xl hover:bg-blue-700 active:bg-blue-800 transition-colors text-lg'>
+                                    Sign Up
                                 </button>
                             </Link>
                             <Link href={"/sign-in/log-in"}>
                                 <button
                                     type='button'
-                                    className='w-full py-4 border-2 border-gray-500 text-gray-700 font-bold rounded-4xl hover:bg-gray-100 active:bg-gray-200 transition-colors text-lg'>
+                                    className='w-full cursor-pointer py-4 border-2 border-gray-500 text-gray-700 font-bold rounded-4xl hover:bg-gray-100 active:bg-gray-200 transition-colors text-lg'>
                                     Already a user? Login
                                 </button>
                             </Link>
