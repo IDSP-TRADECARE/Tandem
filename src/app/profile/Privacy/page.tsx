@@ -1,5 +1,4 @@
 'use client';
-import React from 'react'
 import { useRouter } from 'next/navigation'
 import { GradientBackgroundFull } from '@/app/components/ui/backgrounds/GradientBackgroundFull'
 import { ProfileHeader } from '@/app/components/ui/profile/header'

@@ -14,7 +14,7 @@ function HelpCentre() {
   return (
     <GradientBackgroundFull>
         <div className="p-8 space-y-8 mt-8" >
-            <ProfileHeader title="Help Centre" />
+            <ProfileHeader title="Help Centre" onBack={() => router.push('/profile/MainProfile')} />
         </div> 
       <HalfBackground topPosition="140px">
         <div className="p-8 space-y-8 pl-6">
@@ -22,7 +22,7 @@ function HelpCentre() {
           <div className="ml-0.5 mr-0.5">
             <ProfileCardCarousel />
           </div>
-          <div className="flex flex-col items-center space-y-8">
+          <div className="flex flex-col items-start space-y-8">
             <OptionButton
               icon="/profile/ComponentIcon/Privacy.svg"
               text="Privacy & Security"
