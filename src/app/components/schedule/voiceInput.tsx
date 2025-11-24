@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react';
 
 interface VoiceInputProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onComplete: (data: any) => void;
   onBack: () => void;
 }
