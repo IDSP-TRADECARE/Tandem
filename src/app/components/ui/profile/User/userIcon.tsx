@@ -13,11 +13,11 @@ export function UserIcon({
   onEdit
 }: UserIconProps) {
   return (
-    <div className="w-full max-w-full overflow-hidden relative z-20 mb-10">
+    <div className="w-full max-w-full overflow-visible relative z-20 mb-10">
       <div className="relative w-full flex flex-col items-center">
         {/* Rounded card */}
         <div 
-          className="w-full rounded-2xl pt-12 pb-0 px-4"
+          className="w-full rounded-2xl pt-12 pb-0 px-4 bg-transparent"
           style={{
             borderRadius: '20px',
           }}

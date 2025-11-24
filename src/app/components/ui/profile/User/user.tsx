@@ -2,13 +2,19 @@
 import { UserBio } from './userbio';
 import { UserIcon } from './userIcon';
 
-export default function User() {
+interface UserProps {
+  showBio?: boolean;
+}
+
+export default function User({ showBio = true }: UserProps) {
   return (
     <div className="flex flex-col items-center relative" style={{ width: '420px' }}>
       <UserIcon />
-      <div className="relative -mt-4 z-0">
-        <UserBio />
-      </div>
+      {showBio && (
+        <div className="relative -mt-4 z-0">
+          <UserBio />
+        </div>
+      )}
     </div>
   );
 }
