@@ -235,7 +235,7 @@ export function DateHeader({
             return (
               <button
                 key={index}
-                ref={(el) => (dateButtonRefs.current[index] = el)}
+                ref={(el) => { dateButtonRefs.current[index] = el; }}
                 onClick={() => handleDayClick(day, index)}
                 style={{ scrollSnapAlign: "center" }}
                 className={`flex flex-col items-center justify-center rounded-3xl transition-all p-2 px-1 drop-shadow-2xl flex-shrink-0 ${
