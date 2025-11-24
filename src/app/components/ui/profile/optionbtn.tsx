@@ -44,13 +44,13 @@ export function OptionButton({ icon, text, onClick, rightComponent }: OptionButt
           {rightComponent}
         </div>
       ) : (
-        <img
-          src="/profile/ComponentIcon/Arrows.svg"
-          alt=""
-          width={25}
-          height={25}
-          className="shrink-0"
-        />
+      <img
+        src="/profile/ComponentIcon/Arrows.svg"
+        alt=""
+        width={25}
+        height={25}
+        className="shrink-0"
+      />
       )}
     </button>
   );

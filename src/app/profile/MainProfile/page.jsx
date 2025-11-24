@@ -11,8 +11,8 @@ import User from '@/app/components/ui/profile/User/user'
 function MainProfile() {
   const router = useRouter();
 
-  return (
-    <GradientBackgroundFull>
+    return (
+        <GradientBackgroundFull>
         <div className="p-8 space-y-8 mt-8 flex justify-center" >
             <ProfileHeader title="My Profile" showBackButton={false} />
         </div> 
@@ -62,11 +62,11 @@ function MainProfile() {
  
 
           </div>
-        </div>
+            </div>
         <BottomNav />
     </HalfBackground>
-  </GradientBackgroundFull>
-);
+        </GradientBackgroundFull>
+    );
 }
 
 export default MainProfile;
