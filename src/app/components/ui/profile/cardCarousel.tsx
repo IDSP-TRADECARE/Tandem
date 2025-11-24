@@ -24,10 +24,34 @@ export function ProfileCardCarousel() {
     },
   ];
 
+  const handleWheel = (e: React.WheelEvent) => {
+    const element = e.currentTarget;
+    const { scrollLeft, scrollWidth, clientWidth } = element;
+    const isScrollingHorizontally = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    
+    // Only prevent default when scrolling horizontally to avoid page layout shift
+    if (isScrollingHorizontally) {
+      e.preventDefault();
+      e.stopPropagation();
+    } else {
+      // For vertical scrolling, allow it to pass through at boundaries
+      const isAtTop = scrollLeft <= 0 && e.deltaY < 0;
+      const isAtBottom = scrollLeft >= scrollWidth - clientWidth - 1 && e.deltaY > 0;
+      
+      // Only prevent if we're in the middle of the scroll area
+      if (!isAtTop && !isAtBottom) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+  };
+
   return (
     <div
+      onWheel={handleWheel}
+      className="w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       style={{
-        width: '402px',
+        width: '100%',
         overflowX: 'auto',
         overflowY: 'hidden',
         scrollSnapType: 'x mandatory',
@@ -35,8 +59,11 @@ export function ProfileCardCarousel() {
         WebkitOverflowScrolling: 'touch',
         msOverflowStyle: 'none',
         scrollbarWidth: 'none',
+        touchAction: 'pan-x pan-y',
+        overscrollBehaviorX: 'contain',
+        overscrollBehaviorY: 'auto',
+        isolation: 'isolate',
       }}
-      className="[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
     >
       <div
         style={{

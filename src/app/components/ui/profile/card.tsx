@@ -13,14 +13,14 @@ export function ProfileCard({
 }: ProfileCardProps) {
   return (
     <div
+      className="flex flex-col overflow-hidden"
       style={{
         width: '226px',
+        minWidth: '200px',
+        maxWidth: '100%',
         height: '167px',
         borderRadius: '13px',
         backgroundColor: '#FFFFFF',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
       }}
     >
       
