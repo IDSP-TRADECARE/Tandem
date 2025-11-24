@@ -1,39 +1,56 @@
-import { DateHeader } from '../ui/calendar/DateHeader';
+import { DateHeader } from "../ui/calendar/DateHeader";
 
-type ViewType = 'Today' | 'Weekly' | 'Monthly';
+type ViewType = "Today" | "Weekly" | "Monthly";
 
 // Get the appropriate header configuration based on active tab
-export function getHeadersForView(view: ViewType, date: Date, month: Date, handlers: { onPrevMonth: () => void; onNextMonth: () => void; onPrevDay?: () => void; onNextDay?: () => void }) {
+export function getHeadersForView(
+  view: ViewType,
+  date: Date,
+  month: Date,
+  handlers: {
+    onPrevMonth: () => void;
+    onNextMonth: () => void;
+    onPrevDay?: () => void;
+    onNextDay?: () => void;
+    eventsByDate?: Record<string, Array<{ type: string }>>;
+    onDateSelect?: (date: Date) => void;
+  }
+) {
   switch (view) {
-    case 'Today':
+    case "Today":
       return (
         <>
           <DateHeader type="date" date={date} />
         </>
       );
-    
-    case 'Weekly':
+
+    case "Weekly":
       return (
         <>
           <DateHeader type="date" date={date} />
-          <DateHeader type="today" date={date} />
+          <DateHeader
+            type="today"
+            date={date}
+            onDateSelect={handlers.onDateSelect}
+          />
         </>
       );
-    
-    case 'Monthly':
+
+    case "Monthly":
       return (
         <>
           <DateHeader type="date" date={date} />
-          <DateHeader 
-            type="weekly" 
+          <DateHeader
+            type="monthly"
             date={month}
             onPrevious={handlers.onPrevMonth}
             onNext={handlers.onNextMonth}
+            eventsByDate={handlers.eventsByDate}
+            onDateSelect={handlers.onDateSelect}
           />
-          {/* Monthly header placeholder - will add when design is ready */}
         </>
       );
-    
+
     default:
       return null;
   }
@@ -42,11 +59,11 @@ export function getHeadersForView(view: ViewType, date: Date, month: Date, handl
 // Get the appropriate HalfBackground height based on view
 export function getHeightForView(view: ViewType): number | undefined {
   switch (view) {
-    case 'Today':
+    case "Today":
       return undefined; // Will calculate dynamically
-    case 'Weekly':
+    case "Weekly":
       return undefined; // Will calculate dynamically
-    case 'Monthly':
+    case "Monthly":
       return undefined; // Will calculate dynamically
     default:
       return undefined;
@@ -56,14 +73,12 @@ export function getHeightForView(view: ViewType): number | undefined {
 // Calculate top position for HalfBackground based on view
 export function getTopPositionForView(view: ViewType): string {
   switch (view) {
-    case 'Today':
-      return '140px'; // After date header
-    case 'Weekly':
-      return '220px'; // After date + today headers
-    case 'Monthly':
-      return '210px'; // After date + weekly headers (no today selector)
+    case "Weekly":
+      return "220px"; // After date + today headers
+    case "Monthly":
+      return "450px"; // After date + weekly headers (no today selector)
     default:
-      return '140px';
+      return "140px";
   }
 }
 
@@ -96,7 +111,10 @@ export function getPreviousDay(currentDate: Date): Date {
 }
 
 // Month navigation handler creator
-export function createMonthHandlers(currentMonth: Date, setCurrentMonth: (date: Date) => void) {
+export function createMonthHandlers(
+  currentMonth: Date,
+  setCurrentMonth: (date: Date) => void
+) {
   return {
     handlePreviousMonth: () => {
       setCurrentMonth(getPreviousMonth(currentMonth));
