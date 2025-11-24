@@ -11,7 +11,7 @@ export default function CameraPage() {
     return (
         <GradientBackgroundFull>
             {/* Header */}
-            <div className='flex justify-between pt-20 pl-4 pr-4'>
+            <div className='flex justify-between pt-20 pl-3 pr-3 align-left'>
                 {/* Left Arrow */}
                 <BackButton />
                 <h1 className='text-4xl font-bold text-white mb-2 flex justify-center'>
@@ -39,7 +39,7 @@ export default function CameraPage() {
                 </svg>
             </div>
             <HalfBackground>
-                <div className='p-8'>
+                <div className='p-6'>
                     <h1 className='font-bold text-4xl font-alan'>
                         Scan the front of your ID
                     </h1>
