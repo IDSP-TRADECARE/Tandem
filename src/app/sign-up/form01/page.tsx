@@ -1,7 +1,7 @@
 "use client";
 import { HalfBackground } from "@/app/components/ui/backgrounds/HalfBackground";
 import { GradientBackgroundFull } from "@/app/components/ui/backgrounds/GradientBackgroundFull";
-import { LabeledInput } from "@/app/components/forms/textInput";
+import { LabeledInput } from "@/app/components/forms/textinput";
 import React, { useState } from "react";
 import Image from "next/image";
 import BackButton from "@/app/components/forms/backButton";

@@ -7,7 +7,7 @@ interface LabeledInputProps {
     error?: boolean;
     disabled?: boolean;
     value: string;
-    onChange: (value: string) => void;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     className?: string;
     leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
@@ -47,7 +47,7 @@ export const LabeledInput: React.FC<LabeledInputProps> = ({
                     type={type}
                     placeholder={placeholder}
                     value={value}
-                    onChange={(e) => onChange(e.target.value)}
+                    onChange={onChange}
                     disabled={disabled}
                     className={`font-omnes
                 ${leftIcon ? "pl-12" : "pl-4"}
