@@ -49,7 +49,16 @@ export default function EditProfilePage() {
               >
                 Password
               </span>
-              <div className="flex items-center justify-between mb-2">
+              <div
+                style={{
+                  width: '335px',
+                  borderBottom: '1px solid #000000',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingBottom: '8px',
+                }}
+              >
                 <span
                   style={{
                     fontFamily: 'Omnes',
@@ -68,13 +77,6 @@ export default function EditProfilePage() {
                   <img src={passwordIcon} alt="Toggle password" width={24} height={24} />
                 </button>
               </div>
-              <div
-                style={{
-                  width: '335px',
-                  height: '1px',
-                  backgroundColor: '#000000',
-                }}
-              />
             </div>
 
             <ProfileInput title="Phone Number" input="+1 012 345 6789" />
