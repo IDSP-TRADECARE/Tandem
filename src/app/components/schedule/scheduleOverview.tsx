@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { IoIosArrowBack } from "react-icons/io";
 import { ScheduleData } from '@/app/schedule/upload/page';
+import { DaySelector } from '../../components/ui/schedule/DaySelector';
+import { UnderlineInput } from '../../components/ui/schedule/UnderlineInput';
 
 interface ScheduleOverviewProps {
   data: ScheduleData;
@@ -9,36 +12,95 @@ interface ScheduleOverviewProps {
   onBack: () => void;
 }
 
+// Helper to convert 24h time to 12h format
+function formatTime12Hour(time24: string): string {
+  if (!time24) return '';
+  
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  
+  return `${hours12} ${period}`;
+}
+
 export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState<ScheduleData>(data);
+  const [selectedDay, setSelectedDay] = useState<string | null>(
+    data.workingDays.length > 0 ? data.workingDays[0] : null
+  );
 
   const daysOfWeek = [
-    { code: 'SUN', label: 'S' },
-    { code: 'MON', label: 'M' },
-    { code: 'TUE', label: 'T' },
-    { code: 'WED', label: 'W' },
-    { code: 'THU', label: 'T' },
-    { code: 'FRI', label: 'F' },
-    { code: 'SAT', label: 'S' },
+    { code: 'SUN', label: 'S', fullName: 'Sunday' },
+    { code: 'MON', label: 'M', fullName: 'Monday' },
+    { code: 'TUE', label: 'T', fullName: 'Tuesday' },
+    { code: 'WED', label: 'W', fullName: 'Wednesday' },
+    { code: 'THU', label: 'T', fullName: 'Thursday' },
+    { code: 'FRI', label: 'F', fullName: 'Friday' },
+    { code: 'SAT', label: 'S', fullName: 'Saturday' },
   ];
 
   const handleDayToggle = (dayCode: string) => {
-    if (!isEditing) return;
+    if (isEditing) {
+      // In edit mode: toggle days on/off
+      const isCurrentlySelected = editedData.workingDays.includes(dayCode);
+      
+      if (isCurrentlySelected) {
+        // Remove day
+        const newWorkingDays = editedData.workingDays.filter(d => d !== dayCode);
+        const newDaySchedules = { ...editedData.daySchedules };
+        delete newDaySchedules[dayCode];
+        
+        setEditedData({
+          ...editedData,
+          workingDays: newWorkingDays,
+          daySchedules: newDaySchedules
+        });
+        
+        // Update selected day if we removed it
+        if (selectedDay === dayCode) {
+          setSelectedDay(newWorkingDays.length > 0 ? newWorkingDays[0] : null);
+        }
+      } else {
+        // Add day
+        const newDaySchedules = {
+          ...editedData.daySchedules,
+          [dayCode]: { timeFrom: '09:00', timeTo: '17:00' }
+        };
+        
+        setEditedData({
+          ...editedData,
+          workingDays: [...editedData.workingDays, dayCode],
+          daySchedules: newDaySchedules
+        });
+        
+        setSelectedDay(dayCode);
+      }
+    } else {
+      // In view mode: just switch selected day
+      if (editedData.workingDays.includes(dayCode)) {
+        setSelectedDay(dayCode);
+      }
+    }
+  };
+
+  const updateDayTime = (field: 'timeFrom' | 'timeTo', value: string) => {
+    if (!selectedDay || !isEditing) return;
     
-    const newDays = editedData.workingDays.includes(dayCode)
-      ? editedData.workingDays.filter(d => d !== dayCode)
-      : [...editedData.workingDays, dayCode];
-    
-    setEditedData({ ...editedData, workingDays: newDays });
+    setEditedData({
+      ...editedData,
+      daySchedules: {
+        ...editedData.daySchedules,
+        [selectedDay]: {
+          ...editedData.daySchedules![selectedDay],
+          [field]: value
+        }
+      }
+    });
   };
 
   const handleConfirm = async () => {
-    // TODO: Save to database
-    console.log('Saving schedule:', editedData);
-    
-    // Navigate to calendar
-    window.location.href = '/calendar';
+    window.location.href = '/';
   };
 
   const handleEdit = () => {
@@ -48,28 +110,34 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
   const handleCancel = () => {
     setEditedData(data);
     setIsEditing(false);
+    setSelectedDay(data.workingDays.length > 0 ? data.workingDays[0] : null);
   };
+
+  const handleSaveChanges = () => {
+    setIsEditing(false);
+  };
+
+  // Get the schedule for the currently selected day
+  const currentDaySchedule = selectedDay && editedData.daySchedules?.[selectedDay];
 
   return (
     <div className="fixed inset-0 bg-gradient-primary">
-      <div className="h-full overflow-y-auto flex flex-col p-4 pt-6 pb-32">
+      <div className="h-full overflow-y-auto flex flex-col p-6 pt-8 pb-32">
         {/* Header */}
         <div className="mb-6">
           <button
             onClick={onBack}
-            className="mb-4 text-white hover:opacity-80 transition-opacity"
+            className="mt-2 text-white hover:opacity-80 transition-opacity"
           >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-            </svg>
+            <IoIosArrowBack className="w-8 h-8" />
           </button>
           
-          <h1 className="text-3xl font-bold text-white mb-3">
-            {isEditing ? 'Schedule Editing' : 'Overview'}
+          <h1 className="text-4xl font-bold text-white mb-3 text-center">
+            Overview
           </h1>
-          <p className="text-white text-sm">
+          <p className="text-white text-center text-sm px-4">
             {isEditing 
-              ? 'If everything looks correct, please click the upload button to proceed.'
+              ? 'Edit your schedule details below'
               : 'Please review your schedule, and if everything looks correct, click the upload button to proceed.'}
           </p>
         </div>
@@ -77,157 +145,83 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
         {/* Form Card */}
         <div className="bg-white rounded-3xl p-6 shadow-xl mb-4">
           {/* Title */}
-          <div className="mb-6">
-            <label className="block text-lg font-bold text-gray-900 mb-2">
-              Title
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editedData.title}
-                onChange={(e) => setEditedData({ ...editedData, title: e.target.value })}
-                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
-              />
-            ) : (
-              <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
-                {editedData.title}
-              </div>
-            )}
-          </div>
+          <UnderlineInput 
+            label="Title"
+            value={editedData.title}
+            onChange={(value) => setEditedData({ ...editedData, title: value })}
+            disabled={!isEditing}
+          />
 
           {/* Working Days */}
-          <div className="mb-6">
-            <label className="block text-lg font-bold text-gray-900 mb-3">
-              Working Days
-            </label>
-            <div className="flex gap-2">
-              {daysOfWeek.map((day) => {
-                const isSelected = editedData.workingDays.includes(day.code);
-                return (
-                  <button
-                    key={day.code}
-                    onClick={() => handleDayToggle(day.code)}
-                    disabled={!isEditing}
-                    className={`w-12 h-12 rounded-full font-bold text-lg transition-colors ${
-                      isSelected
-                        ? 'bg-green-400 text-white'
-                        : 'bg-gray-200 text-gray-400'
-                    } ${isEditing ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
-                  >
-                    {day.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="mt-6">
+            <DaySelector 
+              selectedDays={editedData.workingDays}
+              onDayToggle={handleDayToggle}
+              activeDay={selectedDay}
+              disabled={!isEditing}
+              showHint={isEditing}
+            />
           </div>
 
-          {/* Label Section */}
-          <div className="mb-6 flex items-center gap-4">
-            <div className="flex-1">
-              <label className="block text-lg font-bold text-gray-900 mb-2">
-                Label
-              </label>
-              <div className="flex items-center gap-2 pb-2 border-b-2 border-gray-900">
-                <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+          {/* Working Hours - Side by Side for Selected Day */}
+          {currentDaySchedule && (
+            <div className="mt-6 mb-6 grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xl font-bold text-gray-900 mb-3">
+                  From
+                </label>
                 {isEditing ? (
                   <input
-                    type="text"
-                    placeholder="Content"
-                    className="flex-1 focus:outline-none text-gray-500"
+                    type="time"
+                    value={currentDaySchedule.timeFrom}
+                    onChange={(e) => updateDayTime('timeFrom', e.target.value)}
+                    className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
                   />
                 ) : (
-                  <span className="text-gray-500">Content</span>
+                  <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
+                    {formatTime12Hour(currentDaySchedule.timeFrom)}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-xl font-bold text-gray-900 mb-3">
+                  To
+                </label>
+                {isEditing ? (
+                  <input
+                    type="time"
+                    value={currentDaySchedule.timeTo}
+                    onChange={(e) => updateDayTime('timeTo', e.target.value)}
+                    className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
+                  />
+                ) : (
+                  <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
+                    {formatTime12Hour(currentDaySchedule.timeTo)}
+                  </div>
                 )}
               </div>
             </div>
-            <div className="flex-1">
-              <label className="block text-lg font-bold text-gray-900 mb-2">
-                &nbsp;
-              </label>
-              <div className="flex items-center gap-2 pb-2 border-b-2 border-gray-900">
-                <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    placeholder="Content"
-                    className="flex-1 focus:outline-none text-gray-500"
-                  />
-                ) : (
-                  <span className="text-gray-500">Content</span>
-                )}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Working Location */}
-          <div className="mb-6">
-            <label className="block text-lg font-bold text-gray-900 mb-2">
-              Working Location
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editedData.location}
-                onChange={(e) => setEditedData({ ...editedData, location: e.target.value })}
-                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
-              />
-            ) : (
-              <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
-                {editedData.location}
-              </div>
-            )}
+          <div className="mt-6">
+            <UnderlineInput 
+              label="Working Location"
+              value={editedData.location}
+              onChange={(value) => setEditedData({ ...editedData, location: value })}
+              disabled={!isEditing}
+            />
           </div>
 
-          {/* Working Hours */}
-<div className="mb-6">
-  <label className="block text-lg font-bold text-gray-900 mb-2">
-    Working Hours
-  </label>
-  {isEditing ? (
-    <div className="flex gap-4">
-      <input
-        type="time"
-        value={editedData.timeFrom}
-        onChange={(e) => setEditedData({ ...editedData, timeFrom: e.target.value })}
-        className="pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
-      />
-      <span className="text-gray-900 font-bold">to</span>
-      <input
-        type="time"
-        value={editedData.timeTo}
-        onChange={(e) => setEditedData({ ...editedData, timeTo: e.target.value })}
-        className="pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
-      />
-    </div>
-  ) : (
-    <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
-      {editedData.timeFrom} &ndash; {editedData.timeTo}
-    </div>
-  )}
-</div>
-
-
           {/* Additional Note */}
-          <div className="mb-8">
-            <label className="block text-lg font-bold text-gray-900 mb-2">
-              Additional Note
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editedData.notes || 'N/A'}
-                onChange={(e) => setEditedData({ ...editedData, notes: e.target.value })}
-                className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900"
-              />
-            ) : (
-              <div className="pb-2 border-b-2 border-gray-900 text-gray-900">
-                {editedData.notes || 'N/A'}
-              </div>
-            )}
+          <div className="mt-6 mb-8">
+            <UnderlineInput 
+              label="Additional Note"
+              value={editedData.notes || ''}
+              onChange={(value) => setEditedData({ ...editedData, notes: value })}
+              placeholder="N/A"
+              disabled={!isEditing}
+            />
           </div>
 
           {/* Action Buttons */}
@@ -241,10 +235,10 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
                   Cancel
                 </button>
                 <button
-                  onClick={handleConfirm}
+                  onClick={handleSaveChanges}
                   className="flex-1 py-4 px-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors text-lg"
                 >
-                  Confirm
+                  Save Changes
                 </button>
               </>
             ) : (

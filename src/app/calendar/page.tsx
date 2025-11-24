@@ -30,7 +30,6 @@ import {
 import { DateCardContainer } from "../components/ui/calendar/DateCard";
 import Image from "next/image";
 
-// Update the DateCard interface to include timeRange
 interface DateCard {
   id: string;
   text: string;
@@ -38,7 +37,7 @@ interface DateCard {
   isWork: boolean;
   type: ViewType;
   date?: string;
-  timeRange?: string; // Add this property
+  timeRange?: string;
   onClick: () => void;
 }
 
@@ -65,6 +64,7 @@ interface Schedule {
       }
     >
   >;
+  dailyTimes?: Record<string, { timeFrom: string; timeTo: string }>;
 }
 
 interface CustomEventInput extends EventInput {
@@ -98,7 +98,7 @@ export default function Calendar() {
   const [selectedMonthDate, setSelectedMonthDate] = useState<Date | null>(null);
   const [weekStartDate, setWeekStartDate] = useState<Date>(
     getStartOfCurrentWeek()
-  ); // Add this state
+  );
   const [eventDetailOpen, setEventDetailOpen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<CustomEventInput | null>(
     null
@@ -111,7 +111,6 @@ export default function Calendar() {
   const [editEventNotes, setEditEventNotes] = useState<string>("");
   const calendarRef = useRef<FullCalendar>(null);
 
-  // Create month navigation handlers
   const { handlePreviousMonth, handleNextMonth } =
     createMonthNavigationHandlers(currentMonth, setCurrentMonth);
   const topPosition = getTopPositionForView(activeView);
@@ -162,9 +161,7 @@ export default function Calendar() {
     }
   };
 
-  const generateCalendarEvents = (
-    schedules: Schedule[]
-  ): CustomEventInput[] => {
+  const generateCalendarEvents = (schedules: Schedule[]): CustomEventInput[] => {
     const events: CustomEventInput[] = [];
     const today = new Date();
 
@@ -180,86 +177,95 @@ export default function Calendar() {
       SAT: 6,
     };
 
+    // Generate events for the next 90 days
     for (let i = 0; i < 90; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       const dayOfWeek = date.getDay();
+      const dateStr = date.toISOString().split("T")[0];
 
+      // Find day code for this day of week
+      const dayCode = Object.keys(dayMap).find(
+        (key) => dayMap[key] === dayOfWeek
+      );
+
+      if (!dayCode) continue;
+
+      // Check all schedules for this day
       for (const schedule of schedules) {
-        const dayCode = Object.keys(dayMap).find(
-          (key) => dayMap[key] === dayOfWeek
-        );
-
-        if (dayCode && schedule.workingDays.includes(dayCode)) {
-          const dateStr = date.toISOString().split("T")[0];
-
-          // Skip deleted dates
-          if (schedule.deletedDates?.includes(dateStr)) {
-            console.log(`⏭️ Skipping deleted date: ${dateStr}`);
-            continue;
-          }
-
-          // Check for edits - IMPORTANT: Log to debug
-          const editedDatesForDate = schedule.editedDates?.[dateStr];
-          const workEdits = editedDatesForDate?.work;
-          const childcareEdits = editedDatesForDate?.childcare;
-
-          if (workEdits) {
-            console.log(`✏️ Applying work edits for ${dateStr}:`, workEdits);
-          }
-          if (childcareEdits) {
-            console.log(
-              `✏️ Applying childcare edits for ${dateStr}:`,
-              childcareEdits
-            );
-          }
-
-          // Create work event with edits applied
-          const workTitle =
-            workEdits?.title || `Work: ${schedule.location || "Work"}`;
-          const workTimeFrom = workEdits?.timeFrom || schedule.timeFrom;
-          const workTimeTo = workEdits?.timeTo || schedule.timeTo;
-          const workLocation = workEdits?.location || schedule.location || "";
-          const workNotes = workEdits?.notes || schedule.notes || "";
-
-          events.push({
-            id: `work-${schedule.id}-${dateStr}`,
-            title: workTitle,
-            start: `${dateStr}T${workTimeFrom}`,
-            end: `${dateStr}T${workTimeTo}`,
-            allDay: false,
-            backgroundColor: "#D4E3F0",
-            borderColor: "#D4E3F0",
-            extendedProps: {
-              location: workLocation,
-              notes: workNotes,
-              type: "work",
-            },
-          });
-
-          // Create childcare event with edits applied
-          const childcareTitle = childcareEdits?.title || "No Childcare";
-          const childcareTimeFrom =
-            childcareEdits?.timeFrom || schedule.timeFrom;
-          const childcareTimeTo = childcareEdits?.timeTo || schedule.timeFrom;
-          const childcareLocation = childcareEdits?.location || "";
-          const childcareNotes = childcareEdits?.notes || "";
-
-          events.push({
-            id: `childcare-${schedule.id}-${dateStr}`,
-            title: childcareTitle,
-            start: `${dateStr}T${childcareTimeFrom}`,
-            end: `${dateStr}T${childcareTimeTo}`,
-            allDay: false,
-            backgroundColor: "#C8D3BC",
-            borderColor: "#C8D3BC",
-            extendedProps: {
-              location: childcareLocation,
-              notes: childcareNotes,
-              type: "childcare",
-            },
-          });
+        // Check if this schedule applies to this day
+        if (!schedule.workingDays.includes(dayCode)) {
+          continue;
         }
+
+        // Skip deleted dates
+        if (schedule.deletedDates?.includes(dateStr)) {
+          console.log(`⏭️ Skipping deleted date: ${dateStr}`);
+          continue;
+        }
+
+        // Get times for this specific day from daily_times or fall back to default
+        const dailyTimes = schedule.dailyTimes || {};
+        const dayTimes = dailyTimes[dayCode] || {
+          timeFrom: schedule.timeFrom,
+          timeTo: schedule.timeTo
+        };
+
+        // Check for edits
+        const editedDatesForDate = schedule.editedDates?.[dateStr];
+        const workEdits = editedDatesForDate?.work;
+        const childcareEdits = editedDatesForDate?.childcare;
+
+        if (workEdits) {
+          console.log(`✏️ Applying work edits for ${dateStr}:`, workEdits);
+        }
+        if (childcareEdits) {
+          console.log(`✏️ Applying childcare edits for ${dateStr}:`, childcareEdits);
+        }
+
+        // Create work event with edits applied
+        const workTitle = workEdits?.title || `Work: ${schedule.location || schedule.title}`;
+        const workTimeFrom = workEdits?.timeFrom || dayTimes.timeFrom;
+        const workTimeTo = workEdits?.timeTo || dayTimes.timeTo;
+        const workLocation = workEdits?.location || schedule.location || "";
+        const workNotes = workEdits?.notes || schedule.notes || "";
+
+        events.push({
+          id: `work-${schedule.id}-${dateStr}`,
+          title: workTitle,
+          start: `${dateStr}T${workTimeFrom}`,
+          end: `${dateStr}T${workTimeTo}`,
+          allDay: false,
+          backgroundColor: "#D4E3F0",
+          borderColor: "#D4E3F0",
+          extendedProps: {
+            location: workLocation,
+            notes: workNotes,
+            type: "work",
+          },
+        });
+
+        // Create childcare event with edits applied
+        const childcareTitle = childcareEdits?.title || "No Childcare";
+        const childcareTimeFrom = childcareEdits?.timeFrom || dayTimes.timeFrom;
+        const childcareTimeTo = childcareEdits?.timeTo || dayTimes.timeFrom;
+        const childcareLocation = childcareEdits?.location || "";
+        const childcareNotes = childcareEdits?.notes || "";
+
+        events.push({
+          id: `childcare-${schedule.id}-${dateStr}`,
+          title: childcareTitle,
+          start: `${dateStr}T${childcareTimeFrom}`,
+          end: `${dateStr}T${childcareTimeTo}`,
+          allDay: false,
+          backgroundColor: "#C8D3BC",
+          borderColor: "#C8D3BC",
+          extendedProps: {
+            location: childcareLocation,
+            notes: childcareNotes,
+            type: "childcare",
+          },
+        });
       }
     }
 
@@ -306,7 +312,6 @@ export default function Calendar() {
     return filtered;
   };
 
-  // Helper function to get start of week (Monday)
   function getStartOfCurrentWeek(): Date {
     const today = new Date();
     const dayOfWeek = today.getDay();
@@ -317,7 +322,6 @@ export default function Calendar() {
     return startOfWeek;
   }
 
-  // Helper function to get start of week for any date
   function getStartOfWeek(date: Date): Date {
     const dayOfWeek = date.getDay();
     const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -327,9 +331,7 @@ export default function Calendar() {
     return startOfWeek;
   }
 
-  // Get events for the current week (for Weekly view)
   const getCurrentWeekDates = () => {
-    // Use weekStartDate instead of calculating from today
     const weekDates = [];
     for (let i = 0; i < 7; i++) {
       const date = new Date(weekStartDate);
@@ -339,7 +341,6 @@ export default function Calendar() {
     return weekDates;
   };
 
-  // Get events for the current month (for Monthly view)
   const getEventsForCurrentMonth = () => {
     const filtered = allEvents.filter((event) => {
       if (!event.start) return false;
@@ -365,13 +366,11 @@ export default function Calendar() {
           ? event.start
           : new Date(event.start as string);
 
-      // Use local date components to avoid timezone shifts
       const year = eventStart.getFullYear();
       const month = String(eventStart.getMonth() + 1).padStart(2, "0");
       const day = String(eventStart.getDate()).padStart(2, "0");
       const dateKey = `${year}-${month}-${day}`;
 
-      // Initialize array if it doesn't exist
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
@@ -382,7 +381,6 @@ export default function Calendar() {
     return grouped;
   };
 
-  // Generate date cards based on active view
   const generateDateCards = (): DateCard[] => {
     const today = new Date();
 
@@ -394,7 +392,6 @@ export default function Calendar() {
         weekDates.forEach((date) => {
           const dayEvents = getEventsForDate(date);
 
-          // Skip if no events for this day
           if (dayEvents.length === 0) return;
 
           const dayName = date.toLocaleDateString("en-US", {
@@ -405,9 +402,7 @@ export default function Calendar() {
             day: "numeric",
           });
 
-          // Add separate cards for each event, like Monthly view
           dayEvents.forEach((event, index) => {
-            // Skip "No Childcare" events
             if (event.title === "No Childcare") return;
 
             const start =
@@ -451,7 +446,6 @@ export default function Calendar() {
       case "Monthly": {
         const monthEvents = getEventsForCurrentMonth();
 
-        // If no events exist for the month, return empty array
         if (monthEvents.length === 0) {
           return [];
         }
@@ -462,7 +456,6 @@ export default function Calendar() {
         Object.entries(groupedByDate)
           .sort()
           .forEach(([dateStr, dayEvents]) => {
-            // Parse date string as local date components
             const [year, month, day] = dateStr.split("-").map(Number);
             const date = new Date(year, month - 1, day);
 
@@ -474,9 +467,7 @@ export default function Calendar() {
               day: "numeric",
             });
 
-            // Create separate cards for each event
             dayEvents.forEach((event, index) => {
-              // Skip "No Childcare" events in overview
               if (event.title === "No Childcare") return;
 
               const start =
@@ -539,24 +530,20 @@ export default function Calendar() {
     setDialogOpen(true);
   };
 
-  // Add selected date state for monthly view
   const handleMonthDateSelect = (date: Date) => {
     setSelectedMonthDate(date);
 
-    // When a date is selected in Monthly view, update the week start date
     const weekStart = getStartOfWeek(date);
     setWeekStartDate(weekStart);
 
     const calendarApi = calendarRef.current?.getApi();
     if (!calendarApi) return;
 
-    // Use the date directly without timezone conversion
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const dateString = `${year}-${month}-${day}`;
 
-    // Create a DateSelectArg-like object with local date
     const selectInfo: DateSelectArg = {
       start: date,
       end: date,
@@ -570,7 +557,6 @@ export default function Calendar() {
     handleDateClick(selectInfo);
   };
 
-  // Get events for selected date in monthly view
   const getEventsForSelectedDate = () => {
     if (!selectedMonthDate) return [];
     return getEventsForDate(selectedMonthDate);
@@ -590,11 +576,9 @@ export default function Calendar() {
     const calendarApi = calendarRef.current?.getApi();
     if (!calendarApi) return;
 
-    // Parse the date string correctly to avoid timezone issues
     const dateString = selectedDate.startStr;
     const [year, month, day] = dateString.split("-").map(Number);
 
-    // Create dates using local timezone
     const startDateTime = new Date(year, month - 1, day);
     const [startHour, startMinute] = newEventStartTime.split(":").map(Number);
     startDateTime.setHours(startHour, startMinute, 0, 0);
@@ -770,7 +754,6 @@ export default function Calendar() {
     }
   };
 
-  // Add function to format events by date for the calendar
   const getEventsByDate = () => {
     const eventsByDate: Record<string, Array<{ type: string }>> = {};
 
@@ -781,7 +764,6 @@ export default function Calendar() {
           ? event.start
           : new Date(event.start as string);
 
-      // Use local date components to avoid timezone shifts
       const year = eventStart.getFullYear();
       const month = String(eventStart.getMonth() + 1).padStart(2, "0");
       const day = String(eventStart.getDate()).padStart(2, "0");
@@ -799,7 +781,6 @@ export default function Calendar() {
     return eventsByDate;
   };
 
-  // Reset to current week when switching to Weekly view
   useEffect(() => {
     if (activeView === "Weekly" && !selectedMonthDate) {
       setWeekStartDate(getStartOfCurrentWeek());
@@ -819,7 +800,6 @@ export default function Calendar() {
 
   return (
     <GradientBackgroundFull>
-      {/* Hidden FullCalendar for event management */}
       <div style={{ display: "none" }}>
         <FullCalendar
           ref={calendarRef}
@@ -833,7 +813,6 @@ export default function Calendar() {
         />
       </div>
 
-      {/* Render headers based on active tab */}
       {getHeadersForView(activeView, weekStartDate, currentMonth, {
         onPrevMonth: handlePreviousMonth,
         onNextMonth: handleNextMonth,
@@ -900,7 +879,6 @@ export default function Calendar() {
                 <p className="text-sm text-gray-600">Date</p>
                 <p className="text-lg font-semibold text-gray-900">
                   {(() => {
-                    // Parse date string to avoid timezone issues
                     const [year, month, day] = selectedDate.startStr
                       .split("-")
                       .map(Number);

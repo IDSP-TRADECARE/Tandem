@@ -6,7 +6,7 @@ import { GradientBackgroundFull } from "@/app/components/ui/backgrounds/Gradient
 export default function SignUpPage() {
   return (
     <GradientBackgroundFull>
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-500 via-blue-400 light-blue-200 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-cyan-500 via-blue-400 light-blue-200 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2 flex justify-center">

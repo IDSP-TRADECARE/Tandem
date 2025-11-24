@@ -1,118 +1,107 @@
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { SignOutButton } from '@clerk/nextjs';
+'use client';
 
-import { db } from '@/db/index';
-import { surveyData } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { useState, useEffect } from 'react';
+import { useUser, useClerk } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { GradientBackgroundFull } from '../components/ui/backgrounds/GradientBackgroundFull';
 import { BottomNav } from '../components/Layout/BottomNav';
+import { HalfBackground } from '../components/ui/backgrounds/HalfBackground';
 
-async function getSurveyData(userId: string) {
-  // query DB directly from server component
-  const rows = await db.select().from(surveyData).where(eq(surveyData.userId, userId));
-  return rows[0] ?? null;
-}
+export default function ProfilePage() {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const router = useRouter();
 
-export default async function Profile() {
-  const { userId } = await auth();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!userId) {
-    redirect('/sign-in'); // fixed redirect
+  useEffect(() => {
+    async function loadProfile() {
+      if (!user?.id) return;
+      
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const data = await response.json();
+          setProfile(data);
+        }
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProfile();
+  }, [user]);
+
+  const displayName = profile?.firstName && profile?.lastName 
+    ? `${profile.firstName} ${profile.lastName}` 
+    : user?.fullName || 'User';
+  
+  const userId = user?.id || 'user-id';
+  const bio = profile?.bio || 'Not set';
+  const profileImage = profile?.profilePicture || '/profile/placeholderAvatar.png';
+
+  const menuItems = [
+    { icon: '✏️', label: 'Edit Profile', onClick: () => router.push('/profile/edit') },
+    { icon: '📍', label: 'Location', onClick: () => router.push('/profile/location') },
+    { icon: '💼', label: 'Company', onClick: () => router.push('/profile/company') },
+    { icon: '🌓', label: 'Light / Dark Mode', toggle: true },
+    { icon: '❓', label: 'Help Center', onClick: () => router.push('/profile/help') },
+    { icon: '🚪', label: 'Log Out', onClick: () => signOut() },
+  ];
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  const user = await currentUser();
-  
-  // Fetch survey data directly from DB
-  const surveyData = await getSurveyData(userId);
-
   return (
-    <div style={{ padding: '20px', color: '#000' }}> {/* set page text to black */}
-      <h1 style={{ color: '#000' }}>Profile Page</h1>
-      <p style={{ color: '#000' }}>Welcome, {user?.firstName || 'User'}!</p>
-      <p style={{ color: '#000' }}>User ID: {userId}</p>
-      
-      {surveyData ? (
-        <div style={{ marginTop: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: '10px', color: '#000', backgroundColor: '#fff' }}>
-          <h2 style={{ color: '#000' }}>Your Survey Information</h2>
-          
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ color: '#000' }}>Personal Info</h3>
-            <p style={{ color: '#000' }}><strong>Name:</strong> {surveyData.firstName} {surveyData.lastName}</p>
-            <p style={{ color: '#000' }}><strong>Phone:</strong> {surveyData.phoneNumber}</p>
-            <p style={{ color: '#000' }}><strong>Address:</strong> {surveyData.address}, {surveyData.city} {surveyData.zipCode}</p>
+    <GradientBackgroundFull>
+      <div className="p-6 text-center">
+        <h1 className="text-white text-2xl font-bold">My Profile</h1>
+      </div>
+      <HalfBackground>
+
+          <div className="relative -mt-16 mb-4 text-center">
+            <Image
+              src={profileImage}
+              alt="Profile"
+              width={128}
+              height={128}
+              className="w-32 h-32 rounded-full mx-auto border-4 border-white object-cover"
+            />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ color: '#000' }}>Children</h3>
-            {surveyData.children?.map((child: { name: string; age: string }, index: number) => (
-              <p key={index} style={{ color: '#000' }}><strong>Child {index + 1}:</strong> {child.name}, Age {parseInt(child.age, 10)}</p>
+          <div className="rounded-3xl mx-4 p-6 text-center">
+            <h2 className="text-2xl font-bold">{displayName}</h2>
+            <p className="text-blue-500 text-sm">@{userId}</p>
+            <p className="text-gray-600 mt-4 text-sm">{bio}</p>
+          </div>
+
+          <div className="px-4 mt-6 space-y-3">
+            {menuItems.map((item, index) => (
+              <button
+                key={index}
+                onClick={item.onClick}
+                className="w-full bg-blue-50 rounded-2xl p-4 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{item.icon}</span>
+                  <span className="font-medium">{item.label}</span>
+                </div>
+                {item.toggle ? (
+                  <div className="w-12 h-6 bg-blue-500 rounded-full"></div>
+                ) : (
+                  <span className="text-xl">›</span>
+                )}
+              </button>
             ))}
           </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ color: '#000' }}>Health & Safety</h3>
-            {surveyData.allergies && <p style={{ color: '#000' }}><strong>Allergies:</strong> {surveyData.allergies}</p>}
-            {surveyData.medicalConditions && <p style={{ color: '#000' }}><strong>Medical Conditions:</strong> {surveyData.medicalConditions}</p>}
-            {surveyData.learningBehavioral && <p style={{ color: '#000' }}><strong>Learning & Behavioral:</strong> {surveyData.learningBehavioral}</p>}
-            {surveyData.additionalNotes && <p style={{ color: '#000' }}><strong>Additional Notes:</strong> {surveyData.additionalNotes}</p>}
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ color: '#000' }}>Preferences</h3>
-            <p style={{ color: '#000' }}><strong>Language:</strong> {surveyData.language}</p>
-            <p style={{ color: '#000' }}><strong>Budget:</strong> {surveyData.budget}</p>
-            {surveyData.certificates && surveyData.certificates.length > 0 && (
-              <p style={{ color: '#000' }}><strong>Required Certificates:</strong> {surveyData.certificates.join(', ')}</p>
-            )}
-          </div>
-
-          <Link href="/survey">
-            <button style={{ 
-              padding: '10px 20px', 
-              backgroundColor: '#4F46E5', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '5px',
-              marginRight: '10px'
-            }}>
-              Update Survey
-            </button>
-          </Link>
-        </div>
-      ) : (
-        <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#000', borderRadius: '10px', color: '#fff' }}>
-          <h3 style={{ color: '#fff' }}>Complete Your Profile Setup</h3>
-          <p style={{ color: '#fff' }}>Please complete the survey to help us find the best daycare options for you.</p>
-          <Link href="/survey">
-            <button style={{ 
-              padding: '10px 20px', 
-              backgroundColor: '#4F46E5', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '5px' 
-            }}>
-              Complete Setup Survey
-            </button>
-          </Link>
-        </div>
-      )}
-      
-      <div style={{ marginTop: '30px' }}>
-        <SignOutButton>
-          <button style={{ 
-            padding: '10px 20px', 
-            backgroundColor: '#EF4444', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '5px' 
-          }}>
-            Log Out
-          </button>
-        </SignOutButton>
-        {/* Bottom Navigation */}
-      <BottomNav />
-      </div>
-    </div>
+        <BottomNav />
+      </HalfBackground>
+    </GradientBackgroundFull>
   );
 }

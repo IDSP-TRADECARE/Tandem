@@ -18,7 +18,8 @@ export interface ScheduleData {
   timeFrom: string;
   timeTo: string;
   location: string;
-  notes?: string;
+  notes: string;
+  daySchedules?: Record<string, { timeFrom: string; timeTo: string }>; 
 }
 
 export default function ScheduleUploadPage() {
