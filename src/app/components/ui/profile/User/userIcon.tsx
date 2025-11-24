@@ -13,12 +13,12 @@ export function UserIcon({
   onEdit
 }: UserIconProps) {
   return (
-    <div className="w-full flex flex-col items-center justify-center relative z-20 mb-10" style={{ width: '430px' }}>
+    <div className="w-full flex flex-col items-center justify-center relative z-20 mb-10">
       {/* Profile picture with edit icon overlay */}
       <div className="relative flex justify-center items-center mb-3">
         {/* Circular profile picture placeholder with gradient border */}
         <div
-          className="w-30 h-30 rounded-full p-1"
+          className="w-24 h-24 rounded-full p-1"
           style={{
             background: 'linear-gradient(180deg, #3373CC 0%, #6DB6AE 100%)',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
