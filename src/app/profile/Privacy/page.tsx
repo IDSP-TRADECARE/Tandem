@@ -52,7 +52,7 @@ function Privacy() {
             <h3 className="text-base font-bold font-alan text-black">Report a Security Issue</h3>
             <p className="font-alan text-sm text-black leading-5 mb-12">
               If you believe your account has been compromised or you've found a potential security vulnerability, please contact us at{' '}
-              <a href="tandemfortrades@gmail.com" className="underline" style={{ color: '#3373CC' }}>tandemfortrades@gmail.com</a>. We'll investigate as soon as possible.
+              <a href="tandemfortrades@gmail.com" style={{ color: '#3373CC' }}>tandemfortrades@gmail.com</a>. We'll investigate as soon as possible.
             </p>
           </div>
         </div>
