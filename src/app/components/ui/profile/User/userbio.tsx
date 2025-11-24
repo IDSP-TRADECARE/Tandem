@@ -11,7 +11,7 @@ export function UserBio({
   onBioChange
 }: UserBioProps) {
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full">
       <textarea
         value={bio}
         onChange={(e) => onBioChange?.(e.target.value)}
@@ -19,11 +19,11 @@ export function UserBio({
         style={{
           fontFamily: 'Alan Sans',
           fontSize: '12px',
-          lineHeight: '20px',
-          minHeight: '200px',
+          lineHeight: '18px',
+          minHeight: '150px',
           width: '368px',
-          padding: '120px 20px 20px 20px',
-          marginTop: '-140px',
+          padding: '80px 20px 20px 20px',
+          marginTop: '-100px',
           zIndex: 0
         }}
         placeholder="Add a bio..."

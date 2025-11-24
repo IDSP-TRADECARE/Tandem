@@ -13,16 +13,16 @@ function MainProfile() {
 
     return (
         <GradientBackgroundFull>
-        <div className="p-8 space-y-8 mt-8 flex justify-center" >
+        <div className="p-8 space-y-8 flex justify-start" style={{ marginTop: '4px', marginBottom: '4px' }}>
             <ProfileHeader title="My Profile" showBackButton={false} />
         </div> 
 
-        <div className="flex justify-center relative z-30">
+        <div className="flex justify-start relative z-30">
           <User />
         </div>
       <HalfBackground topPosition="140px">
 
-        <div className="p-8 space-y-6 pt-96">
+        <div className="p-8 space-y-6 mt-[180px]">
           <div className="flex flex-col items-start space-y-6">
             <OptionButton
               icon="/profile/ComponentIcon/Edit.svg"
