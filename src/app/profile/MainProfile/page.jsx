@@ -6,6 +6,7 @@ import {HalfBackground} from '@/app/components/ui/backgrounds/HalfBackground'
 import {OptionButton} from '@/app/components/ui/profile/optionbtn'
 import { BottomNav } from '@/app/components/Layout/BottomNav'
 import { ToggleButton } from '@/app/components/ui/profile/togglebtn'
+import User from '@/app/components/ui/profile/User/user'
 
 function MainProfile() {
   const router = useRouter();
@@ -15,8 +16,13 @@ function MainProfile() {
         <div className="p-8 space-y-8 mt-8 flex justify-center" >
             <ProfileHeader title="My Profile" showBackButton={false} />
         </div> 
+
+        <div className="flex justify-center relative z-30">
+          <User />
+        </div>
       <HalfBackground topPosition="140px">
-        <div className="p-8 space-y-8">
+
+        <div className="p-8 space-y-6 pt-96">
           <div className="flex flex-col items-start space-y-6">
             <OptionButton
               icon="/profile/ComponentIcon/Edit.svg"
