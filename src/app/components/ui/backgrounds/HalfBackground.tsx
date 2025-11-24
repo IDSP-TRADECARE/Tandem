@@ -13,7 +13,7 @@ export function HalfBackground({
 }: HalfBackgroundProps) {
     return (
         <div
-            className='fixed left-0 right-0 bg-[#F5F5F5]'
+            className='fixed left-0 right-0 bg-[#F5F5F5] overflow-y-auto'
             style={{
                 top: topPosition || "140px",
                 bottom: 0,

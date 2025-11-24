@@ -29,14 +29,14 @@ export const LabeledInput: React.FC<LabeledInputProps> = ({
     ...rest
 }) => {
     return (
-        <div className='flex flex-col'>
+        <div className='flex flex-col pt-6'>
             {label && (
-                <label className='font-alan text-xl font-700 pb-2'>
+                <label className='font-alan text-xl font-700 pb-1'>
                     {label}
                 </label>
             )}
 
-            <div className='relative border-b-2 pb-1 pt-1 '>
+            <div className='relative border-b-2 pt-1 '>
                 {/* Left Icon */}
                 {leftIcon && (
                     <div className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none'>
