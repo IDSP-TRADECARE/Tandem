@@ -1,11 +1,11 @@
 'use client';
-import React from 'react'
 import { GradientBackgroundFull } from '@/app/components/ui/backgrounds/GradientBackgroundFull'
 import { ProfileHeader } from '@/app/components/ui/profile/header'
 import {HalfBackground} from '@/app/components/ui/backgrounds/HalfBackground'
 import {ProfileCardCarousel} from '@/app/components/ui/profile/cardCarousel'
 import {ActionButton} from '@/app/components/ui/profile/actionbtn'
 import {OptionButton} from '@/app/components/ui/profile/optionbtn'
+import { BottomNav } from '@/app/components/Layout/BottomNav'
 
 function HelpCentre() {
   return (
@@ -31,6 +31,7 @@ function HelpCentre() {
           onClick={() => console.log('contact us clicked')}
         />
         </div>
+        <BottomNav />
     </HalfBackground>
   </GradientBackgroundFull>
 );
