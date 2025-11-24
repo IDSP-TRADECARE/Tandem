@@ -3,9 +3,10 @@
 interface ProfileInputProps {
   title: string; 
   input: string; 
+  icon?: string;
 }
 
-export function ProfileInput({ title, input }: ProfileInputProps) {
+export function ProfileInput({ title, input, icon }: ProfileInputProps) {
   return (
     <div className="flex flex-col">
       <span
@@ -19,17 +20,26 @@ export function ProfileInput({ title, input }: ProfileInputProps) {
         {title}
       </span>
 
-      <span
-        style={{
-          fontFamily: 'Omnes',
-          fontSize: '16px',
-          fontWeight: 400,
-        }}
-        className="text-black mb-2"
-      >
-        {input}
-      </span>
-
+      <div className="flex items-center gap-2 text-black mb-2">
+        {icon && (
+          <img
+            src={icon}
+            alt=""
+            width={20}
+            height={20}
+            className="shrink-0"
+          />
+        )}
+        <span
+          style={{
+            fontFamily: 'Omnes',
+            fontSize: '16px',
+            fontWeight: 400,
+          }}
+        >
+          {input}
+        </span>
+      </div>
 
       <div
         style={{

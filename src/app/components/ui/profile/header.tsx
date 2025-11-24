@@ -49,6 +49,7 @@ export function ProfileHeader({ title, onBack, showBackButton = true }: ProfileH
             fontSize: '32px',
             fontWeight: 800, 
             color: '#FFFFFF',
+            whiteSpace: 'nowrap',
           }}
         >
           {title}
