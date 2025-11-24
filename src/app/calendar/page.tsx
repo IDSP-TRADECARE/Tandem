@@ -365,7 +365,11 @@ export default function Calendar() {
           ? event.start
           : new Date(event.start as string);
 
-      const dateKey = eventStart.toISOString().split("T")[0];
+      // Use local date components to avoid timezone shifts
+      const year = eventStart.getFullYear();
+      const month = String(eventStart.getMonth() + 1).padStart(2, "0");
+      const day = String(eventStart.getDate()).padStart(2, "0");
+      const dateKey = `${year}-${month}-${day}`;
 
       // Initialize array if it doesn't exist
       if (!grouped[dateKey]) {
@@ -458,7 +462,10 @@ export default function Calendar() {
         Object.entries(groupedByDate)
           .sort()
           .forEach(([dateStr, dayEvents]) => {
-            const date = new Date(dateStr);
+            // Parse date string as local date components
+            const [year, month, day] = dateStr.split("-").map(Number);
+            const date = new Date(year, month - 1, day);
+
             const dayName = date.toLocaleDateString("en-US", {
               weekday: "short",
             });
@@ -773,7 +780,12 @@ export default function Calendar() {
         event.start instanceof Date
           ? event.start
           : new Date(event.start as string);
-      const dateKey = eventStart.toISOString().split("T")[0];
+
+      // Use local date components to avoid timezone shifts
+      const year = eventStart.getFullYear();
+      const month = String(eventStart.getMonth() + 1).padStart(2, "0");
+      const day = String(eventStart.getDate()).padStart(2, "0");
+      const dateKey = `${year}-${month}-${day}`;
 
       if (!eventsByDate[dateKey]) {
         eventsByDate[dateKey] = [];
