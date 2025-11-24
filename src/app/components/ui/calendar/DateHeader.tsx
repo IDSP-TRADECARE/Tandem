@@ -1,6 +1,6 @@
 "use client";
 import { typography } from "@/app/styles/typography";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   IoIosNotifications,
   IoIosArrowBack,
@@ -27,6 +27,8 @@ export function DateHeader({
   eventsByDate = {},
 }: DateHeaderProps) {
   const [selectedDay, setSelectedDay] = useState(date);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const dateButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Format date as "Aug 25, 2025"
   const formatDate = (d: Date) => {
@@ -37,24 +39,76 @@ export function DateHeader({
     });
   };
 
-  // Get array of 5 days starting from a base date
-  const getFiveDays = (baseDate: Date) => {
+  // Get all days in the current month
+  const getAllDaysInMonth = (baseDate: Date) => {
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
     const days = [];
-    for (let i = 0; i < 5; i++) {
-      const day = new Date(baseDate);
-      day.setDate(baseDate.getDate() + i);
-      days.push(day);
+    for (let day = firstDay.getDate(); day <= lastDay.getDate(); day++) {
+      days.push(new Date(year, month, day));
     }
     return days;
   };
 
-  const fiveDays = getFiveDays(date);
+  const allDays = getAllDaysInMonth(date);
 
-  // Handle day selection
-  const handleDayClick = (day: Date) => {
+  // Auto-scroll to current day on mount for "today" header type
+  useEffect(() => {
+    if (type === "today" && scrollContainerRef.current) {
+      const today = new Date();
+      const todayIndex = allDays.findIndex(
+        (day) => day.toDateString() === today.toDateString()
+      );
+
+      if (todayIndex !== -1) {
+        // Small delay to ensure DOM is fully rendered
+        setTimeout(() => {
+          const container = scrollContainerRef.current;
+          if (container) {
+            // Button width (56px) + gap (12px) = 68px per item
+            const itemWidth = 68;
+            // Position today's date as the second item (index - 1)
+            const scrollPosition = Math.max(
+              0,
+              todayIndex * itemWidth - itemWidth
+            );
+
+            container.scrollTo({
+              left: scrollPosition,
+              behavior: "smooth",
+            });
+          }
+        }, 100);
+      }
+    }
+  }, [type, allDays]);
+
+  // Handle day selection and scroll to position
+  const handleDayClick = (day: Date, index: number) => {
     setSelectedDay(day);
     if (onDateSelect) {
       onDateSelect(day);
+    }
+
+    // Scroll to position the clicked date as the second visible item
+    if (scrollContainerRef.current && dateButtonRefs.current[index]) {
+      const container = scrollContainerRef.current;
+      const button = dateButtonRefs.current[index];
+
+      if (button) {
+        // Calculate the scroll position to make this the second item
+        // Button width (56px) + gap (12px) = 68px per item
+        const itemWidth = 68;
+        const scrollPosition = Math.max(0, index * itemWidth - itemWidth);
+
+        container.scrollTo({
+          left: scrollPosition,
+          behavior: "smooth",
+        });
+      }
     }
   };
 
@@ -159,12 +213,18 @@ export function DateHeader({
     );
   }
 
-  // Today Header - Date cards for 5 days
+  // Today Header - Scrollable date cards showing all days in month
   if (type === "today") {
     return (
-      <div className="px-6 pb-2">
-        <div className="flex gap-3 justify-between">
-          {fiveDays.map((day, index) => {
+      <div className="px-6 pb-2 relative">
+        <div
+          ref={scrollContainerRef}
+          className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth"
+          style={{
+            scrollSnapType: "x mandatory",
+          }}
+        >
+          {allDays.map((day, index) => {
             const isSelected =
               day.toDateString() === selectedDay.toDateString();
             const dayNumber = day.getDate();
@@ -175,8 +235,10 @@ export function DateHeader({
             return (
               <button
                 key={index}
-                onClick={() => handleDayClick(day)}
-                className={`flex flex-col items-center justify-center rounded-3xl transition-all p-2 px-1 drop-shadow-2xl ${
+                ref={(el) => (dateButtonRefs.current[index] = el)}
+                onClick={() => handleDayClick(day, index)}
+                style={{ scrollSnapAlign: "center" }}
+                className={`flex flex-col items-center justify-center rounded-3xl transition-all p-2 px-1 drop-shadow-2xl flex-shrink-0 ${
                   isSelected
                     ? "bg-primary-active text-white shadow-lg"
                     : "bg-white text-primary-dark"
@@ -196,6 +258,22 @@ export function DateHeader({
             );
           })}
         </div>
+
+        {/* Gradient fade overlays */}
+        <div
+          className="absolute left-6 top-0 bottom-0 w-12 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(51, 115, 204, 0.3), transparent)",
+          }}
+        />
+        <div
+          className="absolute right-6 top-0 bottom-0 w-12 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to left, rgba(51, 115, 204, 0.3), transparent)",
+          }}
+        />
       </div>
     );
   }
@@ -238,7 +316,7 @@ export function DateHeader({
     );
   }
 
-  // Monthly Header - Full calendar grid
+  // Monthly Header - Full calendar grid (UNCHANGED)
   if (type === "monthly") {
     const monthYear = date.toLocaleDateString("en-US", {
       month: "long",
@@ -312,7 +390,7 @@ export function DateHeader({
                       key={dayIndex}
                       onClick={() => {
                         if (day.isCurrentMonth) {
-                          handleDayClick(day.fullDate);
+                          handleDayClick(day.fullDate, dayIndex);
                         }
                       }}
                       disabled={!day.isCurrentMonth}
