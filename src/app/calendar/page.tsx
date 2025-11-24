@@ -393,18 +393,6 @@ export default function Calendar() {
           // Skip if no events for this day
           if (dayEvents.length === 0) return;
 
-          const workEvents = dayEvents.filter(
-            (e) => e.extendedProps?.type === "work"
-          );
-          const childcareEvents = dayEvents.filter(
-            (e) => e.extendedProps?.type === "childcare"
-          );
-          const otherEvents = dayEvents.filter(
-            (e) =>
-              e.extendedProps?.type !== "work" &&
-              e.extendedProps?.type !== "childcare"
-          );
-
           const dayName = date.toLocaleDateString("en-US", {
             weekday: "short",
           });
@@ -413,102 +401,11 @@ export default function Calendar() {
             day: "numeric",
           });
 
-          // Only add cards if there are actual events (not "No Childcare")
-          const hasRealEvents =
-            workEvents.length > 0 ||
-            otherEvents.length > 0 ||
-            (childcareEvents.length > 0 &&
-              childcareEvents[0].title !== "No Childcare");
+          // Add separate cards for each event, like Monthly view
+          dayEvents.forEach((event, index) => {
+            // Skip "No Childcare" events
+            if (event.title === "No Childcare") return;
 
-          if (!hasRealEvents) return;
-
-          // Add childcare card only if it's a real booking
-          if (
-            childcareEvents.length > 0 &&
-            childcareEvents[0].title !== "No Childcare"
-          ) {
-            childcareEvents.forEach((event, idx) => {
-              cards.push({
-                id: `${date.toISOString()}-childcare-${idx}`,
-                text: event.title || "Childcare",
-                date: `${dayName}, ${dateStr}`,
-                isEmpty: false,
-                isWork: false,
-                type: "Weekly",
-                onClick: () => {
-                  setSelectedEvent(event);
-                  setEventDetailOpen(true);
-                },
-              });
-            });
-          }
-
-          // Add other events card if any
-          if (otherEvents.length > 0) {
-            cards.push({
-              id: `${date.toISOString()}-other`,
-              text: `${otherEvents.length} appointment${
-                otherEvents.length > 1 ? "s" : ""
-              }`,
-              date: `${dayName}, ${dateStr}`,
-              isEmpty: false,
-              isWork: false,
-              type: "Weekly",
-              onClick: () => {
-                if (otherEvents[0]) {
-                  setSelectedEvent(otherEvents[0]);
-                  setEventDetailOpen(true);
-                }
-              },
-            });
-          }
-
-          // Add work card if exists
-          if (workEvents.length > 0) {
-            const workEvent = workEvents[0];
-            const start =
-              workEvent.start instanceof Date
-                ? workEvent.start
-                : new Date(workEvent.start as string);
-            const end =
-              workEvent.end instanceof Date
-                ? workEvent.end
-                : new Date(workEvent.end as string);
-
-            const startTime = start.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            });
-            const endTime = end.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            });
-
-            cards.push({
-              id: `${date.toISOString()}-work`,
-              text: `Work from ${startTime} to ${endTime}`,
-              date: `${dayName}, ${dateStr}`,
-              isEmpty: false,
-              isWork: true,
-              type: "Weekly",
-              onClick: () => {
-                setSelectedEvent(workEvent);
-                setEventDetailOpen(true);
-              },
-            });
-          }
-
-          // Add shift events with time details
-          const shiftEvents = dayEvents.filter(
-            (e) => e.extendedProps?.type === "shift"
-          );
-          const nannyEvents = dayEvents.filter(
-            (e) => e.extendedProps?.type === "nanny"
-          );
-
-          shiftEvents.forEach((event, idx) => {
             const start =
               event.start instanceof Date
                 ? event.start
@@ -529,47 +426,12 @@ export default function Calendar() {
             })}`;
 
             cards.push({
-              id: `${date.toISOString()}-shift-${idx}`,
-              text: event.title || "Shift",
+              id: `${date.toISOString()}-${event.extendedProps?.type}-${index}`,
+              text: event.title || "Event",
               date: `${dayName}, ${dateStr}`,
               timeRange: timeRange,
               isEmpty: false,
-              isWork: false,
-              type: "Weekly",
-              onClick: () => {
-                setSelectedEvent(event);
-                setEventDetailOpen(true);
-              },
-            });
-          });
-
-          nannyEvents.forEach((event, idx) => {
-            const start =
-              event.start instanceof Date
-                ? event.start
-                : new Date(event.start as string);
-            const end =
-              event.end instanceof Date
-                ? event.end
-                : new Date(event.end as string);
-
-            const timeRange = `${start.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            })} - ${end.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            })}`;
-
-            cards.push({
-              id: `${date.toISOString()}-nanny-${idx}`,
-              text: event.title || "Nanny",
-              date: `${dayName}, ${dateStr}`,
-              timeRange: timeRange,
-              isEmpty: false,
-              isWork: false,
+              isWork: event.extendedProps?.type === "work",
               type: "Weekly",
               onClick: () => {
                 setSelectedEvent(event);
