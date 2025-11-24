@@ -5,9 +5,10 @@ interface ActionButtonProps {
   onClick?: () => void;
   className?: string;
   icon?: string;
+  fontSize?: string;
 }
 
-export function ActionButton({ text, onClick, className, icon }: ActionButtonProps) {
+export function ActionButton({ text, onClick, className, icon, fontSize }: ActionButtonProps) {
   return (
     <button
       onClick={onClick}
@@ -18,7 +19,7 @@ export function ActionButton({ text, onClick, className, icon }: ActionButtonPro
         borderRadius: '444px',
         backgroundColor: '#92F189',
         fontFamily: 'Alan Sans', 
-        fontSize: '20px',
+        fontSize: fontSize || '20px',
         color: '#000000',
         border: 'none',
       }}>

@@ -1,15 +1,18 @@
 'use client';
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { GradientBackgroundFull } from '@/app/components/ui/backgrounds/GradientBackgroundFull'
 import { ProfileHeader } from '@/app/components/ui/profile/header'
 import {HalfBackground} from '@/app/components/ui/backgrounds/HalfBackground'
 import { BottomNav } from '@/app/components/Layout/BottomNav'
 
 function Privacy() {
+  const router = useRouter();
+
   return (
     <GradientBackgroundFull>
         <div className="p-8 space-y-8 mt-8" >
-        <ProfileHeader title="Help Centre" />
+        <ProfileHeader title="Help Centre" onBack={() => router.push('/profile/HelpCentre')} />
       </div> 
       <HalfBackground topPosition="140px">
         <div className="p-8 pb-24 space-y-6">

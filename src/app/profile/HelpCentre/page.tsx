@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 import { GradientBackgroundFull } from '@/app/components/ui/backgrounds/GradientBackgroundFull'
 import { ProfileHeader } from '@/app/components/ui/profile/header'
 import {HalfBackground} from '@/app/components/ui/backgrounds/HalfBackground'
@@ -8,6 +9,8 @@ import {OptionButton} from '@/app/components/ui/profile/optionbtn'
 import { BottomNav } from '@/app/components/Layout/BottomNav'
 
 function HelpCentre() {
+  const router = useRouter();
+
   return (
     <GradientBackgroundFull>
         <div className="p-8 space-y-8 mt-8" >
@@ -22,13 +25,13 @@ function HelpCentre() {
           <OptionButton
             icon="/profile/ComponentIcon/Privacy.svg"
             text="Privacy & Security"
-            onClick={() => console.log('Privacy & Security clicked')}
+            onClick={() => router.push('/profile/Privacy')}
           />
           <ActionButton
           className="font-medium font-alan"
           text="Contact Us"
           icon="/profile/ComponentIcon/Text Bubble.svg"
-          onClick={() => console.log('contact us clicked')}
+          onClick={() => router.push('/profile/ContactUs')}
         />
         </div>
         <BottomNav />
