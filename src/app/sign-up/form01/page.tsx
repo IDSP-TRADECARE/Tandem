@@ -45,7 +45,7 @@ export default function Form() {
         <GradientBackgroundFull>
             {/* Header */}
             <div className='flex justify-between pt-20 pl-4 pr-4'>
-                {/* Left Arrow */}
+                {/* Left Arrow */}``
                 <BackButton />
                 <h1 className='text-4xl font-bold text-white mb-2 flex justify-center'>
                     <Image
