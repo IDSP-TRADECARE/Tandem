@@ -115,7 +115,6 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
 
   const handleSaveChanges = () => {
     setIsEditing(false);
-    // Could add API save logic here if needed
   };
 
   // Get the schedule for the currently selected day

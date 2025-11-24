@@ -21,14 +21,18 @@ export async function GET(request: NextRequest) {
         location: schedules.location,
         notes: schedules.notes,
         deletedDates: schedules.deletedDates,
-        editedDates: schedules.editedDates, // CRITICAL: Include this!
+        editedDates: schedules.editedDates,
+        dailyTimes: schedules.dailyTimes, 
       })
       .from(schedules)
       .where(eq(schedules.userId, userId));
 
     console.log(
-      "📅 Fetching schedules for week - editedDates:",
-      userSchedules.map((s) => ({ id: s.id, editedDates: s.editedDates }))
+      "📅 Fetching schedules for week:",
+      userSchedules.map((s) => ({ 
+        id: s.id, 
+        dailyTimes: s.dailyTimes 
+      }))
     );
 
     return NextResponse.json({ schedules: userSchedules });
