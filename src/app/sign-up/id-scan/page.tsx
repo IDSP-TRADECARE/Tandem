@@ -37,7 +37,7 @@ export default function BeforeScan() {
                 </svg>
             </div>
             <HalfBackground>
-                <div className='justify-center p-8'>
+                <div className='justify-center p-8 animate-in fade-in slide-in-from-right-10 duration-300'>
                     <h1 className='font-bold text-4xl font-alan'>
                         Before you scan your ID
                     </h1>
@@ -48,7 +48,7 @@ export default function BeforeScan() {
                         </li>
                     </ul>
                     <Link href={"/sign-up/camera"}>
-                        <button className='cursor-pointer p-2 text-white flex justify-center rounded-3xl bg-primary-hover justify-self-stretch font-semibold px-4 ml-6 mr-6 mt-4'>
+                        <button className='cursor-pointer p-2 text-white flex justify-center rounded-3xl bg-primary-normal justify-self-stretch font-semibold px-4 ml-6 mr-6 mt-4'>
                             Ready to Scan
                         </button>
                     </Link>

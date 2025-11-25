@@ -39,7 +39,7 @@ export default function CameraPage() {
                 </svg>
             </div>
             <HalfBackground>
-                <div className='p-6'>
+                <div className='p-6 animate-in fade-in slide-in-from-right-10 duration-300'>
                     <h1 className='font-bold text-4xl font-alan'>
                         Scan the front of your ID
                     </h1>

@@ -1,0 +1,27 @@
+import Help from "@/app/sign-in/need-help/page";
+import Link from "next/link";
+
+export default function InfoIcon() {
+    return (
+        <Link href='/sign-in/need-help'>
+            <button
+                onClick={Help}
+                className='cursor-pointer'>
+                <svg
+                    xmlns='http://www.w3.org/2000/svg'
+                    width='31'
+                    height='31'
+                    viewBox='0 0 31 31'
+                    fill='none'>
+                    <path
+                        d='M15.125 15.125L15.125 22.0625M15.125 9.98285V9.92188M1.25 15.125C1.25 7.46205 7.46205 1.25 15.125 1.25C22.788 1.25 29 7.46205 29 15.125C29 22.788 22.788 29 15.125 29C7.46205 29 1.25 22.788 1.25 15.125Z'
+                        stroke='white'
+                        strokeWidth='2.5'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                    />
+                </svg>
+            </button>
+        </Link>
+    );
+}

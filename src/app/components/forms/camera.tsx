@@ -41,7 +41,7 @@ const Camera: React.FC = () => {
                     width: "100%",
                     maxWidth: "640px",
                 }}
-                className='border-primary-active border-2 rounded-2xl'
+                className='border-primary-normal border-2 rounded-2xl'
             />
             <p className='font-omnes'>
                 Allow camera permission to see the video feed.

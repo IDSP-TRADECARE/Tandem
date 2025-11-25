@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import BackButton from "@/app/components/forms/backButton";
 import { useRouter } from "next/navigation";
+import InfoIcon from "@/app/components/forms/info";
 
 export default function Form() {
     const [step, setStep] = useState(1);
@@ -45,7 +46,7 @@ export default function Form() {
         <GradientBackgroundFull>
             {/* Header */}
             <div className='flex justify-between pt-20 pl-4 pr-4'>
-                {/* Left Arrow */}``
+                {/* Left Arrow */}
                 <BackButton />
                 <h1 className='text-4xl font-bold text-white mb-2 flex justify-center'>
                     <Image
@@ -56,23 +57,10 @@ export default function Form() {
                     />
                 </h1>
                 {/* Info Icon */}
-                <svg
-                    xmlns='http://www.w3.org/2000/svg'
-                    width='31'
-                    height='31'
-                    viewBox='0 0 31 31'
-                    fill='none'>
-                    <path
-                        d='M15.125 15.125L15.125 22.0625M15.125 9.98285V9.92188M1.25 15.125C1.25 7.46205 7.46205 1.25 15.125 1.25C22.788 1.25 29 7.46205 29 15.125C29 22.788 22.788 29 15.125 29C7.46205 29 1.25 22.788 1.25 15.125Z'
-                        stroke='white'
-                        strokeWidth='2.5'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                    />
-                </svg>
+                <InfoIcon />
             </div>
             <HalfBackground>
-                <div className=' p-6'>
+                <div className='p-6 animate-in fade-in slide-in-from-right-10 duration-300'>
                     <h1 className='font-bold font-alan text-xl pt-2 text-start'>
                         {step === 1 && `Let's set up your account information!`}
                         {step === 2 &&

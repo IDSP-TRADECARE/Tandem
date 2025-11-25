@@ -29,7 +29,7 @@ export default function SignInPage() {
                 </h1>
             </div>
             <HalfBackground>
-                <div className='px-6 pt-8 pb-12'>
+                <div className='px-6 pt-8 pb-12 animate-in fade-in slide-in-from-right-10 duration-300'>
                     <h1 className='font-bold text-3xl font-alan'>Sign Up</h1>
 
                     <div className='flex justify-center'>
