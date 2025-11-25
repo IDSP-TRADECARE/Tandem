@@ -24,7 +24,7 @@ function formatTime12Hour(time24: string): string {
   return `${hours12} ${period}`;
 }
 
-export function ScheduleOverview({ data, onEdit, onBack, onSave }: ScheduleOverviewProps) {
+export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState<ScheduleData>(data);
   const [selectedDay, setSelectedDay] = useState<string | null>(
