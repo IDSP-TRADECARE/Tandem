@@ -48,7 +48,7 @@ export function ProfileHeader({ title, onBack, showBackButton = true }: ProfileH
           className="break-words"
           style={{
             fontFamily: 'Alan Sans',
-            fontSize: '32px',
+            fontSize: '26px',
             fontWeight: 800, 
             color: '#FFFFFF',
             wordWrap: 'break-word',

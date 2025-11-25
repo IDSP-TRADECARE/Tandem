@@ -1,71 +1,32 @@
 'use client';
-import { useRouter } from 'next/navigation';
 import { GradientBackgroundFull } from '@/app/components/ui/backgrounds/GradientBackgroundFull'
 import { ProfileHeader } from '@/app/components/ui/profile/header'
 import {HalfBackground} from '@/app/components/ui/backgrounds/HalfBackground'
-import {OptionButton} from '@/app/components/ui/profile/optionbtn'
+import { ScrollOption } from '@/app/components/ui/profile/scrollOption'
 import { BottomNav } from '@/app/components/Layout/BottomNav'
-import { ToggleButton } from '@/app/components/ui/profile/togglebtn'
 import User from '@/app/components/ui/profile/User/user'
 
 function MainProfile() {
-  const router = useRouter();
-
     return (
-        <GradientBackgroundFull>
-        <div className="p-8 space-y-8 flex justify-start" style={{ marginTop: '4px', marginBottom: '4px' }}>
-            <ProfileHeader title="My Profile" showBackButton={false} />
-        </div> 
+        <div className="min-h-screen flex flex-col">
+          <GradientBackgroundFull>
+            <div className="p-8 space-y-8 flex justify-start">
+                <ProfileHeader title="My Profile" showBackButton={false} />
+            </div> 
 
-        <div className="flex justify-start relative z-30">
-          <User />
-        </div>
-      <HalfBackground topPosition="140px">
-
-        <div className="p-8 space-y-6 mt-[180px]">
-          <div className="flex flex-col items-start space-y-6">
-            <OptionButton
-              icon="/profile/ComponentIcon/Edit.svg"
-              text="Edit Profile"
-              onClick={() => router.push('/profile/EditProfile')}
-            />
-
-            <OptionButton
-              icon="/profile/ComponentIcon/Location.svg"
-              text="Location"
-              onClick={() => router.push('/profile/Location')}
-            />  
-
-            <OptionButton
-              icon="/profile/ComponentIcon/Company.svg"
-              text="Company"
-              onClick={() => router.push('/profile/Company')}
-            />
-
-            <OptionButton
-              icon="/profile/ComponentIcon/Mode.svg"
-              text="Light/Dark Mode"
-              rightComponent={<ToggleButton />}
-            />
-
-            <OptionButton
-              icon="/profile/ComponentIcon/Help.svg"
-              text="Help Centre"
-              onClick={() => router.push('/profile/HelpCentre')}
-            /> 
-
-            <OptionButton
-              icon="/profile/ComponentIcon/Logout.svg"
-              text="Logout"
-              onClick={() => router.push('/profile/Logout')}
-            />  
- 
-
-          </div>
+            <div className="flex justify-start fixed top-0 left-0 right-0 z-30 px-8" style={{ marginTop: '80px' }}>
+              <User />
             </div>
-        <BottomNav />
-    </HalfBackground>
-        </GradientBackgroundFull>
+      
+            <HalfBackground topPosition="140px">
+              <div className="w-full flex justify-center px-4 sm:px-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 260px)', paddingTop: '200px' }}>
+                <ScrollOption />
+              </div>
+            </HalfBackground>
+
+            <BottomNav />
+          </GradientBackgroundFull>
+        </div>
     );
 }
 

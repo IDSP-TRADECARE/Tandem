@@ -25,7 +25,8 @@ export function UserBio({
           maxWidth: '100%',
           padding: '80px 20px 20px 20px',
           marginTop: '-100px',
-          zIndex: 0
+          zIndex: 0,
+          textAlign: 'center'
         }}
         placeholder="Add a bio..."
         readOnly={!onBioChange}

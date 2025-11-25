@@ -19,8 +19,8 @@ export default function EditCompanyPage() {
 
       <HalfBackground topPosition="140px">
         <div className="w-full flex justify-center px-4">
-          <div className="w-full max-w-[402px] px-2 py-10 space-y-6">
-              <div className="flex flex-col space-y-6 ml-6" style={{ width: '368px' }}>
+          <div className="w-full px-2 py-10 space-y-6">
+              <div className="flex flex-col space-y-6">
               <ProfileInput
                 title="Company Name"
                 input="BCIT Company"
@@ -29,7 +29,7 @@ export default function EditCompanyPage() {
               <ProfileInput title="Employee ID" input="A123458888" />
             </div>
 
-            <div className="pt-2 flex justify-center">
+            <div className="w-full flex justify-center">
               <ActionButton text="Save" onClick={() => router.push('/profile/MainProfile')} />
             </div>
           </div>
