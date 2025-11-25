@@ -9,11 +9,9 @@ interface ProfileHeaderProps {
 export function ProfileHeader({ title, onBack, showBackButton = true }: ProfileHeaderProps) {
   return (
     <div
+      className="w-full flex items-center relative"
       style={{
-        width: '402px',
-        display: 'flex',
-        alignItems: 'center',
-        position: 'relative',
+        width: '100%',
       }}
     >
       {showBackButton && (
@@ -37,19 +35,24 @@ export function ProfileHeader({ title, onBack, showBackButton = true }: ProfileH
       )}
 
       <div
+        className="flex flex-wrap justify-center items-center"
         style={{
           position: 'absolute',
           left: '50%',
           transform: 'translateX(-50%)',
+          maxWidth: 'calc(100% - 100px)',
+          textAlign: 'center',
         }}
       >
         <span
+          className="break-words"
           style={{
             fontFamily: 'Alan Sans',
-            fontSize: '32px',
+            fontSize: '26px',
             fontWeight: 800, 
             color: '#FFFFFF',
-            whiteSpace: 'nowrap',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word',
           }}
         >
           {title}

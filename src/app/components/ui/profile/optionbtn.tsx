@@ -18,7 +18,7 @@ export function OptionButton({ icon, text, onClick, rightComponent }: OptionButt
       onClick={onClick}
       className="flex items-center justify-between px-4 py-3 w-full transition-opacity hover:opacity-80"
       style={{
-        width: '368px',
+        width: '100%',
         height: '52px',
         borderRadius: '12px',
         backgroundColor: 'rgba(163, 192, 232, 0.3)',
@@ -44,14 +44,16 @@ export function OptionButton({ icon, text, onClick, rightComponent }: OptionButt
           {rightComponent}
         </div>
       ) : (
-      <img
-        src="/profile/ComponentIcon/Arrows.svg"
-        alt=""
-        width={25}
-        height={25}
-        className="shrink-0"
-      />
+        <img
+          src="/profile/ComponentIcon/Arrows.svg"
+          alt=""
+          width={25}
+          height={25}
+          className="shrink-0"
+        />
       )}
+
+    
     </button>
   );
 }

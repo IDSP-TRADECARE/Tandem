@@ -19,13 +19,13 @@ export default function EditLocationPage() {
 
       <HalfBackground topPosition="140px">
         <div className="w-full flex flex-col items-center px-4">
-          <div className="w-full max-w-[402px] px-2 py-10 space-y-6 ml-12">
+          <div className="w-full px-2 py-10 space-y-6">
             <ProfileInput title="Street Address" input="234 Haha Street" />
             <ProfileInput title="City" input="Vancouver" />
             <ProfileInput title="Zip Code" input="LM4 0L0L" />
           </div>
 
-          <div className="pt-2 flex justify-center">
+          <div className="w-full flex justify-center">
             <ActionButton text="Save" onClick={() => router.push('/profile/MainProfile')} />
           </div>
         </div>

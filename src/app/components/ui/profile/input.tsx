@@ -8,7 +8,7 @@ interface ProfileInputProps {
 
 export function ProfileInput({ title, input, icon }: ProfileInputProps) {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full">
       <span
         style={{
           fontFamily: 'Alan Sans',
@@ -42,8 +42,9 @@ export function ProfileInput({ title, input, icon }: ProfileInputProps) {
       </div>
 
       <div
+        className="w-full"
         style={{
-          width: '335px',
+          width: '100%',
           height: '1px',
           backgroundColor: '#000000',
         }}
