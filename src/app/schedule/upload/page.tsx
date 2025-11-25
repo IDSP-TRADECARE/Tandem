@@ -183,10 +183,12 @@ export default function ScheduleUploadPage() {
         {step === 'overview' && scheduleData && (
           <div className="px-4 pt-6">
             <ScheduleOverview 
-              data={scheduleData} 
+              data={scheduleData}
               onEdit={handleEdit}
-              onBack={handleReset}
-            />
+              onBack={handleReset} 
+              onSave={function (updatedData: ScheduleData): Promise<void> {
+                throw new Error('Function not implemented.');
+              } }            />
           </div>
         )}
       </div>

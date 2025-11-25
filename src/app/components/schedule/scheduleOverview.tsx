@@ -10,6 +10,7 @@ interface ScheduleOverviewProps {
   data: ScheduleData;
   onEdit: () => void;
   onBack: () => void;
+  onSave: (updatedData: ScheduleData) => Promise<void>; 
 }
 
 // Helper to convert 24h time to 12h format
@@ -113,9 +114,32 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
     setSelectedDay(data.workingDays.length > 0 ? data.workingDays[0] : null);
   };
 
-  const handleSaveChanges = () => {
-    setIsEditing(false);
+  const handleSaveChanges = async () => {
+    try {
+      const res = await fetch('/api/schedule/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editedData),
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to save schedule');
+      }
+
+      const result = await res.json();
+      const saved = result.schedule || result.created || result;
+
+      // Merge server fields (id, dailyTimes, etc.) back into state
+      setEditedData((prev) => ({ ...prev, ...saved }));
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      alert(error instanceof Error ? error.message : 'Failed to save changes. Please try again.');
+    }
   };
+
 
   // Get the schedule for the currently selected day
   const currentDaySchedule = selectedDay && editedData.daySchedules?.[selectedDay];
