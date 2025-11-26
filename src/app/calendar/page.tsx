@@ -84,15 +84,7 @@ export default function Calendar() {
   const [allEvents, setAllEvents] = useState<CustomEventInput[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [monthPickerOpen, setMonthPickerOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"shift" | "nanny">("shift");
-  const [newEventTitle, setNewEventTitle] = useState<string>("");
-  const [newEventStartTime, setNewEventStartTime] = useState<string>("");
-  const [newEventEndTime, setNewEventEndTime] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<DateSelectArg | null>(null);
-  const [newEventLocation, setNewEventLocation] = useState<string>("");
-  const [newEventNotes, setNewEventNotes] = useState<string>("");
   const [activeView, setActiveView] = useState<ViewType>("Weekly");
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedMonthDate, setSelectedMonthDate] = useState<Date | null>(null);
@@ -161,7 +153,9 @@ export default function Calendar() {
     }
   };
 
-  const generateCalendarEvents = (schedules: Schedule[]): CustomEventInput[] => {
+  const generateCalendarEvents = (
+    schedules: Schedule[]
+  ): CustomEventInput[] => {
     const events: CustomEventInput[] = [];
     const today = new Date();
 
@@ -208,7 +202,7 @@ export default function Calendar() {
         const dailyTimes = schedule.dailyTimes || {};
         const dayTimes = dailyTimes[dayCode] || {
           timeFrom: schedule.timeFrom,
-          timeTo: schedule.timeTo
+          timeTo: schedule.timeTo,
         };
 
         // Check for edits
@@ -220,11 +214,15 @@ export default function Calendar() {
           console.log(`✏️ Applying work edits for ${dateStr}:`, workEdits);
         }
         if (childcareEdits) {
-          console.log(`✏️ Applying childcare edits for ${dateStr}:`, childcareEdits);
+          console.log(
+            `✏️ Applying childcare edits for ${dateStr}:`,
+            childcareEdits
+          );
         }
 
         // Create work event with edits applied
-        const workTitle = workEdits?.title || `Work: ${schedule.location || schedule.title}`;
+        const workTitle =
+          workEdits?.title || `Work: ${schedule.location || schedule.title}`;
         const workTimeFrom = workEdits?.timeFrom || dayTimes.timeFrom;
         const workTimeTo = workEdits?.timeTo || dayTimes.timeTo;
         const workLocation = workEdits?.location || schedule.location || "";
@@ -524,101 +522,45 @@ export default function Calendar() {
     return scheduleId && date ? { scheduleId, date } : null;
   };
 
-  const handleDateClick = (selectInfo: DateSelectArg) => {
-    setSelectedDate(selectInfo);
-    setActiveTab("shift");
-    setDialogOpen(true);
-  };
+  // Remove or comment out handleDateClick function
+  // const handleDateClick = (selectInfo: DateSelectArg) => {
+  //   setSelectedDate(selectInfo);
+  //   setActiveTab("shift");
+  //   setDialogOpen(true);
+  // };
 
+  // Update handleMonthDateSelect to not open the add dialog
   const handleMonthDateSelect = (date: Date) => {
     setSelectedMonthDate(date);
 
     const weekStart = getStartOfWeek(date);
     setWeekStartDate(weekStart);
 
-    const calendarApi = calendarRef.current?.getApi();
-    if (!calendarApi) return;
+    // Remove the dialog opening logic
+    // const calendarApi = calendarRef.current?.getApi();
+    // if (!calendarApi) return;
 
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateString = `${year}-${month}-${day}`;
+    // const year = date.getFullYear();
+    // const month = String(date.getMonth() + 1).padStart(2, "0");
+    // const day = String(date.getDate()).padStart(2, "0");
+    // const dateString = `${year}-${month}-${day}`;
 
-    const selectInfo: DateSelectArg = {
-      start: date,
-      end: date,
-      startStr: dateString,
-      endStr: dateString,
-      allDay: true,
-      view: calendarApi.view,
-      jsEvent: new MouseEvent("click"),
-    };
+    // const selectInfo: DateSelectArg = {
+    //   start: date,
+    //   end: date,
+    //   startStr: dateString,
+    //   endStr: dateString,
+    //   allDay: true,
+    //   view: calendarApi.view,
+    //   jsEvent: new MouseEvent("click"),
+    // };
 
-    handleDateClick(selectInfo);
+    // handleDateClick(selectInfo);
   };
 
   const getEventsForSelectedDate = () => {
     if (!selectedMonthDate) return [];
     return getEventsForDate(selectedMonthDate);
-  };
-
-  const handleAddEvent = () => {
-    if (
-      !selectedDate ||
-      !newEventTitle ||
-      !newEventStartTime ||
-      !newEventEndTime
-    ) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
-    const calendarApi = calendarRef.current?.getApi();
-    if (!calendarApi) return;
-
-    const dateString = selectedDate.startStr;
-    const [year, month, day] = dateString.split("-").map(Number);
-
-    const startDateTime = new Date(year, month - 1, day);
-    const [startHour, startMinute] = newEventStartTime.split(":").map(Number);
-    startDateTime.setHours(startHour, startMinute, 0, 0);
-
-    const endDateTime = new Date(year, month - 1, day);
-    const [endHour, endMinute] = newEventEndTime.split(":").map(Number);
-    endDateTime.setHours(endHour, endMinute, 0, 0);
-
-    const eventType = activeTab === "shift" ? "shift" : "nanny";
-    const eventColor = getEventColor(eventType);
-
-    const newEvent: CustomEventInput = {
-      id: `${eventType}-${Date.now()}`,
-      title: newEventTitle,
-      start: startDateTime,
-      end: endDateTime,
-      allDay: false,
-      backgroundColor: eventColor.bg,
-      borderColor: eventColor.border,
-      extendedProps: {
-        location: newEventLocation,
-        notes: newEventNotes,
-        type: eventType,
-      },
-    };
-
-    calendarApi.addEvent(newEvent);
-    setAllEvents((prev) => [...prev, newEvent]);
-    handleCloseDialog();
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setNewEventTitle("");
-    setNewEventStartTime("");
-    setNewEventEndTime("");
-    setNewEventLocation("");
-    setNewEventNotes("");
-    setActiveTab("shift");
-    setSelectedDate(null);
   };
 
   const handleEventDetailClose = (open: boolean) => {
@@ -807,7 +749,8 @@ export default function Calendar() {
           initialView="dayGridMonth"
           editable={true}
           selectable={true}
-          select={handleDateClick}
+          // Remove the select handler
+          // select={handleDateClick}
           events={allEvents}
           eventsSet={(events) => setCurrentEvents(events)}
         />
@@ -864,153 +807,7 @@ export default function Calendar() {
         </div>
       </HalfBackground>
 
-      {/* Add Event Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
-              Add New Event
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedDate && (
-            <div className="space-y-4">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-600">Date</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {(() => {
-                    const [year, month, day] = selectedDate.startStr
-                      .split("-")
-                      .map(Number);
-                    const localDate = new Date(year, month - 1, day);
-                    return formatDate(localDate, {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    });
-                  })()}
-                </p>
-              </div>
-
-              <div className="flex border-b-2 border-gray-200">
-                <button
-                  onClick={() => setActiveTab("shift")}
-                  className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
-                    activeTab === "shift"
-                      ? "text-green-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Add Shift
-                  {activeTab === "shift" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600"></div>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab("nanny")}
-                  className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
-                    activeTab === "nanny"
-                      ? "text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Add Nanny
-                  {activeTab === "nanny" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
-                  )}
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Event Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter event title"
-                  value={newEventTitle}
-                  onChange={(e) => setNewEventTitle(e.target.value)}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Start Time <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={newEventStartTime}
-                    onChange={(e) => setNewEventStartTime(e.target.value)}
-                    className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    End Time <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={newEventEndTime}
-                    onChange={(e) => setNewEventEndTime(e.target.value)}
-                    className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  placeholder="Add location"
-                  value={newEventLocation}
-                  onChange={(e) => setNewEventLocation(e.target.value)}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Additional Notes
-                </label>
-                <textarea
-                  placeholder="Add any additional notes here..."
-                  value={newEventNotes}
-                  onChange={(e) => setNewEventNotes(e.target.value)}
-                  rows={4}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors resize-none"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <button
-                  onClick={handleCloseDialog}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-4 rounded-xl transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddEvent}
-                  className={`flex-1 text-white font-semibold py-3 px-4 rounded-xl transition-colors ${
-                    activeTab === "shift"
-                      ? "bg-green-600 hover:bg-green-700"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }`}
-                >
-                  Add Event
-                </button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Event Detail Dialog */}
+      {/* Keep Event Detail Dialog as is */}
       <Dialog open={eventDetailOpen} onOpenChange={handleEventDetailClose}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
