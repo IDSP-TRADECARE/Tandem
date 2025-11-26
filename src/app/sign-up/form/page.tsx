@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import BackButton from "@/app/components/forms/backButton";
 import { useRouter } from "next/navigation";
-import InfoIcon from "@/app/components/forms/info";
+import CompanyInfoIcon from "@/app/components/forms/companyInfo";
 
 export default function Form() {
     const [step, setStep] = useState(1);
@@ -57,7 +57,7 @@ export default function Form() {
                     />
                 </h1>
                 {/* Info Icon */}
-                <InfoIcon />
+                <CompanyInfoIcon />
             </div>
             <HalfBackground>
                 <div className='p-6 animate-in fade-in slide-in-from-right-10 duration-300'>

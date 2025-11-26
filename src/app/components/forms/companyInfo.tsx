@@ -1,16 +1,16 @@
 "use client";
 
-import HelpModal from "@/app/sign-in/need-help/helpModal"; // Correct path!
+import Verify from "@/app/sign-in/verify-cancel/workModal"; // Correct path!
 import { useState } from "react";
 
-export default function InfoIcon() {
-    const [helpOpen, setHelpOpen] = useState(false);
+export default function CompanyInfoIcon() {
+    const [compOpen, setCompOpen] = useState(false);
 
     return (
         <>
             <button
                 className='cursor-pointer z-50' // z-50 so it appears above everything
-                onClick={() => setHelpOpen(true)}>
+                onClick={() => setCompOpen(true)}>
                 <svg
                     xmlns='http://www.w3.org/2000/svg'
                     width='31'
@@ -28,9 +28,9 @@ export default function InfoIcon() {
                 </svg>
             </button>
 
-            <HelpModal
-                open={helpOpen}
-                onClose={() => setHelpOpen(false)}
+            <Verify
+                open={compOpen}
+                onClose={() => setCompOpen(false)}
             />
         </>
     );
