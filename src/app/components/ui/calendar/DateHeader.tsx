@@ -94,23 +94,7 @@ export function DateHeader({
       onDateSelect(day);
     }
 
-    // Scroll to position the clicked date as the second visible item
-    if (scrollContainerRef.current && dateButtonRefs.current[index]) {
-      const container = scrollContainerRef.current;
-      const button = dateButtonRefs.current[index];
-
-      if (button) {
-        // Calculate the scroll position to make this the second item
-        // Button width (56px) + gap (12px) = 68px per item
-        const itemWidth = 68;
-        const scrollPosition = Math.max(0, index * itemWidth - itemWidth);
-
-        container.scrollTo({
-          left: scrollPosition,
-          behavior: "smooth",
-        });
-      }
-    }
+   
   };
 
   // Get calendar grid for monthly view
