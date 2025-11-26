@@ -10,14 +10,30 @@ export type QuickShare = {
   creatorName?: string;
 };
 
+function pad(n: number) {
+  return n.toString().padStart(2, '0');
+}
+
+function formatHHMM(d: Date) {
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export async function createQuickShare(
   overrides?: Partial<QuickShare>
 ): Promise<{ id: string; [key: string]: any }> {
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const now = new Date();
+  const startTime = formatHHMM(now);
+
+  const sixHoursMs = 6 * 60 * 60 * 1000;
+  const end = new Date(now.getTime() + sixHoursMs);
+  const endTime = formatHHMM(end);
+
+  const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
   const payload: QuickShare = {
     date: today,
-    startTime: '06:00',
-    endTime: '20:00',
+    startTime,
+    endTime,
     price: 25,
     certificates: [],
     maxSpots: 8,

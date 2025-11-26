@@ -135,11 +135,14 @@ export default function NannySchedulePage() {
           <button className="flex-1 py-3 border-2 border-blue-500 text-blue-500 rounded-full">
             Cancel
           </button>
-          <button 
 
-          //SHORTHAND USAGE
-          onClick={async () => (await createQuickShare()).id && router.push(`/nanny/${(await createQuickShare()).id}`)}
-          // SHORTHAND USAGE END
+          <button
+          // SHORT HAND FOR NOW --------------------
+            onClick={async () => {
+              await createQuickShare();
+              router.push('/nanny');
+            }}
+            // SHORT HAND FOR NOW END ----------------
             className="flex-1 py-3 bg-blue-500 text-white rounded-full"
           >
             Save
