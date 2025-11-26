@@ -27,8 +27,9 @@ import {
   getTopPositionForView,
   createMonthHandlers as createMonthNavigationHandlers,
 } from "../components/calendar/viewHelpers";
-import { DateCardContainer } from "../components/ui/calendar/DateCard";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { IoIosArrowForward } from "react-icons/io";
 
 interface DateCard {
   id: string;
@@ -36,10 +37,17 @@ interface DateCard {
   isEmpty: boolean;
   isWork: boolean;
   type: ViewType;
-  date?: string;
   timeRange?: string;
-  isToday?: boolean; // Add this property
   onClick: () => void;
+}
+
+interface DateGroup {
+  date: string;
+  dayName: string;
+  dateStr: string;
+  month: string;
+  isToday: boolean;
+  cards: DateCard[];
 }
 
 interface Schedule {
@@ -81,6 +89,7 @@ type ViewType = "Weekly" | "Monthly";
 const tabs = ["Weekly", "Monthly"];
 
 export default function Calendar() {
+  const router = useRouter();
   const [currentEvents, setCurrentEvents] = useState<EventApi[]>([]);
   const [allEvents, setAllEvents] = useState<CustomEventInput[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -159,7 +168,7 @@ export default function Calendar() {
   ): CustomEventInput[] => {
     const events: CustomEventInput[] = [];
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start from beginning of today
+    today.setHours(0, 0, 0, 0);
 
     console.log("📋 Generating events from schedules:", schedules);
 
@@ -173,48 +182,39 @@ export default function Calendar() {
       SAT: 6,
     };
 
-    // Generate events for the next 90 days
     for (let i = 0; i < 90; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      date.setHours(0, 0, 0, 0); // Normalize to start of day
+      date.setHours(0, 0, 0, 0);
 
       const dayOfWeek = date.getDay();
-
-      // Format date as YYYY-MM-DD in local timezone
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
       const dateStr = `${year}-${month}-${day}`;
 
-      // Find day code for this day of week
       const dayCode = Object.keys(dayMap).find(
         (key) => dayMap[key] === dayOfWeek
       );
 
       if (!dayCode) continue;
 
-      // Check all schedules for this day
       for (const schedule of schedules) {
-        // Check if this schedule applies to this day
         if (!schedule.workingDays.includes(dayCode)) {
           continue;
         }
 
-        // Skip deleted dates
         if (schedule.deletedDates?.includes(dateStr)) {
           console.log(`⏭️ Skipping deleted date: ${dateStr}`);
           continue;
         }
 
-        // Get times for this specific day from daily_times or fall back to default
         const dailyTimes = schedule.dailyTimes || {};
         const dayTimes = dailyTimes[dayCode] || {
           timeFrom: schedule.timeFrom,
           timeTo: schedule.timeTo,
         };
 
-        // Check for edits
         const editedDatesForDate = schedule.editedDates?.[dateStr];
         const workEdits = editedDatesForDate?.work;
         const childcareEdits = editedDatesForDate?.childcare;
@@ -229,7 +229,6 @@ export default function Calendar() {
           );
         }
 
-        // Create work event with edits applied
         const workTitle =
           workEdits?.title || `Work: ${schedule.location || schedule.title}`;
         const workTimeFrom = workEdits?.timeFrom || dayTimes.timeFrom;
@@ -252,7 +251,6 @@ export default function Calendar() {
           },
         });
 
-        // Create childcare event with edits applied
         const childcareTitle = childcareEdits?.title || "No Childcare";
         const childcareTimeFrom = childcareEdits?.timeFrom || dayTimes.timeFrom;
         const childcareTimeTo = childcareEdits?.timeTo || dayTimes.timeFrom;
@@ -388,14 +386,15 @@ export default function Calendar() {
     return grouped;
   };
 
-  const generateDateCards = (): DateCard[] => {
+  const generateDateGroups = (): DateGroup[] => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize to start of day
+    today.setHours(0, 0, 0, 0);
+
+    const groups: DateGroup[] = [];
 
     switch (activeView) {
       case "Weekly": {
         const weekDates = getCurrentWeekDates();
-        const cards: DateCard[] = [];
 
         weekDates.forEach((date) => {
           const dayEvents = getEventsForDate(date);
@@ -406,25 +405,44 @@ export default function Calendar() {
           normalizedDate.setHours(0, 0, 0, 0);
           const isToday = normalizedDate.getTime() === today.getTime();
 
-          const dayName = date.toLocaleDateString("en-US", {
-            weekday: "short",
-          });
-          const dateStr = date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          });
+          const dayName = date
+            .toLocaleDateString("en-US", {
+              weekday: "short",
+            })
+            .toUpperCase();
 
-          dayEvents.forEach((event, index) => {
-            if (event.title === "No Childcare") return;
+          const dateNum = date.getDate().toString();
 
+          const month = date
+            .toLocaleDateString("en-US", {
+              month: "short",
+            })
+            .toUpperCase();
+
+          const cards: DateCard[] = [];
+
+          // Get all work events
+          const workEvents = dayEvents.filter(
+            (event) => event.extendedProps?.type === "work"
+          );
+
+          // Check if this date has any childcare bookings (not "No Childcare")
+          const hasChildcareBooking = dayEvents.some(
+            (event) =>
+              event.extendedProps?.type === "childcare" &&
+              event.title !== "No Childcare"
+          );
+
+          // Add a separate card for EACH work event
+          workEvents.forEach((workEvent) => {
             const start =
-              event.start instanceof Date
-                ? event.start
-                : new Date(event.start as string);
+              workEvent.start instanceof Date
+                ? workEvent.start
+                : new Date(workEvent.start as string);
             const end =
-              event.end instanceof Date
-                ? event.end
-                : new Date(event.end as string);
+              workEvent.end instanceof Date
+                ? workEvent.end
+                : new Date(workEvent.end as string);
 
             const timeRange = `${start.toLocaleTimeString("en-US", {
               hour: "numeric",
@@ -437,23 +455,47 @@ export default function Calendar() {
             })}`;
 
             cards.push({
-              id: `${date.toISOString()}-${event.extendedProps?.type}-${index}`,
-              text: event.title || "Event",
-              date: `${dayName}, ${dateStr}`,
+              id: `${workEvent.id}`,
+              text: workEvent.title || "Work",
               timeRange: timeRange,
               isEmpty: false,
-              isWork: event.extendedProps?.type === "work",
+              isWork: true,
               type: "Weekly",
-              isToday: isToday,
               onClick: () => {
-                setSelectedEvent(event);
+                setSelectedEvent(workEvent);
                 setEventDetailOpen(true);
               },
             });
           });
+
+          // Add "No Childcare Booked!" card once if there's work but no childcare
+          if (workEvents.length > 0 && !hasChildcareBooking) {
+            cards.push({
+              id: `${date.toISOString()}-childcare-reminder`,
+              text: "No Childcare Booked!",
+              timeRange: undefined,
+              isEmpty: true,
+              isWork: false,
+              type: "Weekly",
+              onClick: () => {
+                router.push("/nanny/book/form");
+              },
+            });
+          }
+
+          if (cards.length > 0) {
+            groups.push({
+              date: dateNum,
+              dayName,
+              dateStr: `${dayName}, ${dateNum} ${month}`,
+              month,
+              isToday,
+              cards,
+            });
+          }
         });
 
-        return cards;
+        return groups;
       }
 
       case "Monthly": {
@@ -464,7 +506,6 @@ export default function Calendar() {
         }
 
         const groupedByDate = groupEventsByDate(monthEvents);
-        const cards: DateCard[] = [];
 
         Object.entries(groupedByDate)
           .sort()
@@ -474,25 +515,44 @@ export default function Calendar() {
             date.setHours(0, 0, 0, 0);
             const isToday = date.getTime() === today.getTime();
 
-            const dayName = date.toLocaleDateString("en-US", {
-              weekday: "short",
-            });
-            const dateDisplay = date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            });
+            const dayName = date
+              .toLocaleDateString("en-US", {
+                weekday: "short",
+              })
+              .toUpperCase();
 
-            dayEvents.forEach((event, index) => {
-              if (event.title === "No Childcare") return;
+            const dateNum = date.getDate().toString();
 
+            const monthStr = date
+              .toLocaleDateString("en-US", {
+                month: "short",
+              })
+              .toUpperCase();
+
+            const cards: DateCard[] = [];
+
+            // Get all work events
+            const workEvents = dayEvents.filter(
+              (event) => event.extendedProps?.type === "work"
+            );
+
+            // Check if this date has any childcare bookings (not "No Childcare")
+            const hasChildcareBooking = dayEvents.some(
+              (event) =>
+                event.extendedProps?.type === "childcare" &&
+                event.title !== "No Childcare"
+            );
+
+            // Add a separate card for EACH work event
+            workEvents.forEach((workEvent) => {
               const start =
-                event.start instanceof Date
-                  ? event.start
-                  : new Date(event.start as string);
+                workEvent.start instanceof Date
+                  ? workEvent.start
+                  : new Date(workEvent.start as string);
               const end =
-                event.end instanceof Date
-                  ? event.end
-                  : new Date(event.end as string);
+                workEvent.end instanceof Date
+                  ? workEvent.end
+                  : new Date(workEvent.end as string);
 
               const timeRange = `${start.toLocaleTimeString("en-US", {
                 hour: "numeric",
@@ -505,23 +565,47 @@ export default function Calendar() {
               })}`;
 
               cards.push({
-                id: `${dateStr}-${event.extendedProps?.type}-${index}`,
-                text: event.title || "Event",
-                date: `${dayName}, ${dateDisplay}`,
+                id: `${workEvent.id}`,
+                text: workEvent.title || "Work",
                 timeRange: timeRange,
                 isEmpty: false,
-                isWork: event.extendedProps?.type === "work",
+                isWork: true,
                 type: "Monthly",
-                isToday: isToday,
                 onClick: () => {
-                  setSelectedEvent(event);
+                  setSelectedEvent(workEvent);
                   setEventDetailOpen(true);
                 },
               });
             });
+
+            // Add "No Childcare Booked!" card once if there's work but no childcare
+            if (workEvents.length > 0 && !hasChildcareBooking) {
+              cards.push({
+                id: `${dateStr}-childcare-reminder`,
+                text: "No Childcare Booked!",
+                timeRange: undefined,
+                isEmpty: true,
+                isWork: false,
+                type: "Monthly",
+                onClick: () => {
+                  router.push("/nanny/book/form");
+                },
+              });
+            }
+
+            if (cards.length > 0) {
+              groups.push({
+                date: dateNum,
+                dayName,
+                dateStr: `${dayName}, ${dateNum} ${monthStr}`,
+                month: monthStr,
+                isToday,
+                cards,
+              });
+            }
           });
 
-        return cards;
+        return groups;
       }
 
       default:
@@ -540,40 +624,11 @@ export default function Calendar() {
     return scheduleId && date ? { scheduleId, date } : null;
   };
 
-  // Remove or comment out handleDateClick function
-  // const handleDateClick = (selectInfo: DateSelectArg) => {
-  //   setSelectedDate(selectInfo);
-  //   setActiveTab("shift");
-  //   setDialogOpen(true);
-  // };
-
-  // Update handleMonthDateSelect to not open the add dialog
   const handleMonthDateSelect = (date: Date) => {
     setSelectedMonthDate(date);
 
     const weekStart = getStartOfWeek(date);
     setWeekStartDate(weekStart);
-
-    // Remove the dialog opening logic
-    // const calendarApi = calendarRef.current?.getApi();
-    // if (!calendarApi) return;
-
-    // const year = date.getFullYear();
-    // const month = String(date.getMonth() + 1).padStart(2, "0");
-    // const day = String(date.getDate()).padStart(2, "0");
-    // const dateString = `${year}-${month}-${day}`;
-
-    // const selectInfo: DateSelectArg = {
-    //   start: date,
-    //   end: date,
-    //   startStr: dateString,
-    //   endStr: dateString,
-    //   allDay: true,
-    //   view: calendarApi.view,
-    //   jsEvent: new MouseEvent("click"),
-    // };
-
-    // handleDateClick(selectInfo);
   };
 
   const getEventsForSelectedDate = () => {
@@ -767,8 +822,6 @@ export default function Calendar() {
           initialView="dayGridMonth"
           editable={true}
           selectable={true}
-          // Remove the select handler
-          // select={handleDateClick}
           events={allEvents}
           eventsSet={(events) => setCurrentEvents(events)}
         />
@@ -798,7 +851,7 @@ export default function Calendar() {
             scrollbarWidth: "thin",
           }}
         >
-          {generateDateCards().length === 0 ? (
+          {generateDateGroups().length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4">
               <div className="mb-4">
                 <Image
@@ -824,12 +877,91 @@ export default function Calendar() {
               </button>
             </div>
           ) : (
-            <DateCardContainer cards={generateDateCards()} />
+            <div className="flex flex-col gap-6 px-4 py-4">
+              {generateDateGroups().map((group) => (
+                <div
+                  key={group.dateStr}
+                  className={`flex gap-4 ${
+                    group.isToday ? "bg-blue-50 rounded-3xl p-3" : ""
+                  }`}
+                >
+                  {/* Date Label */}
+                  <div className="flex flex-col items-center min-w-[60px] flex-shrink-0">
+                    <p
+                      className={`text-xs uppercase font-semibold ${
+                        group.isToday ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
+                      {group.dayName}
+                    </p>
+                    <p
+                      className={`text-4xl font-bold leading-none ${
+                        group.isToday ? "text-blue-600" : "text-black"
+                      }`}
+                    >
+                      {group.date}
+                    </p>
+                    <p
+                      className={`text-xs uppercase ${
+                        group.isToday ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
+                      {group.month}
+                    </p>
+                  </div>
+
+                  {/* Cards for this date */}
+                  <div className="flex-1 flex flex-col gap-3">
+                    {group.cards.map((card) => {
+                      const barColor = card.isEmpty
+                        ? "#b0b0b8"
+                        : card.isWork
+                        ? "#6bb064"
+                        : "#255495";
+
+                      return (
+                        <button
+                          key={card.id}
+                          onClick={card.onClick}
+                          className="relative bg-white rounded-3xl shadow-lg px-6 py-4 flex items-center justify-between w-full min-h-[80px] hover:shadow-xl transition-shadow overflow-hidden"
+                        >
+                          <div
+                            className="absolute left-0 top-0 bottom-0 w-3 rounded-l-3xl"
+                            style={{ backgroundColor: barColor }}
+                          />
+                          {card.isEmpty ? (
+                            <h2 className="text-[16px] font-medium text-black">
+                              {card.text}
+                            </h2>
+                          ) : (
+                            <div className="flex flex-col items-start gap-1">
+                              {card.timeRange && (
+                                <p className="text-sm text-gray-600 font-normal">
+                                  {card.timeRange}
+                                </p>
+                              )}
+                              <h2 className="text-[16px] font-medium text-black">
+                                {card.text}
+                              </h2>
+                            </div>
+                          )}
+                          <IoIosArrowForward
+                            size={28}
+                            color="#b0b0b8"
+                            className="z-10"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </HalfBackground>
 
-      {/* Keep Event Detail Dialog as is */}
+      {/* Event Detail Dialog - Keep existing code */}
       <Dialog open={eventDetailOpen} onOpenChange={handleEventDetailClose}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
