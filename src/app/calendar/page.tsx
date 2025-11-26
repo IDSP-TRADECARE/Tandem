@@ -38,6 +38,7 @@ interface DateCard {
   type: ViewType;
   date?: string;
   timeRange?: string;
+  isToday?: boolean; // Add this property
   onClick: () => void;
 }
 
@@ -158,6 +159,7 @@ export default function Calendar() {
   ): CustomEventInput[] => {
     const events: CustomEventInput[] = [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start from beginning of today
 
     console.log("📋 Generating events from schedules:", schedules);
 
@@ -175,8 +177,15 @@ export default function Calendar() {
     for (let i = 0; i < 90; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
+      date.setHours(0, 0, 0, 0); // Normalize to start of day
+      
       const dayOfWeek = date.getDay();
-      const dateStr = date.toISOString().split("T")[0];
+      
+      // Format date as YYYY-MM-DD in local timezone
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const dateStr = `${year}-${month}-${day}`;
 
       // Find day code for this day of week
       const dayCode = Object.keys(dayMap).find(
@@ -381,6 +390,7 @@ export default function Calendar() {
 
   const generateDateCards = (): DateCard[] => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
 
     switch (activeView) {
       case "Weekly": {
@@ -391,6 +401,10 @@ export default function Calendar() {
           const dayEvents = getEventsForDate(date);
 
           if (dayEvents.length === 0) return;
+
+          const normalizedDate = new Date(date);
+          normalizedDate.setHours(0, 0, 0, 0);
+          const isToday = normalizedDate.getTime() === today.getTime();
 
           const dayName = date.toLocaleDateString("en-US", {
             weekday: "short",
@@ -430,6 +444,7 @@ export default function Calendar() {
               isEmpty: false,
               isWork: event.extendedProps?.type === "work",
               type: "Weekly",
+              isToday: isToday,
               onClick: () => {
                 setSelectedEvent(event);
                 setEventDetailOpen(true);
@@ -456,6 +471,8 @@ export default function Calendar() {
           .forEach(([dateStr, dayEvents]) => {
             const [year, month, day] = dateStr.split("-").map(Number);
             const date = new Date(year, month - 1, day);
+            date.setHours(0, 0, 0, 0);
+            const isToday = date.getTime() === today.getTime();
 
             const dayName = date.toLocaleDateString("en-US", {
               weekday: "short",
@@ -495,6 +512,7 @@ export default function Calendar() {
                 isEmpty: false,
                 isWork: event.extendedProps?.type === "work",
                 type: "Monthly",
+                isToday: isToday,
                 onClick: () => {
                   setSelectedEvent(event);
                   setEventDetailOpen(true);
