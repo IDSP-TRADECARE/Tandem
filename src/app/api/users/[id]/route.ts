@@ -6,10 +6,10 @@ import { eq } from "drizzle-orm";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id?: string } }
+  { params }: { params: Promise<{ id?: string }> } // params is a Promise in app-router routes
 ) {
   try {
-    const id = params?.id;
+    const { id } = await params; // unwrap
     if (!id) {
       return NextResponse.json({ error: "Missing user id" }, { status: 400 });
     }
@@ -25,7 +25,7 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Return the public fields we need (profilePicture, names, location/bio if present)
+    // Return the public fields we need
     return NextResponse.json({
       id: row.id,
       clerkId: row.clerkId,

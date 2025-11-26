@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
@@ -7,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { NannyLayout } from '@/app/components/ui/nanny/NannyLayout';
 import type { NannyShare } from '@/db/schema';
-import MemberCard from "@/app/components/ui/nanny/cards/MemberCard";
+import RequestMemberCard from "@/app/components/ui/nanny/cards/RequestMemberCard";
+import GroupMemberCard from "@/app/components/ui/nanny/cards/GroupMemberCard";
 
 type JoinRequest = {
   id: string;
@@ -101,7 +101,6 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
       userId: `pending_${req.id}`,
       name: req.name,
       kidsCount: req.kidsCount,
-      joinedAt: new Date().toISOString(),
       avatarUrl: req.avatarUrl ?? null,
     };
 
@@ -177,6 +176,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
             const data = await res.json();
             return { userId: m.userId, profilePicture: data.profilePicture ?? data.profile_picture ?? null };
           } catch (err) {
+            console.log(err);
             return null;
           }
         })
@@ -207,6 +207,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
     <NannyLayout>
       {() => (
         <>
+          {/* top white card with full members list inside */}
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden mt-4">
             <div className="p-6">
               <h2 className="text-2xl font-extrabold tracking-tight mb-2">{dateLabel} · {share?.startTime} - {share?.endTime}</h2>
@@ -223,12 +224,24 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
 
               <hr className="my-4 border-gray-200" />
 
-              {/* Replace the heavy inline "current group" list here with a concise summary
-                  so we don't render the full members list twice. The full list is shown below. */}
+              {/* Current Group - full rows inside the white card (no duplicate list later) */}
               <div>
-                <h3 className="text-sm font-semibold text-neutral-700 mb-3">Current Group</h3>
-                <div className="text-sm text-neutral-600">
-                  {(share?.members || []).length} {(share?.members || []).length === 1 ? 'member' : 'members'} joined
+                <h3 className="text-sm font-semibold text-neutral-700 mb-3">Current Group:</h3>
+                <div className="space-y-3">
+                  {(share?.members || []).map((m: any, idx: number) => {
+                    const memberId = m?.userId ?? `member_${idx}`;
+                    return (
+                      <GroupMemberCard
+                        key={String(memberId)}
+                        id={String(memberId)}
+                        name={m?.name ?? 'Member'}
+                        avatarUrl={m?.avatarUrl ?? '/profile/placeholderAvatar.png'}
+                        kidsCount={m?.kidsCount ?? 1}
+                        onSeeMore={(memberId) => router.push(`/nanny/user/${memberId}`)}
+                        compact={false}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -242,50 +255,20 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
                 <p className="text-sm text-gray-600">No requests yet.</p>
               ) : (
                 joinRequests.map((r) => (
-                  <MemberCard
+                  <RequestMemberCard
                     key={r.id}
                     id={r.id}
                     name={r.name}
-                    avatarUrl={r.avatarUrl ?? null}
-                    variant="request"
-                    onAccept={async (memberId) => {
-                      handleAccept(memberId);
-                    }}
-                    onReject={async (memberId) => {
-                      handleReject(memberId);
-                    }}
-                    onSeeMore={(memberId) => {
-                      router.push(`/nanny/user/${memberId}`);
-                    }}
+                    avatarUrl={r.avatarUrl ?? '/profile/placeholderAvatar.png'}
+                    kidsCount={r.kidsCount}
+                    note={r.note}
+                    createdAt={r.createdAt}
+                    onAccept={(memberId) => handleAccept(memberId)}
+                    onReject={(memberId) => handleReject(memberId)}
+                    onSeeMore={(memberId) => router.push(`/nanny/user/${memberId}`)}
                   />
                 ))
               )}
-            </div>
-          </div>
-
-          {/* Current Group (full list; single source of truth) */}
-          <div className="mt-8">
-            <h3 className="text-2xl font-bold mb-4">Current Group:</h3>
-            <div className="space-y-4">
-              {(share?.members || []).map((m: any, idx: number) => {
-                const memberId = m?.userId ?? `member_${idx}`;
-                // show joinedAt as the small subtitle (reuse kidAges prop for compact date)
-                const joinedLabel = m?.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : undefined;
-                return (
-                  <MemberCard
-                    key={String(memberId)}
-                    id={String(memberId)}
-                    name={m?.name ?? 'Member'}
-                    avatarUrl={m?.avatarUrl ?? null}
-                    kidsCount={m?.kidsCount ?? 1}
-                    kidAges={joinedLabel}
-                    variant="group"
-                    onSeeMore={(memberId) => {
-                      router.push(`/nanny/user/${memberId}`);
-                    }}
-                  />
-                );
-              })}
             </div>
           </div>
 
