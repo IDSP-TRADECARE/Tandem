@@ -1,5 +1,12 @@
 'use client';
 
+
+// shorthand for now using the createqucikshare in lib
+import { createQuickShare } from '@/lib/nanny/createQuickShare';
+
+
+// SHORTHAND END --------------------
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IoIosArrowBack } from 'react-icons/io';
@@ -128,8 +135,14 @@ export default function NannySchedulePage() {
           <button className="flex-1 py-3 border-2 border-blue-500 text-blue-500 rounded-full">
             Cancel
           </button>
-          <button 
-            onClick={() => router.push('/calendar')}
+
+          <button
+          // SHORT HAND FOR NOW --------------------
+            onClick={async () => {
+              await createQuickShare();
+              router.push('/nanny');
+            }}
+            // SHORT HAND FOR NOW END ----------------
             className="flex-1 py-3 bg-blue-500 text-white rounded-full"
           >
             Save

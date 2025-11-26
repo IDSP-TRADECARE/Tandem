@@ -21,11 +21,16 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-    
-    console.log('Connecting to Socket.IO server:', socketUrl);
-    
-    const socketInstance: TypedSocket = io(socketUrl, {
+    // If you want an external socket server, set NEXT_PUBLIC_SOCKET_URL in your env.
+    // Otherwise we connect to the same origin at the in-app socket path (/api/socket).
+    const configured = process.env.NEXT_PUBLIC_SOCKET_URL;
+    const socketUrl = configured ? configured : undefined;
+    const socketPath = configured ? undefined : '/api/socket';
+
+    console.log('Connecting to Socket.IO server:', configured ?? '(same-origin) ' + socketPath);
+
+    const socketInstance: TypedSocket = io(socketUrl ?? window.location.origin, {
+      path: socketPath,
       transports: ['websocket', 'polling'],
     });
 

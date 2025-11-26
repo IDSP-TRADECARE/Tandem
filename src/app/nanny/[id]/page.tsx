@@ -1,223 +1,319 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BottomNav } from '@/app/components/Layout/BottomNav';
+import { useUser } from '@clerk/nextjs';
+import NannyLayout from '@/app/components/ui/nanny/NannyLayout';
+import GroupMemberCard from '@/app/components/ui/nanny/cards/GroupMemberCard';
+import RequestMemberCard from '@/app/components/ui/nanny/cards/RequestMemberCard';
 import { useSocket } from '@/lib/socket/SocketContext';
-import type { NannyShare } from '@/db/schema';
+
+type JoinRequest = {
+  id: string;
+  userId?: string;
+  name: string;
+  kidsCount: number;
+  note?: string;
+  createdAt: string;
+  avatarUrl?: string | null;
+};
 
 export default function NannyShareDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { socket, isConnected } = useSocket();
-  const [shareId, setShareId] = useState<string | null>(null);
-  const [share, setShare] = useState<NannyShare | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isSignedIn } = useUser();
+  const { socket } = useSocket() ?? { socket: null };
 
-  // Unwrap params first
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [share, setShare] = useState<any | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [hasRequested, setHasRequested] = useState(false);
+
   useEffect(() => {
     params.then(({ id }) => setShareId(id));
   }, [params]);
 
-  useEffect(() => {
-    if (!shareId) return;
+  const fetchProfilesForMembers = useCallback(async (members: any[]) => {
+    if (!members || members.length === 0) return;
+    const toFetch = members
+      .filter((m) => m?.userId && !m.avatarUrl && !m.userId.startsWith('pending_'));
 
-    async function fetchShare() {
-      try {
-        const response = await fetch(`/api/nanny/${shareId}`);
-        
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to fetch share');
-        }
+    if (toFetch.length === 0) return;
 
-        const data = await response.json();
-        setShare(data.share);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setIsLoading(false);
-      }
+    try {
+      const results = await Promise.all(
+        toFetch.map(async (m) => {
+          try {
+            const res = await fetch(`/api/users/${encodeURIComponent(m.userId)}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            return { userId: m.userId, profilePicture: data.profilePicture ?? data.profile_picture ?? null };
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      setShare((prev: { members: any[] }) => {
+        if (!prev) return prev;
+        const updatedMembers = prev.members.map((mem: any) => {
+          const found = results.find((r) => r && r.userId === mem.userId);
+          return found?.profilePicture ? { ...mem, avatarUrl: found.profilePicture } : mem;
+        });
+        return { ...prev, members: updatedMembers };
+      });
+    } catch (err) {
+      console.error('Error fetching profiles:', err);
     }
+  }, []);
 
-    fetchShare();
-  }, [shareId]);
+  const fetchShare = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/nanny/${id}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? 'Failed to fetch share');
+      }
+      const data = await res.json();
+      setShare(data.share ?? null);
+      setJoinRequests(Array.isArray(data.share?.requests) ? data.share.requests : []);
 
-  // Socket.IO real-time updates
+      const members = data.share?.members ?? [];
+      if (members.length > 0) fetchProfilesForMembers(members);
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProfilesForMembers]);
+
   useEffect(() => {
-    if (!socket || !isConnected || !shareId) return;
+    if (shareId) fetchShare(shareId);
+  }, [shareId, fetchShare]);
 
-    socket.emit('join-share', shareId);
+  const isCreator = useMemo(() => 
+    Boolean(share && isSignedIn && share.creatorId === user?.id),
+    [share, isSignedIn, user]
+  );
 
-    socket.on('share-updated', (updatedShare: NannyShare) => {
-      if (updatedShare.id.toString() === shareId) {
-        setShare(updatedShare);
+  const isMember = useMemo(() =>
+    Boolean(share && (share.members || []).some((m: any) => String(m?.userId) === String(user?.id))),
+    [share, user]
+  );
+
+  useEffect(() => {
+    if (!socket || !shareId) return;
+
+    const onNannyRequest = (payload: any) => {
+      if (!payload || payload.shareId !== shareId || !isCreator) return;
+      const req = payload.request;
+      setJoinRequests((prev) => {
+        if (prev.find((r) => r.id === req.id)) return prev;
+        return [...prev, req];
+      });
+    };
+
+    const onShareUpdated = (updated: any) => {
+      if (updated?.id && String(updated.id) === String(shareId)) {
+        fetchShare(shareId);
       }
-    });
+    };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    socket.on('member-joined', (data: { shareId: string; member: any }) => {
-      if (data.shareId === shareId) {
-        setShare(prev => prev ? { ...prev, members: [...prev.members, data.member] } : null);
-      }
-    });
+    (socket as any).on('nanny:request', onNannyRequest);
+    socket.on('share-updated', onShareUpdated);
 
     return () => {
-      socket.emit('leave-share', shareId);
-      socket.off('share-updated');
-      socket.off('member-joined');
+      (socket as any).off('nanny:request', onNannyRequest);
+      socket.off('share-updated', onShareUpdated);
     };
-  }, [socket, isConnected, shareId]);
+  }, [socket, shareId, isCreator, fetchShare]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#1e3a5f] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading share details...</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!socket || !shareId) return;
+    (socket as any).emit('join-share', shareId);
+    return () => (socket as any).emit('leave-share', shareId);
+  }, [socket, shareId]);
 
-  if (error || !share) {
-    return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 flex items-center justify-center px-6">
-        <div className="text-center">
-          <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Share Not Found</h2>
-          <p className="text-gray-600 mb-6">{error || 'This share may have been deleted'}</p>
-          <button
-            onClick={() => router.push('/nanny/join')}
-            className="px-6 py-3 bg-[#1e3a5f] text-white rounded-lg font-semibold hover:bg-[#152d47] transition-colors"
-          >
-            Back to Shares
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleAccept = async (requestId: string) => {
+    if (!shareId) return;
+    const req = joinRequests.find((r) => r.id === requestId);
+    if (!req) return;
 
-  const dateObj = new Date(share.date);
-  const dateLabel = dateObj.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric' 
-  });
+    setJoinRequests((prev) => prev.filter((r) => r.id !== requestId));
 
-  const availableSpots = share.maxSpots ? share.maxSpots - share.members.length : null;
+    try {
+      // Manually add the member to the database
+      const res = await fetch(`/api/nanny/${shareId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userName: req.name, 
+          kidsCount: req.kidsCount,
+          userId: req.userId // Pass the userId so it can be added directly
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setJoinRequests((prev) => [req, ...prev]);
+        throw new Error(data?.error ?? 'Failed to accept request');
+      }
+
+      await fetchShare(shareId);
+      (socket as any)?.emit('nanny:request-accepted', { shareId, userId: req.userId ?? null, requestId });
+    } catch (err) {
+      console.error('Accept failed:', err);
+      alert(err instanceof Error ? err.message : 'Failed to accept request');
+    }
+  };
+
+  const handleReject = async (requestId: string) => {
+    setJoinRequests((prev) => prev.filter((r) => r.id !== requestId));
+    (socket as any)?.emit('nanny:request-rejected', { shareId, requestId });
+  };
+
+  const handleRequestToJoin = async () => {
+    if (!shareId) return;
+    if (!isSignedIn) {
+      window.location.href = '/sign-in';
+      return;
+    }
+
+    const kidsCountStr = window.prompt('How many kids will attend?', '1');
+    const kidsCount = kidsCountStr ? Number(kidsCountStr) : 1;
+    if (!kidsCount || kidsCount <= 0) {
+      alert('Please enter a valid number of kids.');
+      return;
+    }
+
+    const userName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || user?.username || 'Anonymous';
+    const requestPayload: JoinRequest = {
+      id: `req_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      userId: user?.id,
+      name: userName,
+      kidsCount,
+      createdAt: new Date().toISOString(),
+      avatarUrl: (user as any)?.profilePicture ?? null,
+    };
+
+    if (socket && shareId) {
+      socket.emit('nanny:request', { shareId, request: requestPayload });
+      setHasRequested(true);
+      alert('Request sent to the host. They will accept or reject it shortly.');
+    }
+  };
+
+  const handleMessageHost = () => {
+    if (!shareId) return;
+    if (!isSignedIn) {
+      window.location.href = '/sign-in';
+      return;
+    }
+    router.push(`/nanny/${shareId}/chat`);
+  };
+
+  const dateLabel = share?.date ? new Date(share.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 pb-32">
-      <div className="px-6 pt-8 max-w-2xl mx-auto">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-[#1e3a5f] hover:text-[#152d47] mb-6"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
+    <NannyLayout>
+      {() => (
+        <>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden mt-4">
+            <div className="p-6">
+              <h2 className="text-2xl font-extrabold tracking-tight mb-2">{dateLabel} · {share?.startTime} - {share?.endTime}</h2>
 
-        {/* Connection Status */}
-        <div className="mb-4 flex items-center gap-2 text-sm">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-          <span className="text-gray-600">
-            {isConnected ? 'Live updates active' : 'Connecting...'}
-          </span>
-        </div>
+              <ul className="mt-2 list-disc list-inside text-sm text-neutral-600 space-y-1">
+                <li><strong>Location:</strong> {share?.location || 'TBD'}</li>
+                <li><strong>Nanny Name:</strong> {share?.members?.[0]?.name ?? 'Beau'}</li>
+                <li>
+                  <strong>Host:</strong> {share?.creatorId === user?.id ? 'You' : (share?.members?.find((m: any) => m.userId === share?.creatorId)?.name ?? 'Host')}
+                </li>
+                {share?.price && <li><strong>Cost:</strong> ${share.price} / hr</li>}
+                {share?.certificates && share.certificates.length > 0 && <li><strong>Certificate:</strong> {share.certificates.join(', ')}</li>}
+              </ul>
 
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {/* Header */}
-          <div className="bg-linear-to-r from-[#1e3a5f] to-[#2d5a8a] text-white p-6">
-            <h1 className="text-2xl font-bold mb-2">{dateLabel}</h1>
-            <div className="flex items-center gap-4 text-sm">
-              <span>🕐 {share.startTime} - {share.endTime}</span>
-              <span>📍 {share.location}</span>
-            </div>
-          </div>
+              <hr className="my-4 border-gray-200" />
 
-          {/* Details */}
-          <div className="p-6 space-y-6">
-            {/* Price */}
-            {share.price && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-1">Price</h3>
-                <p className="text-2xl font-bold text-green-600">${share.price}/hour</p>
-              </div>
-            )}
-
-            {/* Certificates */}
-            {share.certificates && share.certificates.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-2">Certificates</h3>
-                <div className="flex flex-wrap gap-2">
-                  {share.certificates.map((cert, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
-                    >
-                      {cert}
-                    </span>
+                <h3 className="text-sm font-semibold text-neutral-700 mb-3">Current Group:</h3>
+                <div className="space-y-3">
+                  {(share?.members || []).map((m: any, idx: number) => (
+                    <GroupMemberCard
+                      key={m?.userId ?? `member_${idx}`}
+                      id={String(m?.userId ?? `member_${idx}`)}
+                      name={m?.name ?? 'Member'}
+                      avatarUrl={m?.avatarUrl ?? '/profile/placeholderAvatar.png'}
+                      kidsCount={m?.kidsCount ?? 1}
+                      onSeeMore={(memberId) => router.push(`/nanny/user/${memberId}`)}
+                      compact={false}
+                    />
                   ))}
                 </div>
-              </div>
-            )}
 
-            {/* Spots */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-500 mb-2">Availability</h3>
-              <div className="flex items-center gap-3">
-                <div className={`px-4 py-2 rounded-lg font-semibold ${
-                  availableSpots === null ? 'bg-gray-100 text-gray-700' :
-                  availableSpots > 2 ? 'bg-green-100 text-green-700' :
-                  availableSpots > 0 ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
-                  {availableSpots === null 
-                    ? `${share.members.length} members (no limit)` 
-                    : `${availableSpots} spots available`
-                  }
-                </div>
-              </div>
-            </div>
-
-            {/* Members */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-500 mb-3">Current Members ({share.members.length})</h3>
-              <div className="space-y-3">
-                {share.members.map((member, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
-                      {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{member.name}</p>
-                      <p className="text-sm text-gray-600">{member.kidsCount} {member.kidsCount === 1 ? 'kid' : 'kids'}</p>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(member.joinedAt).toLocaleDateString()}
-                    </div>
+                {(isCreator || isMember) && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => router.push(`/nanny/${shareId}/chat`)}
+                      className="w-full py-3 bg-[#1e3a5f] text-white rounded-full font-semibold"
+                    >
+                      Chat
+                    </button>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="pt-4 border-t space-y-3">
-              <button
-                onClick={() => router.push(`/nanny/${shareId}/chat`)}
-                className="w-full py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors"
-              >
-                💬 Open Group Chat
-              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <BottomNav />
-    </div>
+          {isCreator && (
+            <div className="mt-6">
+              <h3 className="text-2xl font-bold mb-4">Requests to Join:</h3>
+              <div className="space-y-3">
+                {joinRequests.length === 0 ? (
+                  <p className="text-sm text-gray-600">No requests yet.</p>
+                ) : (
+                  joinRequests.map((r) => (
+                    <RequestMemberCard
+                      key={r.id}
+                      id={r.id}
+                      name={r.name}
+                      avatarUrl={r.avatarUrl ?? '/profile/placeholderAvatar.png'}
+                      kidsCount={r.kidsCount}
+                      note={r.note}
+                      createdAt={r.createdAt}
+                      onAccept={handleAccept}
+                      onReject={handleReject}
+                      onSeeMore={(memberId) => router.push(`/nanny/user/${memberId}`)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {!isCreator && (
+            <div className="mt-6 flex gap-4">
+              <button onClick={handleMessageHost} className="flex-1 inline-flex items-center justify-center gap-3 border border-primary text-primary px-4 py-3 rounded-full font-semibold">
+                <span>Message the host</span>
+              </button>
+
+              <button
+                onClick={handleRequestToJoin}
+                disabled={hasRequested}
+                className={`flex-1 ${hasRequested ? 'bg-gray-300 text-gray-700 cursor-not-allowed' : 'bg-primary text-white'} px-4 py-3 rounded-full font-semibold`}
+              >
+                {hasRequested ? 'Requested' : 'Request to join'}
+              </button>
+            </div>
+          )}
+
+          <div style={{ height: 40 }} />
+        </>
+      )}
+    </NannyLayout>
   );
 }

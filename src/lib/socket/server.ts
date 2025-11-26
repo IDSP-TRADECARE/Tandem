@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 
@@ -22,6 +23,33 @@ export function initSocketIO(httpServer: HTTPServer) {
     socket.on('leave-share', (shareId: string) => {
       socket.leave(`share-${shareId}`);
       console.log(`Socket ${socket.id} left share-${shareId}`);
+    });
+
+    // Nanny request events
+    socket.on('nanny:request', (data: { shareId: string; request: any }) => {
+      const { shareId, request } = data;
+      console.log(`Received nanny:request for share-${shareId}:`, request.name);
+      io!.to(`share-${shareId}`).emit('nanny:request', { shareId, request });
+    });
+
+    socket.on('nanny:request-accepted', (data: { shareId: string; userId?: string | null; requestId?: string }) => {
+      const { shareId, userId, requestId } = data;
+      console.log(`Request accepted for share-${shareId}, user: ${userId}`);
+      io!.to(`share-${shareId}`).emit('nanny:request-accepted', { shareId, userId, requestId });
+      io!.to(`share-${shareId}`).emit('share-updated', { id: shareId });
+    });
+
+    socket.on('nanny:request-rejected', (data: { shareId: string; requestId: string }) => {
+      const { shareId, requestId } = data;
+      console.log(`Request rejected for share-${shareId}, request: ${requestId}`);
+      io!.to(`share-${shareId}`).emit('nanny:request-rejected', { shareId, requestId });
+    });
+
+    // Message events
+    socket.on('message-sent', (data: { shareId: string; message: any }) => {
+      const { shareId, message } = data;
+      console.log(`Message sent to share-${shareId} by ${message.senderName}`);
+      io!.to(`share-${shareId}`).emit('message-received', message);
     });
 
     socket.on('disconnect', () => {
