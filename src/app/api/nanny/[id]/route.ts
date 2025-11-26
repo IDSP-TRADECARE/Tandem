@@ -49,7 +49,7 @@ export async function POST(
     const { id } = await params;
     const shareId = parseInt(id);
     const body = await request.json();
-    const { userName, kidsCount } = body;
+    const { userName, kidsCount, userId: requestUserId } = body;
 
     if (!userName || !kidsCount) {
       return NextResponse.json(
@@ -87,21 +87,21 @@ export async function POST(
       );
     }
 
-    // Check if user already joined
-    const alreadyJoined = share.members.some(
-      (member) => member.name.toLowerCase() === userName.toLowerCase()
-    );
+    // Check if user already joined (by userId if provided, otherwise by name)
+    const alreadyJoined = requestUserId 
+      ? share.members.some((member) => member.userId === requestUserId)
+      : share.members.some((member) => member.name.toLowerCase() === userName.toLowerCase());
 
     if (alreadyJoined) {
       return NextResponse.json(
-        { error: 'You have already joined this share' },
+        { error: 'User has already joined this share' },
         { status: 400 }
       );
     }
 
-    // Add new member
+    // Add new member with the provided userId or generate a temporary one
     const newMember = {
-      userId: `user_${Date.now()}`,
+      userId: requestUserId || `user_${Date.now()}`,
       name: userName,
       kidsCount: parseInt(kidsCount),
       joinedAt: new Date().toISOString(),

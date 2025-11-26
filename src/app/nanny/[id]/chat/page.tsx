@@ -64,19 +64,22 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
   // Socket.IO real-time message updates
   useEffect(() => {
-    if (!socket || !isConnected || !shareId) return;
+    if (!socket || !shareId) return;
 
-    socket.emit('join-share', shareId);
+    const onMessageReceived = (message: Message) => {
+      setMessages((prev) => {
+        // Prevent duplicates
+        if (prev.find((m) => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
+    };
 
-    socket.on('message-received', (message: Message) => {
-      setMessages(prev => [...prev, message]);
-    });
+    socket.on('message-received', onMessageReceived);
 
     return () => {
-      socket.emit('leave-share', shareId);
-      socket.off('message-received');
+      socket.off('message-received', onMessageReceived);
     };
-  }, [socket, isConnected, shareId]);
+  }, [socket, shareId]);
 
   // Auto-scroll to bottom
   useEffect(() => {

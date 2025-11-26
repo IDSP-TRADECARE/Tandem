@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ProfileCard from '@/app/components/ui/nanny/cards/ProfileCard';
 import NannyLayout from '@/app/components/ui/nanny/NannyLayout';
+import { useUser } from '@clerk/nextjs';
 
-type MockUser = {
+type UserProfile = {
   id: string;
   name: string;
   avatarUrl?: string | null;
@@ -17,95 +19,126 @@ type MockUser = {
   isHost?: boolean;
 };
 
-const MOCK_USERS: MockUser[] = [
-  {
-    id: 'user_matheus',
-    name: 'Matheus Walkma',
-    avatarUrl: '/profile/placeholderAvatar.png',
-    kids: [{ age: '6' }, { age: '7' }],
-    location: 'Burnaby',
-    bio: "Hi! I'm Matheus, a woodworker in Burnaby. I have a daughter age 6 and a son age 7. Our family needs a nanny sometimes.",
-    languages: ['English'],
-    certificates: [],
-    isHost: false,
-  },
-  {
-    id: 'user_sandy',
-    name: 'Sandy Wang',
-    avatarUrl: '/profile/placeholderAvatar.png',
-    kids: [{ age: '2' }],
-    location: 'Vancouver',
-    bio: "Hi! I'm Sandy, a metal worker in Burnaby. I'm looking for a group of parents who don't believe iPhones are good for kids.",
-    languages: ['English', 'Cantonese'],
-    certificates: ['First Aid'],
-    isHost: true,
-  },
-  {
-    id: 'user_stefan',
-    name: 'Stefan Demeis',
-    avatarUrl: '/profile/placeholderAvatar.png',
-    kids: [{ age: '4' }],
-    location: 'North Van',
-    bio: 'Love helping with pickups and dropoffs.',
-    languages: ['English'],
-    certificates: [],
-    isHost: false,
-  },
-];
-
 export default function NannyUserPage({ params }: { params: Promise<{ userId: string }> }) {
   const router = useRouter();
+  const { user: currentUser } = useUser();
   const [userId, setUserId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<MockUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // params is a Promise here in client page pattern
     params.then(({ userId }) => {
       setUserId(userId);
-      // select a mock profile deterministically
-      const p = getMockUser(userId);
-      setProfile(p);
     });
   }, [params]);
 
-  function getMockUser(id: string | null): MockUser {
-    if (!id) return MOCK_USERS[0];
-    // simple deterministic selection: find by id or pick by hashing last char
-    const found = MOCK_USERS.find((u) => u.id === id);
-    if (found) return found;
-    const index = Math.abs([...id].reduce((acc, ch) => acc + ch.charCodeAt(0), 0)) % MOCK_USERS.length;
-    return MOCK_USERS[index];
-  }
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchUserProfile = async () => {
+      setLoading(true);
+      try {
+        // Fetch user from Clerk
+        const userRes = await fetch(`/api/users/${encodeURIComponent(userId)}`);
+        if (!userRes.ok) throw new Error('Failed to fetch user');
+        const userData = await userRes.json();
+
+        // Fetch all shares to find where this user is a member or host
+        const sharesRes = await fetch('/api/nanny/my-shares');
+        const sharesData = await sharesRes.json();
+        const shares = sharesData.shares || [];
+
+        // Find shares where this user is involved
+        const userShares = shares.filter((share: any) => 
+          share.creatorId === userId || 
+          share.members?.some((m: any) => m.userId === userId)
+        );
+
+        // Get member info from any share they're in
+        const memberInfo = userShares.reduce((acc: any, share: any) => {
+          const member = share.members?.find((m: any) => m.userId === userId);
+          if (member) {
+            return {
+              kidsCount: member.kidsCount || acc.kidsCount || 0,
+              location: share.location || acc.location,
+            };
+          }
+          return acc;
+        }, {});
+
+        // Check if user is a host (creator) of any share
+        const isHost = userShares.some((share: any) => share.creatorId === userId);
+
+        // Build profile
+        const userProfile: UserProfile = {
+          id: userId,
+          name: userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'User',
+          avatarUrl: userData.profilePicture || userData.profile_picture || null,
+          kids: Array.from({ length: memberInfo.kidsCount || 1 }, (_, i) => ({ age: '?' })),
+          location: memberInfo.location || 'Location not set',
+          bio: userData.bio || 'No bio yet.',
+          languages: ['English'], // Could add to user profile in future
+          certificates: [], // Could add to user profile in future
+          isHost,
+        };
+
+        setProfile(userProfile);
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+        // Fallback profile
+        setProfile({
+          id: userId,
+          name: 'User',
+          avatarUrl: '/profile/placeholderAvatar.png',
+          kids: [{ age: '?' }],
+          location: 'Unknown',
+          bio: 'No information available.',
+          languages: ['English'],
+          certificates: [],
+          isHost: false,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [userId]);
 
   const handleMessage = (targetId: string) => {
-    // derive deterministic room id (sorted pair) so both users land in same room
-    const localId = userId ?? 'anon';
-    const pair = [localId, targetId].sort();
+    if (!currentUser?.id) {
+      window.location.href = '/sign-in';
+      return;
+    }
+    // Create deterministic room id
+    const pair = [currentUser.id, targetId].sort();
     const roomId = `${pair[0]}_${pair[1]}`;
     router.push(`/chat/${encodeURIComponent(roomId)}`);
   };
 
   return (
     <NannyLayout>
-    <div className="py-6">
-      {profile ? (
-        <ProfileCard
-          id={profile.id}
-          name={profile.name}
-          avatarUrl={profile.avatarUrl}
-          kids={profile.kids}
-          location={profile.location}
-          bio={profile.bio}
-          languages={profile.languages}
-          certificates={profile.certificates}
-          isHost={profile.isHost}
-          onMessage={handleMessage}
-          onBack={() => router.back()}
-        />
-      ) : (
-        <div className="text-center text-sm text-neutral-500">Loading...</div>
-      )}
-    </div>
+      <div className="py-6">
+        {loading ? (
+          <div className="text-center text-sm text-neutral-500">Loading...</div>
+        ) : profile ? (
+          <ProfileCard
+            id={profile.id}
+            name={profile.name}
+            avatarUrl={profile.avatarUrl}
+            kids={profile.kids}
+            location={profile.location}
+            bio={profile.bio}
+            languages={profile.languages}
+            certificates={profile.certificates}
+            isHost={profile.isHost}
+            onMessage={handleMessage}
+            onBack={() => router.back()}
+          />
+        ) : (
+          <div className="text-center text-sm text-neutral-500">User not found</div>
+        )}
+      </div>
     </NannyLayout>
   );
 }

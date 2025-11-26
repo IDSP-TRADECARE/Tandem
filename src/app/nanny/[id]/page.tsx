@@ -147,13 +147,15 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
     setJoinRequests((prev) => prev.filter((r) => r.id !== requestId));
 
     try {
-      const body: any = { userName: req.name, kidsCount: req.kidsCount };
-      if (req.userId) body.userId = req.userId;
-
-      const res = await fetch(`/api/nanny/${shareId}/join`, {
+      // Manually add the member to the database
+      const res = await fetch(`/api/nanny/${shareId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ 
+          userName: req.name, 
+          kidsCount: req.kidsCount,
+          userId: req.userId // Pass the userId so it can be added directly
+        }),
       });
 
       if (!res.ok) {
