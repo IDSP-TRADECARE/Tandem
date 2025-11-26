@@ -178,9 +178,9 @@ export default function Calendar() {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       date.setHours(0, 0, 0, 0); // Normalize to start of day
-      
+
       const dayOfWeek = date.getDay();
-      
+
       // Format date as YYYY-MM-DD in local timezone
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -788,10 +788,14 @@ export default function Calendar() {
           onTabChange={(tab) => setActiveView(tab as ViewType)}
         />
         <div
-          className="overflow-y-auto overflow-x-hidden overscroll-contain"
+          className="overflow-y-auto overflow-x-hidden overscroll-contain pb-4"
           style={{
-            height: "calc(100vh - 280px)",
+            height:
+              activeView === "Monthly"
+                ? "calc(100vh - 500px)"
+                : "calc(100vh - 280px)",
             WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "thin",
           }}
         >
           {generateDateCards().length === 0 ? (
