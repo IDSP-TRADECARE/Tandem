@@ -27,8 +27,10 @@ import {
   getTopPositionForView,
   createMonthHandlers as createMonthNavigationHandlers,
 } from "../components/calendar/viewHelpers";
-import { DateCardContainer } from "../components/ui/calendar/DateCard";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { IoIosArrowForward } from "react-icons/io";
+import { NannyBookingPopup } from "../components/popup/AddNanny";
 
 interface DateCard {
   id: string;
@@ -36,9 +38,17 @@ interface DateCard {
   isEmpty: boolean;
   isWork: boolean;
   type: ViewType;
-  date?: string;
   timeRange?: string;
   onClick: () => void;
+}
+
+interface DateGroup {
+  date: string;
+  dayName: string;
+  dateStr: string;
+  month: string;
+  isToday: boolean;
+  cards: DateCard[];
 }
 
 interface Schedule {
@@ -80,19 +90,12 @@ type ViewType = "Weekly" | "Monthly";
 const tabs = ["Weekly", "Monthly"];
 
 export default function Calendar() {
+  const router = useRouter();
   const [currentEvents, setCurrentEvents] = useState<EventApi[]>([]);
   const [allEvents, setAllEvents] = useState<CustomEventInput[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [monthPickerOpen, setMonthPickerOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"shift" | "nanny">("shift");
-  const [newEventTitle, setNewEventTitle] = useState<string>("");
-  const [newEventStartTime, setNewEventStartTime] = useState<string>("");
-  const [newEventEndTime, setNewEventEndTime] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<DateSelectArg | null>(null);
-  const [newEventLocation, setNewEventLocation] = useState<string>("");
-  const [newEventNotes, setNewEventNotes] = useState<string>("");
   const [activeView, setActiveView] = useState<ViewType>("Weekly");
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedMonthDate, setSelectedMonthDate] = useState<Date | null>(null);
@@ -110,6 +113,16 @@ export default function Calendar() {
   const [editEventLocation, setEditEventLocation] = useState<string>("");
   const [editEventNotes, setEditEventNotes] = useState<string>("");
   const calendarRef = useRef<FullCalendar>(null);
+
+  // Add new state for the nanny booking popup
+  const [nannyPopupOpen, setNannyPopupOpen] = useState<boolean>(false);
+  const [selectedWorkDetails, setSelectedWorkDetails] = useState<
+    | {
+        time: string;
+        location: string;
+      }
+    | undefined
+  >(undefined);
 
   const { handlePreviousMonth, handleNextMonth } =
     createMonthNavigationHandlers(currentMonth, setCurrentMonth);
@@ -161,9 +174,12 @@ export default function Calendar() {
     }
   };
 
-  const generateCalendarEvents = (schedules: Schedule[]): CustomEventInput[] => {
+  const generateCalendarEvents = (
+    schedules: Schedule[]
+  ): CustomEventInput[] => {
     const events: CustomEventInput[] = [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     console.log("📋 Generating events from schedules:", schedules);
 
@@ -177,41 +193,39 @@ export default function Calendar() {
       SAT: 6,
     };
 
-    // Generate events for the next 90 days
     for (let i = 0; i < 90; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      const dayOfWeek = date.getDay();
-      const dateStr = date.toISOString().split("T")[0];
+      date.setHours(0, 0, 0, 0);
 
-      // Find day code for this day of week
+      const dayOfWeek = date.getDay();
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const dateStr = `${year}-${month}-${day}`;
+
       const dayCode = Object.keys(dayMap).find(
         (key) => dayMap[key] === dayOfWeek
       );
 
       if (!dayCode) continue;
 
-      // Check all schedules for this day
       for (const schedule of schedules) {
-        // Check if this schedule applies to this day
         if (!schedule.workingDays.includes(dayCode)) {
           continue;
         }
 
-        // Skip deleted dates
         if (schedule.deletedDates?.includes(dateStr)) {
           console.log(`⏭️ Skipping deleted date: ${dateStr}`);
           continue;
         }
 
-        // Get times for this specific day from daily_times or fall back to default
         const dailyTimes = schedule.dailyTimes || {};
         const dayTimes = dailyTimes[dayCode] || {
           timeFrom: schedule.timeFrom,
-          timeTo: schedule.timeTo
+          timeTo: schedule.timeTo,
         };
 
-        // Check for edits
         const editedDatesForDate = schedule.editedDates?.[dateStr];
         const workEdits = editedDatesForDate?.work;
         const childcareEdits = editedDatesForDate?.childcare;
@@ -220,11 +234,14 @@ export default function Calendar() {
           console.log(`✏️ Applying work edits for ${dateStr}:`, workEdits);
         }
         if (childcareEdits) {
-          console.log(`✏️ Applying childcare edits for ${dateStr}:`, childcareEdits);
+          console.log(
+            `✏️ Applying childcare edits for ${dateStr}:`,
+            childcareEdits
+          );
         }
 
-        // Create work event with edits applied
-        const workTitle = workEdits?.title || `Work: ${schedule.location || schedule.title}`;
+        const workTitle =
+          workEdits?.title || `Work: ${schedule.location || schedule.title}`;
         const workTimeFrom = workEdits?.timeFrom || dayTimes.timeFrom;
         const workTimeTo = workEdits?.timeTo || dayTimes.timeTo;
         const workLocation = workEdits?.location || schedule.location || "";
@@ -245,7 +262,6 @@ export default function Calendar() {
           },
         });
 
-        // Create childcare event with edits applied
         const childcareTitle = childcareEdits?.title || "No Childcare";
         const childcareTimeFrom = childcareEdits?.timeFrom || dayTimes.timeFrom;
         const childcareTimeTo = childcareEdits?.timeTo || dayTimes.timeFrom;
@@ -381,38 +397,63 @@ export default function Calendar() {
     return grouped;
   };
 
-  const generateDateCards = (): DateCard[] => {
+  const generateDateGroups = (): DateGroup[] => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const groups: DateGroup[] = [];
 
     switch (activeView) {
       case "Weekly": {
         const weekDates = getCurrentWeekDates();
-        const cards: DateCard[] = [];
 
         weekDates.forEach((date) => {
           const dayEvents = getEventsForDate(date);
 
           if (dayEvents.length === 0) return;
 
-          const dayName = date.toLocaleDateString("en-US", {
-            weekday: "short",
-          });
-          const dateStr = date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          });
+          const normalizedDate = new Date(date);
+          normalizedDate.setHours(0, 0, 0, 0);
+          const isToday = normalizedDate.getTime() === today.getTime();
 
-          dayEvents.forEach((event, index) => {
-            if (event.title === "No Childcare") return;
+          const dayName = date
+            .toLocaleDateString("en-US", {
+              weekday: "short",
+            })
+            .toUpperCase();
 
+          const dateNum = date.getDate().toString();
+
+          const month = date
+            .toLocaleDateString("en-US", {
+              month: "short",
+            })
+            .toUpperCase();
+
+          const cards: DateCard[] = [];
+
+          // Get all work events
+          const workEvents = dayEvents.filter(
+            (event) => event.extendedProps?.type === "work"
+          );
+
+          // Check if this date has any childcare bookings (not "No Childcare")
+          const hasChildcareBooking = dayEvents.some(
+            (event) =>
+              event.extendedProps?.type === "childcare" &&
+              event.title !== "No Childcare"
+          );
+
+          // Add a separate card for EACH work event
+          workEvents.forEach((workEvent) => {
             const start =
-              event.start instanceof Date
-                ? event.start
-                : new Date(event.start as string);
+              workEvent.start instanceof Date
+                ? workEvent.start
+                : new Date(workEvent.start as string);
             const end =
-              event.end instanceof Date
-                ? event.end
-                : new Date(event.end as string);
+              workEvent.end instanceof Date
+                ? workEvent.end
+                : new Date(workEvent.end as string);
 
             const timeRange = `${start.toLocaleTimeString("en-US", {
               hour: "numeric",
@@ -425,22 +466,63 @@ export default function Calendar() {
             })}`;
 
             cards.push({
-              id: `${date.toISOString()}-${event.extendedProps?.type}-${index}`,
-              text: event.title || "Event",
-              date: `${dayName}, ${dateStr}`,
+              id: `${workEvent.id}`,
+              text: workEvent.title || "Work",
               timeRange: timeRange,
               isEmpty: false,
-              isWork: event.extendedProps?.type === "work",
+              isWork: true,
               type: "Weekly",
               onClick: () => {
-                setSelectedEvent(event);
+                setSelectedEvent(workEvent);
                 setEventDetailOpen(true);
               },
             });
           });
+
+          // Add "No Childcare Booked!" card once if there's work but no childcare
+          if (workEvents.length > 0 && !hasChildcareBooking) {
+            const firstWork = workEvents[0];
+            const start =
+              firstWork.start instanceof Date
+                ? firstWork.start
+                : new Date(firstWork.start as string);
+
+            const timeRange = `${start.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })} shift`;
+
+            cards.push({
+              id: `${date.toISOString()}-childcare-reminder`,
+              text: "No Childcare Booked!",
+              timeRange: undefined,
+              isEmpty: true,
+              isWork: false,
+              type: "Weekly",
+              onClick: () => {
+                setSelectedWorkDetails({
+                  time: timeRange,
+                  location: firstWork.extendedProps?.location || "work",
+                });
+                setNannyPopupOpen(true);
+              },
+            });
+          }
+
+          if (cards.length > 0) {
+            groups.push({
+              date: dateNum,
+              dayName,
+              dateStr: `${dayName}, ${dateNum} ${month}`,
+              month,
+              isToday,
+              cards,
+            });
+          }
         });
 
-        return cards;
+        return groups;
       }
 
       case "Monthly": {
@@ -451,33 +533,53 @@ export default function Calendar() {
         }
 
         const groupedByDate = groupEventsByDate(monthEvents);
-        const cards: DateCard[] = [];
 
         Object.entries(groupedByDate)
           .sort()
           .forEach(([dateStr, dayEvents]) => {
             const [year, month, day] = dateStr.split("-").map(Number);
             const date = new Date(year, month - 1, day);
+            date.setHours(0, 0, 0, 0);
+            const isToday = date.getTime() === today.getTime();
 
-            const dayName = date.toLocaleDateString("en-US", {
-              weekday: "short",
-            });
-            const dateDisplay = date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            });
+            const dayName = date
+              .toLocaleDateString("en-US", {
+                weekday: "short",
+              })
+              .toUpperCase();
 
-            dayEvents.forEach((event, index) => {
-              if (event.title === "No Childcare") return;
+            const dateNum = date.getDate().toString();
 
+            const monthStr = date
+              .toLocaleDateString("en-US", {
+                month: "short",
+              })
+              .toUpperCase();
+
+            const cards: DateCard[] = [];
+
+            // Get all work events
+            const workEvents = dayEvents.filter(
+              (event) => event.extendedProps?.type === "work"
+            );
+
+            // Check if this date has any childcare bookings (not "No Childcare")
+            const hasChildcareBooking = dayEvents.some(
+              (event) =>
+                event.extendedProps?.type === "childcare" &&
+                event.title !== "No Childcare"
+            );
+
+            // Add a separate card for EACH work event
+            workEvents.forEach((workEvent) => {
               const start =
-                event.start instanceof Date
-                  ? event.start
-                  : new Date(event.start as string);
+                workEvent.start instanceof Date
+                  ? workEvent.start
+                  : new Date(workEvent.start as string);
               const end =
-                event.end instanceof Date
-                  ? event.end
-                  : new Date(event.end as string);
+                workEvent.end instanceof Date
+                  ? workEvent.end
+                  : new Date(workEvent.end as string);
 
               const timeRange = `${start.toLocaleTimeString("en-US", {
                 hour: "numeric",
@@ -490,27 +592,74 @@ export default function Calendar() {
               })}`;
 
               cards.push({
-                id: `${dateStr}-${event.extendedProps?.type}-${index}`,
-                text: event.title || "Event",
-                date: `${dayName}, ${dateDisplay}`,
+                id: `${workEvent.id}`,
+                text: workEvent.title || "Work",
                 timeRange: timeRange,
                 isEmpty: false,
-                isWork: event.extendedProps?.type === "work",
+                isWork: true,
                 type: "Monthly",
                 onClick: () => {
-                  setSelectedEvent(event);
+                  setSelectedEvent(workEvent);
                   setEventDetailOpen(true);
                 },
               });
             });
+
+            // Add "No Childcare Booked!" card once if there's work but no childcare
+            if (workEvents.length > 0 && !hasChildcareBooking) {
+              const firstWork = workEvents[0];
+              const start =
+                firstWork.start instanceof Date
+                  ? firstWork.start
+                  : new Date(firstWork.start as string);
+
+              const timeRange = `${start.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })} shift`;
+
+              cards.push({
+                id: `${dateStr}-childcare-reminder`,
+                text: "No Childcare Booked!",
+                timeRange: undefined,
+                isEmpty: true,
+                isWork: false,
+                type: "Monthly",
+                onClick: () => {
+                  setSelectedWorkDetails({
+                    time: timeRange,
+                    location: firstWork.extendedProps?.location || "work",
+                  });
+                  setNannyPopupOpen(true);
+                },
+              });
+            }
+
+            if (cards.length > 0) {
+              groups.push({
+                date: dateNum,
+                dayName,
+                dateStr: `${dayName}, ${dateNum} ${monthStr}`,
+                month: monthStr,
+                isToday,
+                cards,
+              });
+            }
           });
 
-        return cards;
+        return groups;
       }
 
       default:
         return [];
     }
+  };
+
+  // Handler for confirming nanny booking
+  const handleConfirmNannyBooking = () => {
+    setNannyPopupOpen(false);
+    router.push("/nanny/book/form");
   };
 
   const parseScheduleEventId = (
@@ -524,101 +673,16 @@ export default function Calendar() {
     return scheduleId && date ? { scheduleId, date } : null;
   };
 
-  const handleDateClick = (selectInfo: DateSelectArg) => {
-    setSelectedDate(selectInfo);
-    setActiveTab("shift");
-    setDialogOpen(true);
-  };
-
   const handleMonthDateSelect = (date: Date) => {
     setSelectedMonthDate(date);
 
     const weekStart = getStartOfWeek(date);
     setWeekStartDate(weekStart);
-
-    const calendarApi = calendarRef.current?.getApi();
-    if (!calendarApi) return;
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateString = `${year}-${month}-${day}`;
-
-    const selectInfo: DateSelectArg = {
-      start: date,
-      end: date,
-      startStr: dateString,
-      endStr: dateString,
-      allDay: true,
-      view: calendarApi.view,
-      jsEvent: new MouseEvent("click"),
-    };
-
-    handleDateClick(selectInfo);
   };
 
   const getEventsForSelectedDate = () => {
     if (!selectedMonthDate) return [];
     return getEventsForDate(selectedMonthDate);
-  };
-
-  const handleAddEvent = () => {
-    if (
-      !selectedDate ||
-      !newEventTitle ||
-      !newEventStartTime ||
-      !newEventEndTime
-    ) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
-    const calendarApi = calendarRef.current?.getApi();
-    if (!calendarApi) return;
-
-    const dateString = selectedDate.startStr;
-    const [year, month, day] = dateString.split("-").map(Number);
-
-    const startDateTime = new Date(year, month - 1, day);
-    const [startHour, startMinute] = newEventStartTime.split(":").map(Number);
-    startDateTime.setHours(startHour, startMinute, 0, 0);
-
-    const endDateTime = new Date(year, month - 1, day);
-    const [endHour, endMinute] = newEventEndTime.split(":").map(Number);
-    endDateTime.setHours(endHour, endMinute, 0, 0);
-
-    const eventType = activeTab === "shift" ? "shift" : "nanny";
-    const eventColor = getEventColor(eventType);
-
-    const newEvent: CustomEventInput = {
-      id: `${eventType}-${Date.now()}`,
-      title: newEventTitle,
-      start: startDateTime,
-      end: endDateTime,
-      allDay: false,
-      backgroundColor: eventColor.bg,
-      borderColor: eventColor.border,
-      extendedProps: {
-        location: newEventLocation,
-        notes: newEventNotes,
-        type: eventType,
-      },
-    };
-
-    calendarApi.addEvent(newEvent);
-    setAllEvents((prev) => [...prev, newEvent]);
-    handleCloseDialog();
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setNewEventTitle("");
-    setNewEventStartTime("");
-    setNewEventEndTime("");
-    setNewEventLocation("");
-    setNewEventNotes("");
-    setActiveTab("shift");
-    setSelectedDate(null);
   };
 
   const handleEventDetailClose = (open: boolean) => {
@@ -807,7 +871,6 @@ export default function Calendar() {
           initialView="dayGridMonth"
           editable={true}
           selectable={true}
-          select={handleDateClick}
           events={allEvents}
           eventsSet={(events) => setCurrentEvents(events)}
         />
@@ -827,13 +890,17 @@ export default function Calendar() {
           onTabChange={(tab) => setActiveView(tab as ViewType)}
         />
         <div
-          className="overflow-y-auto overflow-x-hidden overscroll-contain"
+          className="overflow-y-auto overflow-x-hidden overscroll-contain pb-4"
           style={{
-            height: "calc(100vh - 280px)",
+            height:
+              activeView === "Monthly"
+                ? "calc(100vh - 500px)"
+                : "calc(100vh - 280px)",
             WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "thin",
           }}
         >
-          {generateDateCards().length === 0 ? (
+          {generateDateGroups().length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4">
               <div className="mb-4">
                 <Image
@@ -859,158 +926,91 @@ export default function Calendar() {
               </button>
             </div>
           ) : (
-            <DateCardContainer cards={generateDateCards()} />
+            <div className="flex flex-col gap-6 px-4 py-4">
+              {generateDateGroups().map((group) => (
+                <div
+                  key={group.dateStr}
+                  className={`flex gap-4 ${
+                    group.isToday ? "bg-blue-50 rounded-3xl p-3" : ""
+                  }`}
+                >
+                  {/* Date Label */}
+                  <div className="flex flex-col items-center min-w-[60px] flex-shrink-0">
+                    <p
+                      className={`text-xs uppercase font-semibold ${
+                        group.isToday ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
+                      {group.dayName}
+                    </p>
+                    <p
+                      className={`text-4xl font-bold leading-none ${
+                        group.isToday ? "text-blue-600" : "text-black"
+                      }`}
+                    >
+                      {group.date}
+                    </p>
+                    <p
+                      className={`text-xs uppercase ${
+                        group.isToday ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
+                      {group.month}
+                    </p>
+                  </div>
+
+                  {/* Cards for this date */}
+                  <div className="flex-1 flex flex-col gap-3">
+                    {group.cards.map((card) => {
+                      const barColor = card.isEmpty
+                        ? "#b0b0b8"
+                        : card.isWork
+                        ? "#6bb064"
+                        : "#255495";
+
+                      return (
+                        <button
+                          key={card.id}
+                          onClick={card.onClick}
+                          className="relative bg-white rounded-3xl shadow-lg px-6 py-4 flex items-center justify-between w-full min-h-[80px] hover:shadow-xl transition-shadow overflow-hidden"
+                        >
+                          <div
+                            className="absolute left-0 top-0 bottom-0 w-3 rounded-l-3xl"
+                            style={{ backgroundColor: barColor }}
+                          />
+                          {card.isEmpty ? (
+                            <h2 className="text-[16px] font-medium text-black">
+                              {card.text}
+                            </h2>
+                          ) : (
+                            <div className="flex flex-col items-start gap-1">
+                              {card.timeRange && (
+                                <p className="text-sm text-gray-600 font-normal">
+                                  {card.timeRange}
+                                </p>
+                              )}
+                              <h2 className="text-[16px] font-medium text-black">
+                                {card.text}
+                              </h2>
+                            </div>
+                          )}
+                          <IoIosArrowForward
+                            size={28}
+                            color="#b0b0b8"
+                            className="z-10"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </HalfBackground>
 
-      {/* Add Event Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
-              Add New Event
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedDate && (
-            <div className="space-y-4">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-600">Date</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {(() => {
-                    const [year, month, day] = selectedDate.startStr
-                      .split("-")
-                      .map(Number);
-                    const localDate = new Date(year, month - 1, day);
-                    return formatDate(localDate, {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    });
-                  })()}
-                </p>
-              </div>
-
-              <div className="flex border-b-2 border-gray-200">
-                <button
-                  onClick={() => setActiveTab("shift")}
-                  className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
-                    activeTab === "shift"
-                      ? "text-green-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Add Shift
-                  {activeTab === "shift" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600"></div>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab("nanny")}
-                  className={`flex-1 py-3 px-4 font-semibold transition-colors relative ${
-                    activeTab === "nanny"
-                      ? "text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Add Nanny
-                  {activeTab === "nanny" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
-                  )}
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Event Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter event title"
-                  value={newEventTitle}
-                  onChange={(e) => setNewEventTitle(e.target.value)}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Start Time <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={newEventStartTime}
-                    onChange={(e) => setNewEventStartTime(e.target.value)}
-                    className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    End Time <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={newEventEndTime}
-                    onChange={(e) => setNewEventEndTime(e.target.value)}
-                    className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  placeholder="Add location"
-                  value={newEventLocation}
-                  onChange={(e) => setNewEventLocation(e.target.value)}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Additional Notes
-                </label>
-                <textarea
-                  placeholder="Add any additional notes here..."
-                  value={newEventNotes}
-                  onChange={(e) => setNewEventNotes(e.target.value)}
-                  rows={4}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl text-base focus:border-blue-500 focus:outline-none transition-colors resize-none"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <button
-                  onClick={handleCloseDialog}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-4 rounded-xl transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddEvent}
-                  className={`flex-1 text-white font-semibold py-3 px-4 rounded-xl transition-colors ${
-                    activeTab === "shift"
-                      ? "bg-green-600 hover:bg-green-700"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }`}
-                >
-                  Add Event
-                </button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Event Detail Dialog */}
+      {/* Event Detail Dialog - Keep existing code */}
       <Dialog open={eventDetailOpen} onOpenChange={handleEventDetailClose}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1294,6 +1294,14 @@ export default function Calendar() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Nanny Booking Popup */}
+      <NannyBookingPopup
+        isOpen={nannyPopupOpen}
+        onClose={() => setNannyPopupOpen(false)}
+        onConfirm={handleConfirmNannyBooking}
+        workDetails={selectedWorkDetails}
+      />
 
       <BottomNav />
     </GradientBackgroundFull>
