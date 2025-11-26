@@ -28,8 +28,13 @@ export function DateHeader({
 }: DateHeaderProps) {
   // Initialize selectedDay with today's date instead of the date prop
   const [selectedDay, setSelectedDay] = useState(new Date());
+  const [visibleRange, setVisibleRange] = useState<{
+    start: number;
+    end: number;
+  }>({ start: 0, end: 4 });
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const dateButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const hasInitialScrolled = useRef(false);
 
   // Format date as "Aug 25, 2025"
   const formatDate = (d: Date) => {
@@ -56,15 +61,50 @@ export function DateHeader({
 
   const allDays = getAllDaysInMonth(date);
 
+  // Calculate visible dates based on scroll position
+  const updateVisibleRange = () => {
+    if (!scrollContainerRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const scrollLeft = container.scrollLeft;
+    const containerWidth = container.clientWidth;
+    const itemWidth = 68; // 56px button + 12px gap
+
+    // Calculate first and last visible index
+    const firstVisible = Math.floor(scrollLeft / itemWidth);
+    const lastVisible = Math.floor((scrollLeft + containerWidth) / itemWidth);
+
+    setVisibleRange({ start: firstVisible, end: lastVisible });
+  };
+
+  // Update visible range on scroll
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener("scroll", updateVisibleRange);
+    // Initial calculation
+    updateVisibleRange();
+
+    return () => {
+      container.removeEventListener("scroll", updateVisibleRange);
+    };
+  }, []);
+
   // Auto-scroll to current day on mount for "today" header type
   useEffect(() => {
-    if (type === "today" && scrollContainerRef.current) {
+    if (
+      type === "today" &&
+      scrollContainerRef.current &&
+      !hasInitialScrolled.current
+    ) {
       const today = new Date();
       const todayIndex = allDays.findIndex(
         (day) => day.toDateString() === today.toDateString()
       );
 
       if (todayIndex !== -1) {
+        hasInitialScrolled.current = true;
         // Small delay to ensure DOM is fully rendered
         setTimeout(() => {
           const container = scrollContainerRef.current;
@@ -81,6 +121,9 @@ export function DateHeader({
               left: scrollPosition,
               behavior: "smooth",
             });
+
+            // Update visible range after scroll
+            setTimeout(updateVisibleRange, 150);
           }
         }, 100);
       }
@@ -94,22 +137,21 @@ export function DateHeader({
       onDateSelect(day);
     }
 
-    // Scroll to position the clicked date as the second visible item
-    if (scrollContainerRef.current && dateButtonRefs.current[index]) {
+    // Scroll to second position for "today" type
+    if (type === "today" && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      const button = dateButtonRefs.current[index];
+      // Button width (56px) + gap (12px) = 68px per item
+      const itemWidth = 68;
+      // Position selected date as the second item (index - 1)
+      const scrollPosition = Math.max(0, index * itemWidth - itemWidth);
 
-      if (button) {
-        // Calculate the scroll position to make this the second item
-        // Button width (56px) + gap (12px) = 68px per item
-        const itemWidth = 68;
-        const scrollPosition = Math.max(0, index * itemWidth - itemWidth);
+      container.scrollTo({
+        left: scrollPosition,
+        behavior: "smooth",
+      });
 
-        container.scrollTo({
-          left: scrollPosition,
-          behavior: "smooth",
-        });
-      }
+      // Update visible range after scroll
+      setTimeout(updateVisibleRange, 150);
     }
   };
 
@@ -183,12 +225,11 @@ export function DateHeader({
     const dateStr = fullDate.toISOString().split("T")[0];
     const events = eventsByDate[dateStr] || [];
 
-    const hasShift = events.some((e) => e.type === "shift");
     const hasNanny = events.some((e) => e.type === "nanny");
     const hasWork = events.some((e) => e.type === "work");
     const hasChildcare = events.some((e) => e.type === "childcare");
 
-    return { hasShift, hasNanny, hasWork, hasChildcare };
+    return { hasNanny, hasWork, hasChildcare };
   };
 
   // Date Header - Just "Today" with date and notification
@@ -233,6 +274,11 @@ export function DateHeader({
               .toLocaleDateString("en-US", { weekday: "short" })
               .toUpperCase();
 
+            // Apply blur to first and last visible dates
+            const isFirstVisible = index === visibleRange.start;
+            const isLastVisible = index === visibleRange.end;
+            const shouldBlur = isFirstVisible || isLastVisible;
+
             return (
               <button
                 key={index}
@@ -240,7 +286,12 @@ export function DateHeader({
                   dateButtonRefs.current[index] = el;
                 }}
                 onClick={() => handleDayClick(day, index)}
-                style={{ scrollSnapAlign: "center" }}
+                style={{
+                  scrollSnapAlign: "center",
+                  filter: shouldBlur ? "blur(2px)" : "none",
+                  opacity: shouldBlur ? 0.6 : 1,
+                  transition: "filter 0.2s ease, opacity 0.2s ease",
+                }}
                 className={`flex flex-col items-center justify-center rounded-3xl transition-all p-2 px-1 drop-shadow-2xl flex-shrink-0 ${
                   isSelected
                     ? "bg-primary-active text-white shadow-lg"
@@ -261,22 +312,6 @@ export function DateHeader({
             );
           })}
         </div>
-
-        {/* Gradient fade overlays */}
-        <div
-          className="absolute left-6 top-0 bottom-0 w-12 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to right, rgba(51, 115, 204, 0.3), transparent)",
-          }}
-        />
-        <div
-          className="absolute right-6 top-0 bottom-0 w-12 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to left, rgba(51, 115, 204, 0.3), transparent)",
-          }}
-        />
       </div>
     );
   }
@@ -383,7 +418,7 @@ export function DateHeader({
                   const isToday = day.fullDate.toDateString() === todayStr;
                   const isSelected =
                     day.fullDate.toDateString() === selectedDay.toDateString();
-                  const { hasShift, hasNanny, hasWork, hasChildcare } =
+                  const { hasNanny, hasWork, hasChildcare } =
                     getEventIndicators(day.fullDate);
 
                   return (
@@ -423,7 +458,7 @@ export function DateHeader({
                       {/* Event indicators - top right corner - only show for current month */}
                       {day.isCurrentMonth && (
                         <div className="absolute top-0.5 right-0.5 flex gap-0.5">
-                          {hasShift && (
+                          {hasWork && (
                             <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
                           )}
                           {hasNanny && (

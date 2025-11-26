@@ -9,7 +9,8 @@ interface DateCardProps {
   isEmpty?: boolean;
   isWork?: boolean;
   date?: string;
-  timeRange?: string; // Add this prop
+  timeRange?: string;
+  isToday?: boolean; // Add this prop
 }
 
 export function DateCard({
@@ -19,7 +20,8 @@ export function DateCard({
   isEmpty,
   isWork,
   type,
-  timeRange, // Add this parameter
+  timeRange,
+  isToday = false, // Add this parameter
 }: DateCardProps) {
   let barColor = "#b0b0b8";
   if (!isEmpty) {
@@ -32,16 +34,32 @@ export function DateCard({
   const fontBoldness = type === "Today" ? "font-medium" : "";
 
   return (
-    <div className="flex items-center gap-4">
+    <div
+      className={`flex items-center gap-4 ${
+        isToday ? "p-3 bg-blue-100 rounded-3xl" : ""
+      }`}
+    >
       {date && (
         <div className="flex flex-col items-center min-w-[60px]">
-          <p className="text-xs text-gray-500 uppercase font-semibold">
+          <p
+            className={`text-xs uppercase font-semibold ${
+              isToday ? "text-blue-600" : "text-gray-500"
+            }`}
+          >
             {date.split(",")[0]}
           </p>
-          <p className="text-3xl font-bold text-black leading-none">
+          <p
+            className={`text-3xl font-bold leading-none ${
+              isToday ? "text-blue-600" : "text-black"
+            }`}
+          >
             {date.split(",")[1]?.trim().split(" ")[1] || date}
           </p>
-          <p className="text-xs text-gray-500 uppercase">
+          <p
+            className={`text-xs uppercase ${
+              isToday ? "text-blue-600" : "text-gray-500"
+            }`}
+          >
             {date.split(",")[1]?.trim().split(" ")[0]}
           </p>
         </div>
@@ -86,7 +104,8 @@ interface DateCardContainerProps {
     id: string | number;
     text: string;
     date?: string;
-    timeRange?: string; // Add this property
+    timeRange?: string;
+    isToday?: boolean; // Add this property
     onClick?: () => void;
   }>;
 }
@@ -100,6 +119,7 @@ export function DateCardContainer({ cards }: DateCardContainerProps) {
           text={card.text}
           date={card.date}
           timeRange={card.timeRange}
+          isToday={card.isToday}
           onClick={card.onClick}
           isEmpty={card.isEmpty}
           isWork={card.isWork}

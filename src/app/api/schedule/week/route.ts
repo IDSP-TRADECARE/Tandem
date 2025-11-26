@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { schedules } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userSchedules = await db
+    const [latest] = await db
       .select({
         id: schedules.id,
         title: schedules.title,
@@ -22,20 +22,20 @@ export async function GET(request: NextRequest) {
         notes: schedules.notes,
         deletedDates: schedules.deletedDates,
         editedDates: schedules.editedDates,
-        dailyTimes: schedules.dailyTimes, 
+        dailyTimes: schedules.dailyTimes,
+        updatedAt: schedules.updatedAt,
       })
       .from(schedules)
-      .where(eq(schedules.userId, userId));
+      .where(eq(schedules.userId, userId))
+      .orderBy(desc(schedules.updatedAt))
+      .limit(1);
 
-    console.log(
-      "📅 Fetching schedules for week:",
-      userSchedules.map((s) => ({ 
-        id: s.id, 
-        dailyTimes: s.dailyTimes 
-      }))
-    );
+    console.log("📅 Fetching LATEST schedule:", {
+      id: latest?.id,
+      dailyTimes: latest?.dailyTimes,
+    });
 
-    return NextResponse.json({ schedules: userSchedules });
+    return NextResponse.json({ schedules: latest ? [latest] : [] });
   } catch (error) {
     console.error("Error fetching schedules:", error);
     return NextResponse.json(

@@ -64,19 +64,35 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
   // Socket.IO real-time message updates
   useEffect(() => {
-    if (!socket || !isConnected || !shareId) return;
+    if (!socket || !shareId) return;
 
+    const onMessageReceived = (message: Message) => {
+      setMessages((prev) => {
+        // Prevent duplicates
+        if (prev.find((m) => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
+    };
+
+    socket.on('message-received', onMessageReceived);
+
+    return () => {
+      socket.off('message-received', onMessageReceived);
+    };
+  }, [socket, shareId]);
+
+  // Join the share room
+  useEffect(() => {
+    if (!socket || !shareId) return;
+    
     socket.emit('join-share', shareId);
-
-    socket.on('message-received', (message: Message) => {
-      setMessages(prev => [...prev, message]);
-    });
+    console.log('Joined share room:', shareId);
 
     return () => {
       socket.emit('leave-share', shareId);
-      socket.off('message-received');
+      console.log('Left share room:', shareId);
     };
-  }, [socket, isConnected, shareId]);
+  }, [socket, shareId]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -107,7 +123,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
       const data = await response.json();
 
-      // Emit socket event
+      // Only emit socket event - let the broadcast add it to state for everyone
       if (socket) {
         socket.emit('message-sent', {
           shareId,
@@ -115,6 +131,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         });
       }
 
+      // Don't add to state here - let socket listener handle it
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);

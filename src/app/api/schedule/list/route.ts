@@ -7,13 +7,16 @@ export async function GET(request: NextRequest) {
   try {
     const userId = request.headers.get('x-user-id') || 'demo-user';
 
-    const userSchedules = await db
+    const [latestSchedule] = await db
       .select()
       .from(schedules)
       .where(eq(schedules.userId, userId))
-      .orderBy(desc(schedules.createdAt));
+      .orderBy(desc(schedules.updatedAt))  
+      .limit(1);
 
-    return NextResponse.json({ schedules: userSchedules });
+    return NextResponse.json({
+      schedules: latestSchedule ? [latestSchedule] : [],
+    });
   } catch (error) {
     console.error('Error fetching schedules:', error);
     return NextResponse.json(
