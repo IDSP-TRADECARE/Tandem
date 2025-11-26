@@ -30,6 +30,7 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { IoIosArrowForward } from "react-icons/io";
+import { NannyBookingPopup } from "../components/popup/AddNanny";
 
 interface DateCard {
   id: string;
@@ -112,6 +113,16 @@ export default function Calendar() {
   const [editEventLocation, setEditEventLocation] = useState<string>("");
   const [editEventNotes, setEditEventNotes] = useState<string>("");
   const calendarRef = useRef<FullCalendar>(null);
+
+  // Add new state for the nanny booking popup
+  const [nannyPopupOpen, setNannyPopupOpen] = useState<boolean>(false);
+  const [selectedWorkDetails, setSelectedWorkDetails] = useState<
+    | {
+        time: string;
+        location: string;
+      }
+    | undefined
+  >(undefined);
 
   const { handlePreviousMonth, handleNextMonth } =
     createMonthNavigationHandlers(currentMonth, setCurrentMonth);
@@ -470,6 +481,18 @@ export default function Calendar() {
 
           // Add "No Childcare Booked!" card once if there's work but no childcare
           if (workEvents.length > 0 && !hasChildcareBooking) {
+            const firstWork = workEvents[0];
+            const start =
+              firstWork.start instanceof Date
+                ? firstWork.start
+                : new Date(firstWork.start as string);
+
+            const timeRange = `${start.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })} shift`;
+
             cards.push({
               id: `${date.toISOString()}-childcare-reminder`,
               text: "No Childcare Booked!",
@@ -478,7 +501,11 @@ export default function Calendar() {
               isWork: false,
               type: "Weekly",
               onClick: () => {
-                router.push("/nanny/book/form");
+                setSelectedWorkDetails({
+                  time: timeRange,
+                  location: firstWork.extendedProps?.location || "work",
+                });
+                setNannyPopupOpen(true);
               },
             });
           }
@@ -580,6 +607,18 @@ export default function Calendar() {
 
             // Add "No Childcare Booked!" card once if there's work but no childcare
             if (workEvents.length > 0 && !hasChildcareBooking) {
+              const firstWork = workEvents[0];
+              const start =
+                firstWork.start instanceof Date
+                  ? firstWork.start
+                  : new Date(firstWork.start as string);
+
+              const timeRange = `${start.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })} shift`;
+
               cards.push({
                 id: `${dateStr}-childcare-reminder`,
                 text: "No Childcare Booked!",
@@ -588,7 +627,11 @@ export default function Calendar() {
                 isWork: false,
                 type: "Monthly",
                 onClick: () => {
-                  router.push("/nanny/book/form");
+                  setSelectedWorkDetails({
+                    time: timeRange,
+                    location: firstWork.extendedProps?.location || "work",
+                  });
+                  setNannyPopupOpen(true);
                 },
               });
             }
@@ -611,6 +654,12 @@ export default function Calendar() {
       default:
         return [];
     }
+  };
+
+  // Handler for confirming nanny booking
+  const handleConfirmNannyBooking = () => {
+    setNannyPopupOpen(false);
+    router.push("/nanny/book/form");
   };
 
   const parseScheduleEventId = (
@@ -1245,6 +1294,14 @@ export default function Calendar() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Nanny Booking Popup */}
+      <NannyBookingPopup
+        isOpen={nannyPopupOpen}
+        onClose={() => setNannyPopupOpen(false)}
+        onConfirm={handleConfirmNannyBooking}
+        workDetails={selectedWorkDetails}
+      />
 
       <BottomNav />
     </GradientBackgroundFull>
