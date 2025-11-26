@@ -81,6 +81,19 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     };
   }, [socket, shareId]);
 
+  // Join the share room
+  useEffect(() => {
+    if (!socket || !shareId) return;
+    
+    socket.emit('join-share', shareId);
+    console.log('Joined share room:', shareId);
+
+    return () => {
+      socket.emit('leave-share', shareId);
+      console.log('Left share room:', shareId);
+    };
+  }, [socket, shareId]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -110,7 +123,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
       const data = await response.json();
 
-      // Emit socket event
+      // Only emit socket event - let the broadcast add it to state for everyone
       if (socket) {
         socket.emit('message-sent', {
           shareId,
@@ -118,6 +131,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         });
       }
 
+      // Don't add to state here - let socket listener handle it
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
