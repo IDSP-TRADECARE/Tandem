@@ -28,6 +28,10 @@ export function DateHeader({
 }: DateHeaderProps) {
   // Initialize selectedDay with today's date instead of the date prop
   const [selectedDay, setSelectedDay] = useState(new Date());
+  const [visibleRange, setVisibleRange] = useState<{
+    start: number;
+    end: number;
+  }>({ start: 0, end: 4 });
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const dateButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const hasInitialScrolled = useRef(false);
@@ -56,6 +60,36 @@ export function DateHeader({
   };
 
   const allDays = getAllDaysInMonth(date);
+
+  // Calculate visible dates based on scroll position
+  const updateVisibleRange = () => {
+    if (!scrollContainerRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const scrollLeft = container.scrollLeft;
+    const containerWidth = container.clientWidth;
+    const itemWidth = 68; // 56px button + 12px gap
+
+    // Calculate first and last visible index
+    const firstVisible = Math.floor(scrollLeft / itemWidth);
+    const lastVisible = Math.floor((scrollLeft + containerWidth) / itemWidth);
+
+    setVisibleRange({ start: firstVisible, end: lastVisible });
+  };
+
+  // Update visible range on scroll
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener("scroll", updateVisibleRange);
+    // Initial calculation
+    updateVisibleRange();
+
+    return () => {
+      container.removeEventListener("scroll", updateVisibleRange);
+    };
+  }, []);
 
   // Auto-scroll to current day on mount for "today" header type
   useEffect(() => {
@@ -87,6 +121,9 @@ export function DateHeader({
               left: scrollPosition,
               behavior: "smooth",
             });
+
+            // Update visible range after scroll
+            setTimeout(updateVisibleRange, 150);
           }
         }, 100);
       }
@@ -112,6 +149,9 @@ export function DateHeader({
         left: scrollPosition,
         behavior: "smooth",
       });
+
+      // Update visible range after scroll
+      setTimeout(updateVisibleRange, 150);
     }
   };
 
@@ -234,6 +274,11 @@ export function DateHeader({
               .toLocaleDateString("en-US", { weekday: "short" })
               .toUpperCase();
 
+            // Apply blur to first and last visible dates
+            const isFirstVisible = index === visibleRange.start;
+            const isLastVisible = index === visibleRange.end;
+            const shouldBlur = isFirstVisible || isLastVisible;
+
             return (
               <button
                 key={index}
@@ -241,7 +286,12 @@ export function DateHeader({
                   dateButtonRefs.current[index] = el;
                 }}
                 onClick={() => handleDayClick(day, index)}
-                style={{ scrollSnapAlign: "center" }}
+                style={{
+                  scrollSnapAlign: "center",
+                  filter: shouldBlur ? "blur(2px)" : "none",
+                  opacity: shouldBlur ? 0.6 : 1,
+                  transition: "filter 0.2s ease, opacity 0.2s ease",
+                }}
                 className={`flex flex-col items-center justify-center rounded-3xl transition-all p-2 px-1 drop-shadow-2xl flex-shrink-0 ${
                   isSelected
                     ? "bg-primary-active text-white shadow-lg"
@@ -262,22 +312,6 @@ export function DateHeader({
             );
           })}
         </div>
-
-        {/* Gradient fade overlays */}
-        <div
-          className="absolute left-6 top-0 bottom-0 w-12 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to right, rgba(51, 115, 204, 0.3), transparent)",
-          }}
-        />
-        <div
-          className="absolute right-6 top-0 bottom-0 w-12 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to left, rgba(51, 115, 204, 0.3), transparent)",
-          }}
-        />
       </div>
     );
   }
