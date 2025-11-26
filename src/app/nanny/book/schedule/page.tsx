@@ -24,7 +24,7 @@ export default function NannySchedulePage() {
   return (
     <div className="min-h-screen flex flex-col pb-24">
       {/* Header */}
-      <div className="bg-blue-500 text-white p-6">
+      <div className="bg-gradient-primary text-white p-6">
         <button onClick={() => router.back()} className="mb-4">
           <IoIosArrowBack size={24} />
         </button>
