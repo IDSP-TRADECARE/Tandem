@@ -32,7 +32,7 @@ export function DaySelector({
       </label>
       <div className="flex gap-2">
         {DAYS.map((day) => {
-          const isSelected = selectedDays.includes(day.id);
+          const isSelected = (selectedDays ?? []).includes(day.id);
           const isActive = activeDay === day.id;
           
           return (

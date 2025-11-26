@@ -27,9 +27,13 @@ function formatTime12Hour(time24: string): string {
 export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState<ScheduleData>(data);
+  const workingDays = data?.workingDays ?? [];
+
   const [selectedDay, setSelectedDay] = useState<string | null>(
-    data.workingDays.length > 0 ? data.workingDays[0] : null
+  workingDays.length > 0 ? workingDays[0] : null
   );
+
+  console.log("EditedData before save:", editedData);
 
   const daysOfWeek = [
     { code: 'SUN', label: 'S', fullName: 'Sunday' },
@@ -115,30 +119,30 @@ export function ScheduleOverview({ data, onEdit, onBack }: ScheduleOverviewProps
   };
 
   const handleSaveChanges = async () => {
-    try {
-      const res = await fetch('/api/schedule/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editedData),
-        credentials: 'include',
-      });
+  try {
+    const res = await fetch('/api/schedule/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editedData), // editedData MUST contain id when editing
+      credentials: 'include',
+    });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to save schedule');
-      }
-
-      const result = await res.json();
-      const saved = result.schedule || result.created || result;
-
-      // Merge server fields (id, dailyTimes, etc.) back into state
-      setEditedData((prev) => ({ ...prev, ...saved }));
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error saving changes:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save changes. Please try again.');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to save schedule');
     }
-  };
+
+    const { schedule } = await res.json();   // 👈 use the "schedule" field
+
+    // Replace state with the canonical version from the server
+    setEditedData(schedule);
+    setIsEditing(false);
+  } catch (error) {
+    console.error('Error saving changes:', error);
+    alert(error instanceof Error ? error.message : 'Failed to save changes. Please try again.');
+  }
+};
+
 
 
   // Get the schedule for the currently selected day

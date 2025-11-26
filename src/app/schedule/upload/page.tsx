@@ -13,6 +13,7 @@ export type InputMethod = 'file' | 'voice' | 'manual';
 export type UploadStep = 'select' | 'uploading' | 'complete' | 'overview';
 
 export interface ScheduleData {
+  id?: string;
   title: string;
   workingDays: string[];
   timeFrom: string;

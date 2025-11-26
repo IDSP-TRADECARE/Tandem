@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../db";
 import { schedules } from "../../../../db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   console.log('🔐 Save route hit');
@@ -14,49 +15,72 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = await request.json();
-  
   console.log('📦 Payload received:', JSON.stringify(payload, null, 2));
 
-  // Build daily_times from daySchedules if provided
-  const dailyTimes = payload.daySchedules || {};
-  
+  const dailyTimes = payload.daySchedules || payload.dailyTimes || {};
   console.log('🕐 Daily times to save:', JSON.stringify(dailyTimes, null, 2));
-  
-  // Get default times from first working day if daySchedules exists
+
+  // Derive default times from first working day
   let defaultTimeFrom = "09:00";
   let defaultTimeTo = "17:00";
-  
-  if (payload.daySchedules && payload.workingDays && payload.workingDays.length > 0) {
+
+  if (payload.workingDays?.length && payload.daySchedules) {
     const firstDay = payload.workingDays[0];
-    if (payload.daySchedules[firstDay]) {
-      defaultTimeFrom = payload.daySchedules[firstDay].timeFrom;
-      defaultTimeTo = payload.daySchedules[firstDay].timeTo;
+    const firstSchedule = payload.daySchedules[firstDay];
+    if (firstSchedule) {
+      defaultTimeFrom = firstSchedule.timeFrom || defaultTimeFrom;
+      defaultTimeTo = firstSchedule.timeTo || defaultTimeTo;
     }
   }
 
   console.log('⏰ Default times:', { defaultTimeFrom, defaultTimeTo });
 
-  // Inserting schedule into database
-  const [created] = await db
-    .insert(schedules)
-    .values({
-      userId,
-      title: payload.title ?? "Schedule",
-      workingDays: payload.workingDays ?? [],
-      timeFrom: payload.timeFrom ?? defaultTimeFrom,
-      timeTo: payload.timeTo ?? defaultTimeTo,
-      location: payload.location ?? null,
-      notes: payload.notes ?? null,
-      deletedDates: payload.deletedDates ?? [],
-      dailyTimes: dailyTimes, 
-    })
-    .returning();
+  // Helper to avoid "" in TIME columns
+  function safeTime(val: any, fallback: string) {
+    return val && typeof val === "string" && val.trim() !== ""
+      ? val
+      : fallback;
+  }
 
-  console.log('✅ Schedule created with ID:', created.id);
-  console.log('💾 Saved dailyTimes:', created.dailyTimes);
+  const baseValues = {
+    title: payload.title ?? "Schedule",
+    workingDays: payload.workingDays ?? [],
+    timeFrom: safeTime(payload.timeFrom, defaultTimeFrom),
+    timeTo: safeTime(payload.timeTo, defaultTimeTo),
+    location: payload.location || null,
+    notes: payload.notes || null,
+    deletedDates: payload.deletedDates ?? [],
+    dailyTimes,
+  };
+
+  let row;
+
+  if (payload.id) {
+    // 🔁 UPDATE existing schedule
+    const [updated] = await db
+      .update(schedules)
+      .set(baseValues)
+      .where(eq(schedules.id, payload.id))
+      .returning();
+
+    console.log("📌 Updated schedule:", updated);
+    row = updated;
+  } else {
+    // 🆕 INSERT new schedule
+    const [created] = await db
+      .insert(schedules)
+      .values({
+        userId,
+        ...baseValues,
+      })
+      .returning();
+
+    console.log("🆕 Created schedule:", created);
+    row = created;
+  }
 
   return NextResponse.json({
     success: true,
-    scheduleId: created.id,
+    schedule: row,
   });
 }

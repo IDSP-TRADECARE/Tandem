@@ -96,16 +96,32 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
           }
 
           const saveResult = await saveResponse.json();
-          const persisted = saveResult.schedule || saveResult.created || saveResult || schedule;
-          console.log('✅ Schedule saved successfully:', persisted);
+        console.log('✅ Schedule saved successfully:', saveResult);
 
-          // cleanup media
-          stopStreamTracks();
-          mediaRecorderRef.current = null;
-          audioChunksRef.current = [];
+        let enrichedSchedule = schedule;
 
-          // complete flow
-          setTimeout(() => onComplete(persisted), 500);
+        const days = Object.keys(schedule.daySchedules || {});
+        if (days.length > 0) {
+        const first = schedule.daySchedules[days[0]];
+        enrichedSchedule = {
+        ...schedule,
+        timeFrom: first?.timeFrom || '',
+        timeTo: first?.timeTo || '',
+        };
+        }
+
+        if (saveResult.scheduleId) {
+         enrichedSchedule = { ...enrichedSchedule, scheduleId: saveResult.scheduleId };
+        }
+
+        // cleanup media
+        stopStreamTracks();
+        mediaRecorderRef.current = null;
+        audioChunksRef.current = [];
+
+        // complete flow with the REAL schedule data
+        setTimeout(() => onComplete(enrichedSchedule), 500);
+
         } catch (err) {
           console.error('❌ Voice input error:', err);
           setError(err instanceof Error ? err.message : 'Failed to process voice input');
