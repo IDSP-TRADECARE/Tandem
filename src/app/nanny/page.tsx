@@ -11,7 +11,7 @@ import { ShareRequestCard } from '@/app/components/ui/nanny/cards/ShareRequestCa
 import type { NannyShare } from '@/db/schema';
 
 export default function NannySharePage() {
-  const [activeTab, setActiveTab] = useState('Requests');
+  const [activeTab, setActiveTab] = useState('My Requests');
   const [myShares, setMyShares] = useState<NannyShare[]>([]);
   const [availableShares, setAvailableShares] = useState<NannyShare[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +58,7 @@ export default function NannySharePage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'Requests') fetchMyShares();
+    if (activeTab === 'My Requests') fetchMyShares();
     else fetchAvailable();
   }, [activeTab, fetchMyShares, fetchAvailable]);
 
@@ -77,10 +77,10 @@ export default function NannySharePage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   };
 
-  const shares = activeTab === 'Requests' ? myShares : availableShares;
+  const shares = activeTab === 'My Requests' ? myShares : availableShares;
 
   // Define tabs
-  const tabs = ['Requests', 'Available'];
+  const tabs = ['My Requests', 'Available'];
 
   return (
     <GradientBackgroundFull>
@@ -111,8 +111,8 @@ export default function NannySharePage() {
             </div>
           )}
 
-          {/* Empty State - Requests */}
-          {!isLoading && activeTab === 'Requests' && shares.length === 0 && (
+          {/* Empty State - My Requests */}
+          {!isLoading && activeTab === 'My Requests' && shares.length === 0 && (
             <div className="text-center py-16">
               <div className="mb-6">
                 <svg className="w-32 h-32 mx-auto text-primary opacity-50" viewBox="0 0 200 200" fill="none">
@@ -147,8 +147,8 @@ export default function NannySharePage() {
             </div>
           )}
 
-          {/* Requests List */}
-          {!isLoading && activeTab === 'Requests' && shares.length > 0 && (
+          {/* My Requests List */}
+          {!isLoading && activeTab === 'My Requests' && shares.length > 0 && (
             <div className="space-y-4">
               {shares.map((share) => (
                 <Link key={share.id} href={`/nanny/${share.id}`}>
