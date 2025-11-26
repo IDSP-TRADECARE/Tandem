@@ -30,6 +30,7 @@ export function DateHeader({
   const [selectedDay, setSelectedDay] = useState(new Date());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const dateButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const hasInitialScrolled = useRef(false);
 
   // Format date as "Aug 25, 2025"
   const formatDate = (d: Date) => {
@@ -58,13 +59,18 @@ export function DateHeader({
 
   // Auto-scroll to current day on mount for "today" header type
   useEffect(() => {
-    if (type === "today" && scrollContainerRef.current) {
+    if (
+      type === "today" &&
+      scrollContainerRef.current &&
+      !hasInitialScrolled.current
+    ) {
       const today = new Date();
       const todayIndex = allDays.findIndex(
         (day) => day.toDateString() === today.toDateString()
       );
 
       if (todayIndex !== -1) {
+        hasInitialScrolled.current = true;
         // Small delay to ensure DOM is fully rendered
         setTimeout(() => {
           const container = scrollContainerRef.current;
@@ -94,7 +100,19 @@ export function DateHeader({
       onDateSelect(day);
     }
 
-   
+    // Scroll to second position for "today" type
+    if (type === "today" && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      // Button width (56px) + gap (12px) = 68px per item
+      const itemWidth = 68;
+      // Position selected date as the second item (index - 1)
+      const scrollPosition = Math.max(0, index * itemWidth - itemWidth);
+
+      container.scrollTo({
+        left: scrollPosition,
+        behavior: "smooth",
+      });
+    }
   };
 
   // Get calendar grid for monthly view
