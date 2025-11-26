@@ -183,12 +183,11 @@ export function DateHeader({
     const dateStr = fullDate.toISOString().split("T")[0];
     const events = eventsByDate[dateStr] || [];
 
-    const hasShift = events.some((e) => e.type === "shift");
     const hasNanny = events.some((e) => e.type === "nanny");
     const hasWork = events.some((e) => e.type === "work");
     const hasChildcare = events.some((e) => e.type === "childcare");
 
-    return { hasShift, hasNanny, hasWork, hasChildcare };
+    return { hasNanny, hasWork, hasChildcare };
   };
 
   // Date Header - Just "Today" with date and notification
@@ -383,7 +382,7 @@ export function DateHeader({
                   const isToday = day.fullDate.toDateString() === todayStr;
                   const isSelected =
                     day.fullDate.toDateString() === selectedDay.toDateString();
-                  const { hasShift, hasNanny, hasWork, hasChildcare } =
+                  const { hasNanny, hasWork, hasChildcare } =
                     getEventIndicators(day.fullDate);
 
                   return (
@@ -423,7 +422,7 @@ export function DateHeader({
                       {/* Event indicators - top right corner - only show for current month */}
                       {day.isCurrentMonth && (
                         <div className="absolute top-0.5 right-0.5 flex gap-0.5">
-                          {hasShift && (
+                          {hasWork && (
                             <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
                           )}
                           {hasNanny && (
