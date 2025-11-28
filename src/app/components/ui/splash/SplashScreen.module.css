@@ -1,0 +1,54 @@
+.container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.logoContainer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(1);
+    transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+}
+
+.logoContainer.visible {
+    opacity: 1;
+}
+
+.logoContainer.scaled {
+    transform: scale(1.5);
+}
+
+.logo {
+    width: auto;
+    height: auto;
+    max-width: 200px;
+    max-height: 200px;
+    object-fit: contain;
+}
+
+.whiteOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    opacity: 0;
+    z-index: 3;
+    transition: opacity 1s ease-in-out;
+}
+
+.whiteOverlay.visible {
+    opacity: 1;
+}
+
+
