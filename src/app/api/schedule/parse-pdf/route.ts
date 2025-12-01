@@ -126,15 +126,22 @@ export async function POST(request: NextRequest) {
 {
   "title": "Schedule title or period",
   "workingDays": ["MON", "TUE", "WED", "THU", "FRI"],
-  "timeFrom": "09:00",
-  "timeTo": "17:00",
+  "daySchedules": {
+    "MON": { "timeFrom": "09:00", "timeTo": "17:00" },
+    "TUE": { "timeFrom": "09:00", "timeTo": "17:00" },
+    "WED": { "timeFrom": "09:00", "timeTo": "17:00" },
+    "THU": { "timeFrom": "09:00", "timeTo": "17:00" },
+    "FRI": { "timeFrom": "09:00", "timeTo": "17:00" }
+  },
   "location": "Work location",
   "notes": "Extracted from uploaded ${extractionMethod.toLowerCase()}"
 }
 
 CRITICAL RULES:
 - workingDays MUST be an array of day codes: MON, TUE, WED, THU, FRI, SAT, SUN (never empty)
-- If "weekdays" or "Monday to Friday" is mentioned, use ["MON", "TUE", "WED", "THU", "FRI"]
+- daySchedules MUST have an entry for EACH day in workingDays
+- If different days have different times, extract them separately
+- If all days have the same time, use that time for all days in daySchedules
 - timeFrom and timeTo MUST be in 24-hour format (HH:MM) and NEVER empty
 - If NO time is mentioned, use "09:00" for timeFrom and "17:00" for timeTo
 - Extract any relevant location information
@@ -161,21 +168,29 @@ ${scheduleText}`,
     }
 
     const schedule = JSON.parse(jsonMatch[0]);
-    
+
     // Validate and provide defaults
-    if (!schedule.timeFrom || schedule.timeFrom === '') {
-      schedule.timeFrom = '09:00';
-    }
-    if (!schedule.timeTo || schedule.timeTo === '') {
-      schedule.timeTo = '17:00';
-    }
     if (!schedule.workingDays || schedule.workingDays.length === 0) {
       schedule.workingDays = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
     }
     if (!schedule.title || schedule.title === '') {
       schedule.title = 'Work Schedule';
     }
-    
+
+    // Ensure daySchedules exists and has entries for all working days
+    if (!schedule.daySchedules) {
+      schedule.daySchedules = {};
+    }
+
+    schedule.workingDays.forEach((day: string) => {
+      if (!schedule.daySchedules[day]) {
+        schedule.daySchedules[day] = {
+          timeFrom: '09:00',
+          timeTo: '17:00'
+        };
+      }
+    });
+
     console.log('✅ Parsed schedule:', schedule);
 
     return NextResponse.json({ schedule });

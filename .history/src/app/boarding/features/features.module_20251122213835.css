@@ -1,0 +1,10 @@
+.title {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+.description {
+    font-size: 1.125rem;
+    color: #555;
+    margin-bottom: 2rem;
+}
