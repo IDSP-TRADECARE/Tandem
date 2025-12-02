@@ -570,7 +570,7 @@ export default function Calendar() {
                 ? "Request Pending"
                 : "No Childcare Booked!",
               timeRange: undefined,
-              isEmpty: !hasPendingRequest, // Not empty if pending
+              isEmpty: !hasPendingRequest,
               isWork: false,
               type: "Monthly",
               onClick: () => {
@@ -578,7 +578,7 @@ export default function Calendar() {
                   setSelectedWorkDetails({
                     time: timeRange,
                     location: firstWork.extendedProps?.location || "work",
-                    dateKey: dateStr, // Pass the dateKey
+                    dateKey: dateStr,
                   });
                   setNannyPopupOpen(true);
                 }
@@ -695,20 +695,26 @@ export default function Calendar() {
                 hour12: true,
               })} shift`;
 
+              const hasPendingRequest = pendingNannyRequests.has(dateStr);
+
               cards.push({
                 id: `${dateStr}-childcare-reminder`,
-                text: "No Childcare Booked!",
+                text: hasPendingRequest
+                  ? "Request Pending"
+                  : "No Childcare Booked!",
                 timeRange: undefined,
-                isEmpty: true,
+                isEmpty: !hasPendingRequest,
                 isWork: false,
                 type: "Monthly",
                 onClick: () => {
-                  setSelectedWorkDetails({
-                    time: timeRange,
-                    location: firstWork.extendedProps?.location || "work",
-                    dateKey: dateStr,
-                  });
-                  setNannyPopupOpen(true);
+                  if (!hasPendingRequest) {
+                    setSelectedWorkDetails({
+                      time: timeRange,
+                      location: firstWork.extendedProps?.location || "work",
+                      dateKey: dateStr,
+                    });
+                    setNannyPopupOpen(true);
+                  }
                 },
               });
             }
