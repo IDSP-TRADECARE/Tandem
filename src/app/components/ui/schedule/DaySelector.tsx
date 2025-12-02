@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef } from 'react';
+
 interface DaySelectorProps {
   selectedDays: string[];
-  onDayToggle: (day: string) => void;
+  onDayToggle: (day: string, isDouble?: boolean) => void;
   activeDay?: string | null;
   disabled?: boolean;
   showHint?: boolean;
@@ -18,28 +20,52 @@ const DAYS = [
   { id: 'SAT', label: 'S', fullName: 'Saturday' },
 ];
 
-export function DaySelector({ 
-  selectedDays, 
-  onDayToggle, 
-  activeDay, 
+export function DaySelector({
+  selectedDays,
+  onDayToggle,
+  activeDay,
   disabled = false,
-  showHint = false 
+  showHint = false,
 }: DaySelectorProps) {
+  
+  // Track last click for double-click simulation
+  const lastClickRef = useRef<{ id: string; time: number } | null>(null);
+
+  const handleClick = (dayId: string) => {
+    const now = Date.now();
+    const last = lastClickRef.current;
+
+    // Detect double click inside same component
+    if (last && last.id === dayId && now - last.time < 250) {
+      // DOUBLE CLICK > remove day
+      onDayToggle(dayId, true);  
+      lastClickRef.current = null;
+      return;
+    }
+
+    // First click > store time
+    lastClickRef.current = { id: dayId, time: now };
+
+    // SINGLE CLICK
+    onDayToggle(dayId, false);
+  };
+
   return (
     <div>
       <label className="block text-lg font-bold text-gray-900 mb-3">
         Working Days
       </label>
+
       <div className="flex gap-2">
         {DAYS.map((day) => {
-          const isSelected = (selectedDays ?? []).includes(day.id);
+          const isSelected = selectedDays.includes(day.id);
           const isActive = activeDay === day.id;
-          
+
           return (
             <button
               key={day.id}
               type="button"
-              onClick={() => !disabled && onDayToggle(day.id)}
+              onClick={() => handleClick(day.id)}
               disabled={disabled && !isSelected}
               className={`w-12 h-12 rounded-full font-bold text-lg transition-all ${
                 isSelected
@@ -47,8 +73,8 @@ export function DaySelector({
                     ? 'bg-green-500 text-white ring-4 ring-green-300'
                     : 'bg-green-400 text-white hover:bg-green-500'
                   : disabled
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-pointer'
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-pointer'
               }`}
             >
               {day.label}
@@ -56,14 +82,16 @@ export function DaySelector({
           );
         })}
       </div>
+
       {activeDay && (
         <p className="text-xs text-blue-600 mt-2 font-semibold">
           {disabled ? 'Viewing' : 'Editing'}: {DAYS.find(d => d.id === activeDay)?.fullName}
         </p>
       )}
+
       {showHint && (
         <p className="text-xs text-gray-500 mt-1">
-          Click days to add or remove them
+          * Double-click a day to remove it
         </p>
       )}
     </div>
