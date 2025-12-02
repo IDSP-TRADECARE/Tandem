@@ -19,7 +19,7 @@ export function ChatHeader({ title, subtitle, onBack }: ChatHeaderProps) {
   };
 
   return (
-    <div className="bg-white border-b px-4 py-4 flex items-center gap-3">
+    <div className="sticky top-0 z-50 bg-white border-b px-4 py-4 flex items-center gap-3 shadow-sm">
       <button
         onClick={handleBack}
         className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"

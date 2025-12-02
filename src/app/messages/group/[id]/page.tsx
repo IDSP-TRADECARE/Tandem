@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { ChatHeader } from '@/app/components/chat/ChatHeader';
-import { ChatMessages } from '@/app/components/chat/ChatMessages';
-import { ChatInput } from '@/app/components/chat/ChatInput';
+import { ChatHeader } from '@/app/components/ui/chat/ChatHeader';
+import { ChatMessages } from '@/app/components/ui/chat/ChatMessages';
+import { ChatInput } from '@/app/components/ui/chat/ChatInput';
 import { useChat } from '@/lib/socket/useChat'; // ✅ Fixed import path
 
 export default function GroupChatPage({ params }: { params: Promise<{ id: string }> }) {
