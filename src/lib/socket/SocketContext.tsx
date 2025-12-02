@@ -1,37 +1,34 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { ClientToServerEvents, ServerToClientEvents } from './types';
+import type { ServerToClientEvents, ClientToServerEvents } from './types';
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-interface SocketContextType {
+interface SocketContextValue {
   socket: TypedSocket | null;
   isConnected: boolean;
 }
 
-const SocketContext = createContext<SocketContextType>({
+const SocketContext = createContext<SocketContextValue>({
   socket: null,
   isConnected: false,
-});
+}); // ✅ Provide default value instead of null
 
-export function SocketProvider({ children }: { children: React.ReactNode }) {
+export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<TypedSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // If you want an external socket server, set NEXT_PUBLIC_SOCKET_URL in your env.
-    // Otherwise we connect to the same origin at the in-app socket path (/api/socket).
-    const configured = process.env.NEXT_PUBLIC_SOCKET_URL;
-    const socketUrl = configured ? configured : undefined;
-    const socketPath = configured ? undefined : '/api/socket';
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
 
-    console.log('Connecting to Socket.IO server:', configured ?? '(same-origin) ' + socketPath);
+    console.log('Connecting to Socket.IO server:', socketUrl);
 
-    const socketInstance: TypedSocket = io(socketUrl ?? window.location.origin, {
-      path: socketPath,
+    const socketInstance: TypedSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     socketInstance.on('connect', () => {
@@ -45,8 +42,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socketInstance.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-      setIsConnected(false);
+      console.error('❌ Socket connection error:', error);
     });
 
     setSocket(socketInstance);
@@ -61,6 +57,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       {children}
     </SocketContext.Provider>
   );
-}
+};
 
-export const useSocket = () => useContext(SocketContext);
+// ✅ Updated to always return non-null
+export const useSocket = (): SocketContextValue => {
+  const context = useContext(SocketContext);
+  return context; // Now it always returns the default object
+};

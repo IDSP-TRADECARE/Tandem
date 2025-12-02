@@ -112,8 +112,8 @@ export default function NannyUserPage({ params }: { params: Promise<{ userId: st
     }
     // Create deterministic room id
     const pair = [currentUser.id, targetId].sort();
-    const roomId = `${pair[0]}_${pair[1]}`;
-    router.push(`/chat/${encodeURIComponent(roomId)}`);
+    const id = `${pair[0]}_${pair[1]}`;
+    router.push(`/messages/direct/${encodeURIComponent(id)}`);
   };
 
   return (
