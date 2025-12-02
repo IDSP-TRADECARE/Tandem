@@ -4,7 +4,6 @@ import {
   ServerToClientEvents,
   ClientToServerEvents,
   MemberJoinedData,
-  ShareUpdatedData,
   MessageSentData,
   ShareId,
   RoomId,
@@ -62,9 +61,9 @@ export const initSocketHandlers = (io: TypedServer) => {
     socket.on('message-sent', (data: MessageSentData) => {
       try {
         const { roomId, message } = data;
-        // roomId format: "share-37" or "dm-user_XXX_user_YYY"
+        // roomId is already formatted: "share-37" or "dm-user_XXX_user_YYY"
+        console.log(`💬 Broadcasting message to room: ${roomId} from ${message.senderName}`);
         io.to(roomId).emit('message-received', message);
-        console.log(`💬 message-sent to ${roomId} by ${message.senderName}`);
       } catch (err) {
         console.error('Error handling message-sent', err);
       }
