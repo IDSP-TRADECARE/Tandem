@@ -50,7 +50,7 @@ export default function MessagesPage() {
             avatar: null,
             lastMessage: lastMsg?.content || 'No messages yet',
             timestamp: lastMsg?.timestamp || share.createdAt || new Date().toISOString(),
-            unreadCount: 0, // Could implement unread tracking
+            unreadCount: 0,
           };
         });
 
@@ -73,7 +73,14 @@ export default function MessagesPage() {
   });
 
   const handleConversationClick = (id: string) => {
-    router.push(`/nanny/${id}/chat`);
+    const conversation = conversations.find((c) => c.id === id);
+    if (!conversation) return;
+
+    if (conversation.type === 'group') {
+      router.push(`/messages/group/${id}`);
+    } else {
+      router.push(`/messages/direct/${id}`);
+    }
   };
 
   return (
