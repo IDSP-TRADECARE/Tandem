@@ -127,9 +127,15 @@ export default function Calendar() {
     | undefined
   >(undefined);
 
-  // Add state to track pending nanny requests by date
+  // Add state to track pending nanny requests by date - load from localStorage
   const [pendingNannyRequests, setPendingNannyRequests] = useState<Set<string>>(
-    new Set()
+    () => {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("pendingNannyRequests");
+        return saved ? new Set(JSON.parse(saved)) : new Set();
+      }
+      return new Set();
+    }
   );
 
   const { handlePreviousMonth, handleNextMonth } =
@@ -144,7 +150,15 @@ export default function Calendar() {
   useEffect(() => {
     const completedBooking = localStorage.getItem("completedNannyBooking");
     if (completedBooking) {
-      setPendingNannyRequests((prev) => new Set(prev).add(completedBooking));
+      setPendingNannyRequests((prev) => {
+        const updated = new Set(prev).add(completedBooking);
+        // Persist to localStorage
+        localStorage.setItem(
+          "pendingNannyRequests",
+          JSON.stringify([...updated])
+        );
+        return updated;
+      });
       localStorage.removeItem("completedNannyBooking"); // Clear after reading
     }
   }, []);
