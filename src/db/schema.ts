@@ -42,6 +42,7 @@ export const schedules = pgTable(
     timeTo: time("time_to").notNull(),
     location: text("location"),
     notes: text("notes"),
+    weekOf: text("week_of").notNull(),
     deletedDates: jsonb("deleted_dates").$type<string[]>().default([]),
     editedDates: jsonb("edited_dates")
       .$type<
@@ -61,9 +62,9 @@ export const schedules = pgTable(
         >
       >()
       .default({}),
-    originalFileUrl: text("original_file_url"), // <--- new column
+    originalFileUrl: text("original_file_url"), 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    dailyTimes: jsonb("daily_times").$type<Record<string, any>>().notNull().default({}), // <--- new column
+    dailyTimes: jsonb("daily_times").$type<Record<string, any>>().notNull().default({}), 
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },

@@ -42,6 +42,17 @@ export async function POST(request: NextRequest) {
       : fallback;
   }
 
+  // Helper function to get Monday of current week
+  function getWeekStart(date: Date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
+    const monday = new Date(d.setDate(diff));
+    return monday.toISOString().slice(0, 10); 
+  }
+
+  const weekOf = getWeekStart(new Date()); 
+
   const baseValues = {
     title: payload.title ?? "Schedule",
     workingDays: payload.workingDays ?? [],
@@ -56,7 +67,6 @@ export async function POST(request: NextRequest) {
   let row;
 
   if (payload.id) {
-    // 🔁 UPDATE existing schedule
     const [updated] = await db
       .update(schedules)
       .set(baseValues)
@@ -65,12 +75,13 @@ export async function POST(request: NextRequest) {
 
     console.log("📌 Updated schedule:", updated);
     row = updated;
+
   } else {
-    // 🆕 INSERT new schedule
     const [created] = await db
       .insert(schedules)
       .values({
         userId,
+        weekOf,  
         ...baseValues,
       })
       .returning();
