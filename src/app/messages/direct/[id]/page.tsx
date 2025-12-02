@@ -5,30 +5,50 @@ import { useUser } from '@clerk/nextjs';
 import { ChatHeader } from '@/app/components/chat/ChatHeader';
 import { ChatMessages } from '@/app/components/chat/ChatMessages';
 import { ChatInput } from '@/app/components/chat/ChatInput';
-import { useChat } from '@/app/components/chat/useChat';
+import { useChat } from '@/lib/socket/useChat';
 
-export default function DirectMessagePage({ params }: { params: Promise<{ roomId: string }> }) {
+export default function DirectMessagePage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useUser();
   const [roomId, setRoomId] = useState<string | null>(null);
   const [otherUserName, setOtherUserName] = useState('User');
 
   useEffect(() => {
-    params.then(({ roomId }) => setRoomId(roomId));
+    params.then(({ id }) => setRoomId(id));
   }, [params]);
 
   useEffect(() => {
     if (!roomId || !user?.id) return;
 
-    // Extract other user ID from room ID (format: userId1_userId2)
-    const [id1, id2] = roomId.split('_');
-    const otherUserId = id1 === user.id ? id2 : id1;
+    // Extract other user ID from room ID
+    // Room ID format: user_XXX_user_YYY
+    // We need to find which user ID is NOT the current user's ID
+    
+    const parts = roomId.split('_');
+    let otherUserId: string | undefined;
+
+    // Reconstruct user IDs from parts
+    // Format: user_XXXXX_user_YYYYY where XXXXX and YYYYY can contain underscores
+    const userPattern = /user_[A-Za-z0-9]+/g;
+    const matches = roomId.match(userPattern);
+
+    if (matches && matches.length === 2) {
+      // We have two complete user IDs
+      otherUserId = matches.find(id => id !== user.id);
+    }
+
+    if (!otherUserId) {
+      console.error('Could not extract other user ID from room:', roomId);
+      console.log('Room parts:', parts);
+      console.log('Current user ID:', user.id);
+      return;
+    }
 
     const fetchOtherUser = async () => {
       try {
         const response = await fetch(`/api/users/${otherUserId}`);
         if (response.ok) {
           const data = await response.json();
-          setOtherUserName(data.name || 'User');
+          setOtherUserName(`${data.firstName || ''} ${data.lastName || ''}`.trim() || data.email || 'User');
         }
       } catch (error) {
         console.error('Failed to fetch user:', error);
@@ -42,10 +62,10 @@ export default function DirectMessagePage({ params }: { params: Promise<{ roomId
   const userName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User';
 
   const { messages, isSending, sendMessage } = useChat({
-    roomId: roomId || '',
+    chatType: 'direct',
+    chatId: roomId || '',
     userId,
     userName,
-    isDirectMessage: true,
   });
 
   if (!roomId) {

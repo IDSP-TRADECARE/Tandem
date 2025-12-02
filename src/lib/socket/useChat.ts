@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSocket } from '@/lib/socket/SocketContext';
+import { useSocket } from './SocketContext';
 
 type Message = {
   id: string;
@@ -10,31 +10,41 @@ type Message = {
 };
 
 type UseChatOptions = {
-  roomId: string;
+  chatType: 'group' | 'direct';
+  chatId: string;
   userId: string;
   userName: string;
-  isDirectMessage?: boolean;
 };
 
-export function useChat({ roomId, userId, userName, isDirectMessage = false }: UseChatOptions) {
+export function useChat({ chatType, chatId, userId, userName }: UseChatOptions) {
   const { socket } = useSocket() ?? { socket: null };
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
 
   // Join room
   useEffect(() => {
-    if (!socket || !roomId) return;
+    if (!socket || !chatId) return;
 
-    const actualRoomId = isDirectMessage ? `dm-${roomId}` : `share-${roomId}`;
-    
-    socket.emit('join-share', actualRoomId);
-    console.log('Joined room:', actualRoomId);
+    if (chatType === 'direct') {
+      // For direct messages, use join-dm with just the roomId
+      socket.emit('join-dm', chatId);
+      console.log('Joined DM room:', chatId);
+    } else {
+      // For group chats, use join-share with shareId
+      socket.emit('join-share', chatId);
+      console.log('Joined share room:', chatId);
+    }
 
     return () => {
-      socket.emit('leave-share', actualRoomId);
-      console.log('Left room:', actualRoomId);
+      if (chatType === 'direct') {
+        socket.emit('leave-dm', chatId);
+        console.log('Left DM room:', chatId);
+      } else {
+        socket.emit('leave-share', chatId);
+        console.log('Left share room:', chatId);
+      }
     };
-  }, [socket, roomId, isDirectMessage]);
+  }, [socket, chatId, chatType]);
 
   // Listen for messages
   useEffect(() => {
@@ -42,7 +52,6 @@ export function useChat({ roomId, userId, userName, isDirectMessage = false }: U
 
     const onMessageReceived = (message: Message) => {
       setMessages((prev) => {
-        // Prevent duplicates
         if (prev.find((m) => m.id === message.id)) return prev;
         return [...prev, message];
       });
@@ -57,12 +66,10 @@ export function useChat({ roomId, userId, userName, isDirectMessage = false }: U
 
   // Fetch initial messages
   const fetchMessages = useCallback(async () => {
+    if (!chatId) return;
+    
     try {
-      const endpoint = isDirectMessage
-        ? `/api/chat/${roomId}`
-        : `/api/nanny/${roomId}/chat`;
-      
-      const response = await fetch(endpoint);
+      const response = await fetch(`/api/chat/${chatType}/${chatId}`);
       if (response.ok) {
         const data = await response.json();
         setMessages(data.messages || []);
@@ -70,7 +77,7 @@ export function useChat({ roomId, userId, userName, isDirectMessage = false }: U
     } catch (error) {
       console.error('Failed to fetch messages:', error);
     }
-  }, [roomId, isDirectMessage]);
+  }, [chatType, chatId]);
 
   useEffect(() => {
     fetchMessages();
@@ -78,24 +85,12 @@ export function useChat({ roomId, userId, userName, isDirectMessage = false }: U
 
   // Send message
   const sendMessage = useCallback(async (content: string) => {
-    if (!socket || !roomId || !content.trim()) return;
+    if (!socket || !chatId || !content.trim()) return;
 
     setIsSending(true);
 
-    const message: Message = {
-      id: `${Date.now()}_${Math.floor(Math.random() * 10000)}`,
-      senderId: userId,
-      senderName: userName,
-      content: content.trim(),
-      timestamp: new Date().toISOString(),
-    };
-
     try {
-      const endpoint = isDirectMessage
-        ? `/api/chat/${roomId}`
-        : `/api/nanny/${roomId}/chat`;
-
-      const response = await fetch(endpoint, {
+      const response = await fetch(`/api/chat/${chatType}/${chatId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -111,11 +106,11 @@ export function useChat({ roomId, userId, userName, isDirectMessage = false }: U
 
       const data = await response.json();
 
-      // Emit socket event
-      const actualRoomId = isDirectMessage ? `dm-${roomId}` : roomId;
+      // Emit socket event with proper room format
+      const roomId = chatType === 'direct' ? `dm-${chatId}` : `share-${chatId}`;
       socket.emit('message-sent', {
-        shareId: actualRoomId,
-        message: data.message || message,
+        roomId,
+        message: data.message,
       });
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -123,7 +118,7 @@ export function useChat({ roomId, userId, userName, isDirectMessage = false }: U
     } finally {
       setIsSending(false);
     }
-  }, [socket, roomId, userId, userName, isDirectMessage]);
+  }, [socket, chatType, chatId, userId, userName]);
 
   return {
     messages,

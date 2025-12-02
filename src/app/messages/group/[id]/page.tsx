@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { ChatHeader } from '@/app/components/chat/ChatHeader';
 import { ChatMessages } from '@/app/components/chat/ChatMessages';
 import { ChatInput } from '@/app/components/chat/ChatInput';
-import { useChat } from '@/app/components/chat/useChat';
+import { useChat } from '@/lib/socket/useChat'; // ✅ Fixed import path
 
 export default function GroupChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useUser();
@@ -43,10 +43,10 @@ export default function GroupChatPage({ params }: { params: Promise<{ id: string
   const userName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User';
 
   const { messages, isSending, sendMessage } = useChat({
-    roomId: shareId || '',
+    chatType: 'group',
+    chatId: shareId || '',
     userId,
     userName,
-    isDirectMessage: false,
   });
 
   if (!shareId) {

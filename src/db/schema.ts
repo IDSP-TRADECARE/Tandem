@@ -166,6 +166,17 @@ export const nannyShares = pgTable("nanny_shares", {
     .default([]),
 });
 
+// Direct Messages table
+export const directMessages = pgTable('direct_messages', {
+  id: serial('id').primaryKey(),
+  roomId: text('room_id').notNull(), // Format: userId1_userId2 (sorted)
+  senderId: text('sender_id').notNull(),
+  senderName: text('sender_name').notNull(),
+  content: text('content').notNull(),
+  timestamp: text('timestamp').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // TypeScript types
 export type Schedule = typeof schedules.$inferSelect;
 export type NewSchedule = typeof schedules.$inferInsert;

@@ -15,23 +15,26 @@ export function initSocketIO(httpServer: HTTPServer) {
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
 
-    // Join any room (share or DM)
-    socket.on('join-share', (roomId: string) => {
-      socket.join(roomId);
-      console.log(`Socket ${socket.id} joined ${roomId}`);
+    // Group chat rooms
+    socket.on('join-share', (shareId: string) => {
+      socket.join(`share-${shareId}`);
+      console.log(`Socket ${socket.id} joined share-${shareId}`);
     });
 
-    socket.on('leave-share', (roomId: string) => {
-      socket.leave(roomId);
-      console.log(`Socket ${socket.id} left ${roomId}`);
+    socket.on('leave-share', (shareId: string) => {
+      socket.leave(`share-${shareId}`);
+      console.log(`Socket ${socket.id} left share-${shareId}`);
     });
 
-    // Handle messages (works for both share and DM)
-    socket.on('message-sent', (data: { shareId: string; message: any }) => {
-      const { shareId, message } = data;
-      const roomId = shareId.startsWith('dm-') ? shareId : `share-${shareId}`;
-      console.log(`Message sent to ${roomId} by ${message.senderName}`);
-      io!.to(roomId).emit('message-received', message);
+    // Direct message rooms
+    socket.on('join-dm', (roomId: string) => {
+      socket.join(`dm-${roomId}`);
+      console.log(`Socket ${socket.id} joined dm-${roomId}`);
+    });
+
+    socket.on('leave-dm', (roomId: string) => {
+      socket.leave(`dm-${roomId}`);
+      console.log(`Socket ${socket.id} left dm-${roomId}`);
     });
 
     // Nanny request events
@@ -52,6 +55,13 @@ export function initSocketIO(httpServer: HTTPServer) {
       const { shareId, requestId } = data;
       console.log(`Request rejected for share-${shareId}, request: ${requestId}`);
       io!.to(`share-${shareId}`).emit('nanny:request-rejected', { shareId, requestId });
+    });
+
+    // Message events (unified for both group and direct)
+    socket.on('message-sent', (data: { roomId: string; message: any }) => {
+      const { roomId, message } = data;
+      console.log(`Message sent to ${roomId} by ${message.senderName}`);
+      io!.to(roomId).emit('message-received', message);
     });
 
     socket.on('disconnect', () => {

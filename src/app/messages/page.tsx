@@ -34,27 +34,9 @@ export default function MessagesPage() {
 
     const fetchConversations = async () => {
       try {
-        // Fetch all nanny shares where user is a member
-        const response = await fetch('/api/nanny/my-shares');
+        const response = await fetch('/api/chat/conversations');
         const data = await response.json();
-        const shares = data.shares || [];
-
-        // Convert shares to conversations
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const shareConversations: ConversationType[] = shares.map((share: any) => {
-          const lastMsg = share.messages?.[share.messages.length - 1];
-          return {
-            id: share.id.toString(),
-            type: 'group' as const,
-            name: `${new Date(share.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${share.startTime}`,
-            avatar: null,
-            lastMessage: lastMsg?.content || 'No messages yet',
-            timestamp: lastMsg?.timestamp || share.createdAt || new Date().toISOString(),
-            unreadCount: 0,
-          };
-        });
-
-        setConversations(shareConversations);
+        setConversations(data.conversations || []);
       } catch (error) {
         console.error('Failed to fetch conversations:', error);
       } finally {
@@ -76,11 +58,7 @@ export default function MessagesPage() {
     const conversation = conversations.find((c) => c.id === id);
     if (!conversation) return;
 
-    if (conversation.type === 'group') {
-      router.push(`/messages/group/${id}`);
-    } else {
-      router.push(`/messages/direct/${id}`);
-    }
+    router.push(`/messages/${conversation.type}/${id}`);
   };
 
   return (
