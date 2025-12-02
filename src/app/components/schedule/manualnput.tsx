@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ScheduleData } from '@/app/schedule/upload/page';
-import { MdCancel } from "react-icons/md";
+import { MdCancel } from 'react-icons/md';
 import { DaySelector } from '../../components/ui/schedule/DaySelector';
 import { TimeRangeInput } from '../../components/ui/schedule/TimeRangeInput';
 import { UnderlineInput } from '../../components/ui/schedule/UnderlineInput';
@@ -16,6 +16,7 @@ interface ManualInputProps {
 interface DaySchedule {
   timeFrom: string;
   timeTo: string;
+  location?: string;
 }
 
 function normalizeToHHMM(input: string): string | null {
@@ -50,62 +51,83 @@ function normalizeToHHMM(input: string): string | null {
   return null;
 }
 
-export function ManualInput({ onComplete, onBack, hideBackButton = false }: ManualInputProps) {
+export function ManualInput({
+  onComplete,
+  onBack,
+  hideBackButton = false,
+}: ManualInputProps) {
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [daySchedules, setDaySchedules] = useState<Record<string, DaySchedule>>({});
+  const [daySchedules, setDaySchedules] = useState<Record<string, DaySchedule>>(
+    {}
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleDayToggle = (dayId: string) => {
-    if (!daySchedules[dayId]) {
-      // Add day with empty times
-      setDaySchedules(prev => ({
-        ...prev,
-        [dayId]: { timeFrom: '', timeTo: '' }
-      }));
-      setSelectedDay(dayId);
-    } else {
-      // Remove day
+  const handleDayToggle = (dayId: string, isDouble = false) => {
+    const exists = !!daySchedules[dayId];
+
+    // DOUBLE CLICK → remove day
+    if (isDouble && exists) {
       const newSchedules = { ...daySchedules };
       delete newSchedules[dayId];
+
       setDaySchedules(newSchedules);
-      if (selectedDay === dayId) {
-        setSelectedDay(null);
-      }
+      if (selectedDay === dayId) setSelectedDay(null);
+
+      setError(null);
+      return;
     }
+
+    // SINGLE CLICK — select
+    if (exists) {
+      setSelectedDay(dayId);
+      setError(null);
+      return;
+    }
+
+    // ADD NEW DAY
+    setDaySchedules((prev) => ({
+      ...prev,
+      [dayId]: { timeFrom: '', timeTo: '' },
+    }));
+
+    setSelectedDay(dayId);
     setError(null);
   };
 
-  const updateCurrentDayTime = (field: 'timeFrom' | 'timeTo', value: string) => {
+  const updateCurrentDayTime = (
+    field: 'timeFrom' | 'timeTo',
+    value: string
+  ) => {
     if (!selectedDay) return;
-    
-    setDaySchedules(prev => ({
+
+    setDaySchedules((prev) => ({
       ...prev,
       [selectedDay]: {
         ...prev[selectedDay],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
   const handleTimeBlur = (field: 'timeFrom' | 'timeTo') => {
     if (!selectedDay) return;
-    
+
     const currentValue = daySchedules[selectedDay][field];
     const normalized = normalizeToHHMM(currentValue);
-    
+
     if (currentValue && !normalized) {
       setError('Please enter a valid time (e.g., 9:00, 09:00, 9am, 5:30pm)');
     } else if (normalized) {
-      setDaySchedules(prev => ({
+      setDaySchedules((prev) => ({
         ...prev,
         [selectedDay]: {
           ...prev[selectedDay],
-          [field]: normalized
-        }
+          [field]: normalized,
+        },
       }));
       setError(null);
     }
@@ -129,7 +151,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
     // Validate all day times
     for (const dayId of workingDays) {
       const schedule = daySchedules[dayId];
-      
+
       if (!schedule.timeFrom || !schedule.timeTo) {
         const DAYS = [
           { id: 'SUN', fullName: 'Sunday' },
@@ -140,7 +162,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
           { id: 'FRI', fullName: 'Friday' },
           { id: 'SAT', fullName: 'Saturday' },
         ];
-        const day = DAYS.find(d => d.id === dayId);
+        const day = DAYS.find((d) => d.id === dayId);
         setError(`Please enter times for ${day?.fullName}`);
         return;
       }
@@ -158,7 +180,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
           { id: 'FRI', fullName: 'Friday' },
           { id: 'SAT', fullName: 'Saturday' },
         ];
-        const day = DAYS.find(d => d.id === dayId);
+        const day = DAYS.find((d) => d.id === dayId);
         setError(`Please enter valid times for ${day?.fullName}`);
         return;
       }
@@ -167,20 +189,27 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
     setIsSubmitting(true);
 
     try {
-      // Save each day as a separate schedule entry
-      const savePromises = workingDays.map(async (dayId) => {
-        const schedule = daySchedules[dayId];
-        const normalizedFrom = normalizeToHHMM(schedule.timeFrom)!;
-        const normalizedTo = normalizeToHHMM(schedule.timeTo)!;
-        
+      setIsSubmitting(true);
+
+      try {
+        // Build final unified schedule
         const payload = {
-          title: title,
-          workingDays: [dayId],
-          timeFrom: normalizedFrom,
-          timeTo: normalizedTo,
+          title,
+          workingDays: Object.keys(daySchedules),
+          daySchedules: Object.fromEntries(
+            Object.entries(daySchedules).map(([day, sched]) => [
+              day,
+              {
+                timeFrom: normalizeToHHMM(sched.timeFrom)!,
+                timeTo: normalizeToHHMM(sched.timeTo)!,
+              },
+            ])
+          ),
           location: location || null,
           notes: notes || null,
         };
+
+        console.log('📤 Final payload:', payload);
 
         const response = await fetch('/api/schedule/save', {
           method: 'POST',
@@ -192,10 +221,15 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
           throw new Error('Failed to save schedule');
         }
 
-        return response.json();
-      });
+        const { schedule } = await response.json();
 
-      await Promise.all(savePromises);
+        onComplete(schedule);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to save schedule'
+        );
+        setIsSubmitting(false);
+      }
 
       setTimeout(() => {
         onComplete({
@@ -220,7 +254,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
     <div>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
-        <UnderlineInput 
+        <UnderlineInput
           label="Title"
           value={title}
           onChange={setTitle}
@@ -228,7 +262,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
         />
 
         {/* Working Days */}
-        <DaySelector 
+        <DaySelector
           selectedDays={Object.keys(daySchedules)}
           onDayToggle={handleDayToggle}
           activeDay={selectedDay}
@@ -246,7 +280,9 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
                 type="text"
                 inputMode="text"
                 value={currentSchedule.timeFrom}
-                onChange={(e) => updateCurrentDayTime('timeFrom', e.target.value)}
+                onChange={(e) =>
+                  updateCurrentDayTime('timeFrom', e.target.value)
+                }
                 onBlur={() => handleTimeBlur('timeFrom')}
                 placeholder="9:00 or 9am"
                 className="w-full pb-2 border-b-2 border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 bg-transparent"
@@ -295,7 +331,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
         )}
 
         {/* Working Location */}
-        <UnderlineInput 
+        <UnderlineInput
           label="Working Location"
           value={location}
           onChange={setLocation}
@@ -303,7 +339,7 @@ export function ManualInput({ onComplete, onBack, hideBackButton = false }: Manu
         />
 
         {/* Additional Note */}
-        <UnderlineInput 
+        <UnderlineInput
           label="Additional Note"
           value={notes}
           onChange={setNotes}
