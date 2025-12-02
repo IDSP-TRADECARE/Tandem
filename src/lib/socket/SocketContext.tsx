@@ -11,16 +11,17 @@ interface SocketContextValue {
   isConnected: boolean;
 }
 
-const SocketContext = createContext<SocketContextValue | null>(null);
+const SocketContext = createContext<SocketContextValue>({
+  socket: null,
+  isConnected: false,
+}); // ✅ Provide default value instead of null
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<TypedSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Socket server is ALWAYS hosted on Render (external server)
-    // This URL stays the same whether Next.js is on localhost or production
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
 
     console.log('Connecting to Socket.IO server:', socketUrl);
 
@@ -58,4 +59,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 };
 
-export const useSocket = () => useContext(SocketContext);
+// ✅ Updated to always return non-null
+export const useSocket = (): SocketContextValue => {
+  const context = useContext(SocketContext);
+  return context; // Now it always returns the default object
+};
