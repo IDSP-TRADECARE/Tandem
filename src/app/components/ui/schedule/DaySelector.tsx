@@ -37,13 +37,13 @@ export function DaySelector({
 
     // Detect double click inside same component
     if (last && last.id === dayId && now - last.time < 250) {
-      // DOUBLE CLICK → remove day
+      // DOUBLE CLICK > remove day
       onDayToggle(dayId, true);  
       lastClickRef.current = null;
       return;
     }
 
-    // First click → store time
+    // First click > store time
     lastClickRef.current = { id: dayId, time: now };
 
     // SINGLE CLICK
