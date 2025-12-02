@@ -14,9 +14,17 @@ export function OptionButton({ icon, text, onClick, rightComponent }: OptionButt
   };
 
   return (
-    <button
+    <div
       onClick={onClick}
-      className="flex items-center justify-between px-4 py-3 w-full transition-opacity hover:opacity-80"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      className="flex items-center justify-between px-4 py-3 w-full transition-opacity hover:opacity-80 cursor-pointer"
       style={{
         width: '100%',
         height: '52px',
@@ -54,6 +62,6 @@ export function OptionButton({ icon, text, onClick, rightComponent }: OptionButt
       )}
 
     
-    </button>
+    </div>
   );
 }
