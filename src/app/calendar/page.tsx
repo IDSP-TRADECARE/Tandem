@@ -854,10 +854,14 @@ export default function Calendar() {
   };
 
   const getEventsByDate = () => {
-    const eventsByDate: Record<string, Array<{ type: string }>> = {};
+    const eventsByDate: Record<
+      string,
+      Array<{ type: string; weekOf: string | null }>
+    > = {};
 
     allEvents.forEach((event) => {
       if (!event.start) return;
+
       const eventStart =
         event.start instanceof Date
           ? event.start
@@ -873,7 +877,10 @@ export default function Calendar() {
       }
 
       if (event.extendedProps?.type) {
-        eventsByDate[dateKey].push({ type: event.extendedProps.type });
+        eventsByDate[dateKey].push({
+          type: event.extendedProps.type,
+          weekOf: event.extendedProps.weekOf ?? null, // ⬅️ REQUIRED FIX
+        });
       }
     });
 
@@ -916,6 +923,7 @@ export default function Calendar() {
         onNextMonth: handleNextMonth,
         eventsByDate: getEventsByDate(),
         onDateSelect: handleMonthDateSelect,
+        currentWeekStart: weekStartDate.toISOString().slice(0, 10), // FIX
       })}
 
       <HalfBackground topPosition={topPosition}>

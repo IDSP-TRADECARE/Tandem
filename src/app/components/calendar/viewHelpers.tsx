@@ -1,6 +1,6 @@
-import { DateHeader } from "../ui/calendar/DateHeader";
+import { DateHeader } from '../ui/calendar/DateHeader';
 
-type ViewType = "Today" | "Weekly" | "Monthly";
+type ViewType = 'Today' | 'Weekly' | 'Monthly';
 
 // Get the appropriate header configuration based on active tab
 export function getHeadersForView(
@@ -14,32 +14,33 @@ export function getHeadersForView(
     onNextDay?: () => void;
     eventsByDate?: Record<string, Array<{ type: string }>>;
     onDateSelect?: (date: Date) => void;
+    currentWeekStart: string;
   }
 ) {
   switch (view) {
-    case "Today":
+    case 'Today':
       return (
         <>
-          <DateHeader type="date" date={date} />
+          <DateHeader type="date" date={date} currentWeekStart={handlers.currentWeekStart} />
         </>
       );
 
-    case "Weekly":
+    case 'Weekly':
       return (
         <>
-          <DateHeader type="date" date={date} />
+          <DateHeader type="date" date={date} currentWeekStart={handlers.currentWeekStart} />
           <DateHeader
             type="today"
             date={date}
             onDateSelect={handlers.onDateSelect}
+            currentWeekStart={handlers.currentWeekStart}
           />
         </>
       );
-
-    case "Monthly":
+    case 'Monthly':
       return (
         <>
-          <DateHeader type="date" date={date} />
+          <DateHeader type="date" date={date} currentWeekStart={handlers.currentWeekStart} />
           <DateHeader
             type="monthly"
             date={month}
@@ -47,6 +48,7 @@ export function getHeadersForView(
             onNext={handlers.onNextMonth}
             eventsByDate={handlers.eventsByDate}
             onDateSelect={handlers.onDateSelect}
+            currentWeekStart={handlers.currentWeekStart} 
           />
         </>
       );
@@ -59,11 +61,11 @@ export function getHeadersForView(
 // Get the appropriate HalfBackground height based on view
 export function getHeightForView(view: ViewType): number | undefined {
   switch (view) {
-    case "Today":
+    case 'Today':
       return undefined; // Will calculate dynamically
-    case "Weekly":
+    case 'Weekly':
       return undefined; // Will calculate dynamically
-    case "Monthly":
+    case 'Monthly':
       return undefined; // Will calculate dynamically
     default:
       return undefined;
@@ -73,12 +75,12 @@ export function getHeightForView(view: ViewType): number | undefined {
 // Calculate top position for HalfBackground based on view
 export function getTopPositionForView(view: ViewType): string {
   switch (view) {
-    case "Weekly":
-      return "220px"; // After date + today headers
-    case "Monthly":
-      return "450px"; // After date + weekly headers (no today selector)
+    case 'Weekly':
+      return '220px'; // After date + today headers
+    case 'Monthly':
+      return '450px'; // After date + weekly headers (no today selector)
     default:
-      return "140px";
+      return '140px';
   }
 }
 
