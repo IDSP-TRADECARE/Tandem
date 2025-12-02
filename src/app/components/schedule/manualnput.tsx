@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ScheduleData } from '@/app/schedule/upload/page';
 import { MdCancel } from 'react-icons/md';
 import { DaySelector } from '../../components/ui/schedule/DaySelector';
@@ -65,37 +65,42 @@ export function ManualInput({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const doubleClickRef = useRef(false);
+  const lastClickRef = useRef<{ id: string; time: number } | null>(null);
 
-  const handleDayToggle = (dayId: string, isDouble = false) => {
+  const handleDayToggle = (dayId: string) => {
+    const now = Date.now();
+    const last = lastClickRef.current;
+
+    // 🚀 Detect double-click (within 250ms on the same button)
+    if (last && last.id === dayId && now - last.time < 250) {
+      const exists = !!daySchedules[dayId];
+      if (exists) {
+        const newSchedules = { ...daySchedules };
+        delete newSchedules[dayId];
+        setDaySchedules(newSchedules);
+        if (selectedDay === dayId) setSelectedDay(null);
+      }
+      lastClickRef.current = null;
+      return;
+    }
+
+    // Save the click
+    lastClickRef.current = { id: dayId, time: now };
+
+    // SINGLE CLICK — select or add new day
     const exists = !!daySchedules[dayId];
 
-    // DOUBLE CLICK → remove day
-    if (isDouble && exists) {
-      const newSchedules = { ...daySchedules };
-      delete newSchedules[dayId];
-
-      setDaySchedules(newSchedules);
-      if (selectedDay === dayId) setSelectedDay(null);
-
-      setError(null);
-      return;
-    }
-
-    // SINGLE CLICK — select
     if (exists) {
       setSelectedDay(dayId);
-      setError(null);
       return;
     }
 
-    // ADD NEW DAY
     setDaySchedules((prev) => ({
       ...prev,
       [dayId]: { timeFrom: '', timeTo: '' },
     }));
-
     setSelectedDay(dayId);
-    setError(null);
   };
 
   const updateCurrentDayTime = (
