@@ -1,13 +1,15 @@
-"use client";
-import { typography } from "@/app/styles/typography";
-import { useState, useRef, useEffect } from "react";
+'use client';
+import { typography } from '@/app/styles/typography';
+import { useState, useRef, useEffect } from 'react';
 import {
   IoIosNotifications,
   IoIosArrowBack,
   IoIosArrowForward,
-} from "react-icons/io";
+} from 'react-icons/io';
 
-type HeaderType = "date" | "today" | "weekly" | "monthly";
+import { getStartOfWeek } from '@/lib/utils';
+
+type HeaderType = 'date' | 'today' | 'weekly' | 'monthly';
 
 interface DateHeaderProps {
   type: HeaderType;
@@ -16,6 +18,7 @@ interface DateHeaderProps {
   onNext?: () => void;
   onDateSelect?: (date: Date) => void;
   eventsByDate?: Record<string, Array<{ type: string }>>;
+  currentWeekStart: string;
 }
 
 export function DateHeader({
@@ -25,6 +28,7 @@ export function DateHeader({
   onNext,
   onDateSelect,
   eventsByDate = {},
+  currentWeekStart,
 }: DateHeaderProps) {
   // Initialize selectedDay with today's date instead of the date prop
   const [selectedDay, setSelectedDay] = useState(new Date());
@@ -38,10 +42,10 @@ export function DateHeader({
 
   // Format date as "Aug 25, 2025"
   const formatDate = (d: Date) => {
-    return d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
   };
 
@@ -82,19 +86,19 @@ export function DateHeader({
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    container.addEventListener("scroll", updateVisibleRange);
+    container.addEventListener('scroll', updateVisibleRange);
     // Initial calculation
     updateVisibleRange();
 
     return () => {
-      container.removeEventListener("scroll", updateVisibleRange);
+      container.removeEventListener('scroll', updateVisibleRange);
     };
   }, []);
 
   // Auto-scroll to current day on mount for "today" header type
   useEffect(() => {
     if (
-      type === "today" &&
+      type === 'today' &&
       scrollContainerRef.current &&
       !hasInitialScrolled.current
     ) {
@@ -119,7 +123,7 @@ export function DateHeader({
 
             container.scrollTo({
               left: scrollPosition,
-              behavior: "smooth",
+              behavior: 'smooth',
             });
 
             // Update visible range after scroll
@@ -138,7 +142,7 @@ export function DateHeader({
     }
 
     // Scroll to second position for "today" type
-    if (type === "today" && scrollContainerRef.current) {
+    if (type === 'today' && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
       // Button width (56px) + gap (12px) = 68px per item
       const itemWidth = 68;
@@ -147,7 +151,7 @@ export function DateHeader({
 
       container.scrollTo({
         left: scrollPosition,
-        behavior: "smooth",
+        behavior: 'smooth',
       });
 
       // Update visible range after scroll
@@ -222,18 +226,26 @@ export function DateHeader({
 
   // Check if a date has events
   const getEventIndicators = (fullDate: Date) => {
-    const dateStr = fullDate.toISOString().split("T")[0];
+    const dateStr = fullDate.toISOString().split('T')[0];
     const events = eventsByDate[dateStr] || [];
 
-    const hasNanny = events.some((e) => e.type === "nanny");
-    const hasWork = events.some((e) => e.type === "work");
-    const hasChildcare = events.some((e) => e.type === "childcare");
+    const currentWeekStart = getStartOfWeek(selectedDay)
+      .toISOString()
+      .slice(0, 10);
 
-    return { hasNanny, hasWork, hasChildcare };
+    const eventsThisWeek = events.filter(
+      (ev: any) => ev.weekOf === currentWeekStart
+    );
+
+    return {
+      hasWork: eventsThisWeek.some((e) => e.type === 'work'),
+      hasNanny: eventsThisWeek.some((e) => e.type === 'nanny'),
+      hasChildcare: eventsThisWeek.some((e) => e.type === 'childcare'),
+    };
   };
 
   // Date Header - Just "Today" with date and notification
-  if (type === "date") {
+  if (type === 'date') {
     return (
       <div className="flex items-center justify-between px-6 py-8">
         <div className="flex items-baseline gap-3">
@@ -256,14 +268,14 @@ export function DateHeader({
   }
 
   // Today Header - Scrollable date cards showing all days in month
-  if (type === "today") {
+  if (type === 'today') {
     return (
       <div className="px-6 pb-2 relative">
         <div
           ref={scrollContainerRef}
           className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth"
           style={{
-            scrollSnapType: "x mandatory",
+            scrollSnapType: 'x mandatory',
           }}
         >
           {allDays.map((day, index) => {
@@ -271,7 +283,7 @@ export function DateHeader({
               day.toDateString() === selectedDay.toDateString();
             const dayNumber = day.getDate();
             const dayName = day
-              .toLocaleDateString("en-US", { weekday: "short" })
+              .toLocaleDateString('en-US', { weekday: 'short' })
               .toUpperCase();
 
             // Apply blur to first and last visible dates
@@ -287,15 +299,15 @@ export function DateHeader({
                 }}
                 onClick={() => handleDayClick(day, index)}
                 style={{
-                  scrollSnapAlign: "center",
-                  filter: shouldBlur ? "blur(2px)" : "none",
+                  scrollSnapAlign: 'center',
+                  filter: shouldBlur ? 'blur(2px)' : 'none',
                   opacity: shouldBlur ? 0.6 : 1,
-                  transition: "filter 0.2s ease, opacity 0.2s ease",
+                  transition: 'filter 0.2s ease, opacity 0.2s ease',
                 }}
                 className={`flex flex-col items-center justify-center rounded-3xl transition-all p-2 px-1 drop-shadow-2xl flex-shrink-0 ${
                   isSelected
-                    ? "bg-primary-active text-white shadow-lg"
-                    : "bg-white text-primary-dark"
+                    ? 'bg-primary-active text-white shadow-lg'
+                    : 'bg-white text-primary-dark'
                 } w-14 h-18`}
               >
                 <div
@@ -317,18 +329,18 @@ export function DateHeader({
   }
 
   // Weekly Header - Navigation with month and year
-  if (type === "weekly") {
-    const monthYear = date.toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
+  if (type === 'weekly') {
+    const monthYear = date.toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric',
     });
 
     return (
       <div
         className="px-6 py-2 flex items-center justify-between rounded-2xl mx-4"
         style={{
-          background: "rgba(255, 255, 255, 0.2)",
-          backdropFilter: "blur(10px)",
+          background: 'rgba(255, 255, 255, 0.2)',
+          backdropFilter: 'blur(10px)',
         }}
       >
         <button
@@ -355,10 +367,10 @@ export function DateHeader({
   }
 
   // Monthly Header - Full calendar grid (UNCHANGED)
-  if (type === "monthly") {
-    const monthYear = date.toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
+  if (type === 'monthly') {
+    const monthYear = date.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
     });
 
     const calendarGrid = getCalendarGrid(date);
@@ -371,8 +383,8 @@ export function DateHeader({
         <div
           className="px-4 py-3 flex items-center justify-between rounded-2xl mb-4"
           style={{
-            background: "rgba(255, 255, 255, 0.2)",
-            backdropFilter: "blur(10px)",
+            background: 'rgba(255, 255, 255, 0.2)',
+            backdropFilter: 'blur(10px)',
           }}
         >
           <button
@@ -400,7 +412,7 @@ export function DateHeader({
         <div className="px-2">
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-1 mb-1.5">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
               <div
                 key={day}
                 className="text-center text-xs font-bold text-black py-0.5"
@@ -435,23 +447,23 @@ export function DateHeader({
                         transition-all text-base font-bold
                         ${
                           !day.isCurrentMonth
-                            ? "text-white opacity-20 cursor-default pointer-events-none"
-                            : ""
+                            ? 'text-white opacity-20 cursor-default pointer-events-none'
+                            : ''
                         }
                         ${
                           day.isCurrentMonth && !isSelected && !isToday
-                            ? "text-white hover:bg-white/20"
-                            : ""
+                            ? 'text-white hover:bg-white/20'
+                            : ''
                         }
                         ${
                           isToday && !isSelected && day.isCurrentMonth
-                            ? "bg-white/30 text-white ring-2 ring-white/50"
-                            : ""
+                            ? 'bg-white/30 text-white ring-2 ring-white/50'
+                            : ''
                         }
                         ${
                           isSelected && day.isCurrentMonth
-                            ? "bg-white text-blue-600 shadow-lg scale-105"
-                            : ""
+                            ? 'bg-white text-blue-600 shadow-lg scale-105'
+                            : ''
                         }
                       `}
                     >

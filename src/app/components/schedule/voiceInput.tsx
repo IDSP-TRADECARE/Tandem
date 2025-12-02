@@ -56,7 +56,6 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
         return;
       }
 
-      // Install onstop handler before stopping to avoid race
       mediaRecorderRef.current.onstop = async () => {
         setStatus('processing');
 
@@ -81,7 +80,6 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
           console.log('📝 Transcript:', transcript);
           console.log('📋 Parsed schedule:', schedule);
 
-          // Save parsed schedule to DB (include credentials)
           const saveResponse = await fetch('/api/schedule/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
