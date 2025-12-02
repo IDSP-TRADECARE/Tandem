@@ -15,6 +15,7 @@ export function initSocketIO(httpServer: HTTPServer) {
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
 
+    // Group chat rooms
     socket.on('join-share', (shareId: string) => {
       socket.join(`share-${shareId}`);
       console.log(`Socket ${socket.id} joined share-${shareId}`);
@@ -23,6 +24,17 @@ export function initSocketIO(httpServer: HTTPServer) {
     socket.on('leave-share', (shareId: string) => {
       socket.leave(`share-${shareId}`);
       console.log(`Socket ${socket.id} left share-${shareId}`);
+    });
+
+    // Direct message rooms
+    socket.on('join-dm', (roomId: string) => {
+      socket.join(`dm-${roomId}`);
+      console.log(`Socket ${socket.id} joined dm-${roomId}`);
+    });
+
+    socket.on('leave-dm', (roomId: string) => {
+      socket.leave(`dm-${roomId}`);
+      console.log(`Socket ${socket.id} left dm-${roomId}`);
     });
 
     // Nanny request events
@@ -45,11 +57,11 @@ export function initSocketIO(httpServer: HTTPServer) {
       io!.to(`share-${shareId}`).emit('nanny:request-rejected', { shareId, requestId });
     });
 
-    // Message events
-    socket.on('message-sent', (data: { shareId: string; message: any }) => {
-      const { shareId, message } = data;
-      console.log(`Message sent to share-${shareId} by ${message.senderName}`);
-      io!.to(`share-${shareId}`).emit('message-received', message);
+    // Message events (unified for both group and direct)
+    socket.on('message-sent', (data: { roomId: string; message: any }) => {
+      const { roomId, message } = data;
+      console.log(`Message sent to ${roomId} by ${message.senderName}`);
+      io!.to(roomId).emit('message-received', message);
     });
 
     socket.on('disconnect', () => {

@@ -214,7 +214,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
       window.location.href = '/sign-in';
       return;
     }
-    router.push(`/nanny/${shareId}/chat`);
+    router.push(`/messages/group/${shareId}`);
   };
 
   const dateLabel = share?.date ? new Date(share.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -258,7 +258,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
                 {(isCreator || isMember) && (
                   <div className="mt-4">
                     <button
-                      onClick={() => router.push(`/nanny/${shareId}/chat`)}
+                      onClick={() => router.push(`/messages/group/${shareId}`)}
                       className="w-full py-3 bg-[#1e3a5f] text-white rounded-full font-semibold"
                     >
                       Chat
