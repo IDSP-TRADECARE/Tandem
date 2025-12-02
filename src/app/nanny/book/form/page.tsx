@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { IoIosArrowBack } from 'react-icons/io';
-import { BottomNav } from '@/app/components/Layout/BottomNav';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { IoIosArrowBack } from "react-icons/io";
+import { BottomNav } from "@/app/components/Layout/BottomNav";
 
 type BookingData = {
   children: Array<{ name: string; age: string }>;
@@ -24,45 +24,45 @@ export default function NannyBookingForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showOtherCertInput, setShowOtherCertInput] = useState(false);
   const [bookingData, setBookingData] = useState<BookingData>({
-    children: [{ name: '', age: '' }],
-    allergies: '',
-    medicalConditions: '',
-    learningBehavioral: '',
-    additionalNotes: '',
-    language: 'English',
+    children: [{ name: "", age: "" }],
+    allergies: "",
+    medicalConditions: "",
+    learningBehavioral: "",
+    additionalNotes: "",
+    language: "English",
     certifications: [],
-    budgetMin: '20',
-    budgetMax: '40',
-    experience: '',
-    otherCertification: '',
+    budgetMin: "20",
+    budgetMax: "40",
+    experience: "",
+    otherCertification: "",
   });
 
   const addChild = () => {
-    setBookingData(prev => ({
+    setBookingData((prev) => ({
       ...prev,
-      children: [...prev.children, { name: '', age: '' }]
+      children: [...prev.children, { name: "", age: "" }],
     }));
   };
 
-  const updateChild = (index: number, field: 'name' | 'age', value: string) => {
-    setBookingData(prev => ({
+  const updateChild = (index: number, field: "name" | "age", value: string) => {
+    setBookingData((prev) => ({
       ...prev,
-      children: prev.children.map((child, i) => 
+      children: prev.children.map((child, i) =>
         i === index ? { ...child, [field]: value } : child
-      )
+      ),
     }));
   };
 
   const toggleCertification = (cert: string) => {
-    if (cert === 'Others') {
+    if (cert === "Others") {
       setShowOtherCertInput(!bookingData.certifications.includes(cert));
     }
-    
-    setBookingData(prev => ({
+
+    setBookingData((prev) => ({
       ...prev,
       certifications: prev.certifications.includes(cert)
-        ? prev.certifications.filter(c => c !== cert)
-        : [...prev.certifications, cert]
+        ? prev.certifications.filter((c) => c !== cert)
+        : [...prev.certifications, cert],
     }));
   };
 
@@ -76,8 +76,18 @@ export default function NannyBookingForm() {
 
   const handleSubmit = async () => {
     // TODO: Submit booking data
-    console.log('Booking data:', bookingData);
-    router.push('./schedule');
+    console.log("Booking data:", bookingData);
+
+    // Get the return date from URL params
+    const params = new URLSearchParams(window.location.search);
+    const returnDate = params.get("returnDate");
+
+    if (returnDate) {
+      // Save to localStorage so calendar page can pick it up
+      localStorage.setItem("completedNannyBooking", returnDate);
+    }
+
+    router.push("./schedule");
   };
 
   return (
@@ -88,42 +98,47 @@ export default function NannyBookingForm() {
           <IoIosArrowBack size={24} />
         </button>
         <h1 className="text-xl font-bold">
-          {currentStep === 1 && 'Basic info for booking nanny'}
-          {currentStep === 2 && 'Help us keep your child safe'}
-          {currentStep === 3 && 'Nanny preferences'}
+          {currentStep === 1 && "Basic info for booking nanny"}
+          {currentStep === 2 && "Help us keep your child safe"}
+          {currentStep === 3 && "Nanny preferences"}
         </h1>
         <div className="w-6"></div>
       </div>
 
       {/* Content */}
       <div className="flex-1 p-6">
-        
         {/* Step 1: Family Info */}
         {currentStep === 1 && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">Tell us a little about your family</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              Tell us a little about your family
+            </h2>
             <p className="text-gray-600 mb-6">How many kids do you have?</p>
-            
+
             {bookingData.children.map((child, index) => (
               <div key={index} className="mb-6">
                 <div className="flex gap-4 mb-2">
                   <div className="flex-1">
                     <label className="block mb-2">Child {index + 1}</label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="Child name"
                       value={child.name}
-                      onChange={(e) => updateChild(index, 'name', e.target.value)}
+                      onChange={(e) =>
+                        updateChild(index, "name", e.target.value)
+                      }
                       className="w-full p-3 border rounded"
                     />
                   </div>
                   <div className="flex-1">
                     <label className="block mb-2">Age</label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="Child age"
                       value={child.age}
-                      onChange={(e) => updateChild(index, 'age', e.target.value)}
+                      onChange={(e) =>
+                        updateChild(index, "age", e.target.value)
+                      }
                       className="w-full p-3 border rounded"
                     />
                   </div>
@@ -131,7 +146,7 @@ export default function NannyBookingForm() {
               </div>
             ))}
 
-            <button 
+            <button
               onClick={addChild}
               className="text-green-600 flex items-center gap-2 mb-8"
             >
@@ -144,48 +159,75 @@ export default function NannyBookingForm() {
         {/* Step 2: Child Safety */}
         {currentStep === 2 && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">Help us keep your child safe</h2>
-            <p className="text-gray-600 mb-6">Please share any important information about your child&apos;s needs</p>
-            
+            <h2 className="text-2xl font-bold mb-4">
+              Help us keep your child safe
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Please share any important information about your child&apos;s
+              needs
+            </p>
+
             <div className="mb-4">
               <label className="block mb-2 font-bold">Allergies</label>
-              <input 
+              <input
                 type="text"
                 placeholder="e.g, food or environment"
                 value={bookingData.allergies}
-                onChange={(e) => setBookingData(prev => ({ ...prev, allergies: e.target.value }))}
+                onChange={(e) =>
+                  setBookingData((prev) => ({
+                    ...prev,
+                    allergies: e.target.value,
+                  }))
+                }
                 className="w-full p-3 border-b"
               />
             </div>
 
             <div className="mb-4">
               <label className="block mb-2 font-bold">Medical conditions</label>
-              <input 
+              <input
                 type="text"
                 placeholder="e.g, diagnoses or physical needs"
                 value={bookingData.medicalConditions}
-                onChange={(e) => setBookingData(prev => ({ ...prev, medicalConditions: e.target.value }))}
+                onChange={(e) =>
+                  setBookingData((prev) => ({
+                    ...prev,
+                    medicalConditions: e.target.value,
+                  }))
+                }
                 className="w-full p-3 border-b"
               />
             </div>
 
             <div className="mb-4">
-              <label className="block mb-2 font-bold">Learning & Behavioral</label>
-              <input 
+              <label className="block mb-2 font-bold">
+                Learning & Behavioral
+              </label>
+              <input
                 type="text"
                 placeholder="e.g, diagnoses or physical needs"
                 value={bookingData.learningBehavioral}
-                onChange={(e) => setBookingData(prev => ({ ...prev, learningBehavioral: e.target.value }))}
+                onChange={(e) =>
+                  setBookingData((prev) => ({
+                    ...prev,
+                    learningBehavioral: e.target.value,
+                  }))
+                }
                 className="w-full p-3 border-b"
               />
             </div>
 
             <div className="mb-4">
               <label className="block mb-2 font-bold">Additional Notes</label>
-              <textarea 
+              <textarea
                 placeholder="Any other helpful info"
                 value={bookingData.additionalNotes}
-                onChange={(e) => setBookingData(prev => ({ ...prev, additionalNotes: e.target.value }))}
+                onChange={(e) =>
+                  setBookingData((prev) => ({
+                    ...prev,
+                    additionalNotes: e.target.value,
+                  }))
+                }
                 className="w-full p-3 border rounded min-h-32"
               />
             </div>
@@ -196,8 +238,10 @@ export default function NannyBookingForm() {
         {currentStep === 3 && (
           <div>
             <h2 className="text-2xl font-bold mb-2">Nanny preferences</h2>
-            <p className="text-gray-600 mb-6">What are you looking for in a nanny?</p>
-            
+            <p className="text-gray-600 mb-6">
+              What are you looking for in a nanny?
+            </p>
+
             <div className="mb-6">
               <label className="block mb-2 font-bold">Language</label>
               <div className="p-4 border rounded flex justify-between items-center">
@@ -213,19 +257,30 @@ export default function NannyBookingForm() {
                   ?
                 </div>
               </div>
-              
+
               <div className="space-y-3">
-                {['CPR & First-Aid Certified', 'Early Childhood Education (ECE)', 'Special Needs Experience', 'Others'].map(cert => (
+                {[
+                  "CPR & First-Aid Certified",
+                  "Early Childhood Education (ECE)",
+                  "Special Needs Experience",
+                  "Others",
+                ].map((cert) => (
                   <button
                     key={cert}
                     onClick={() => toggleCertification(cert)}
                     className={`w-full p-4 border-2 rounded-3xl flex items-center gap-3 ${
-                      bookingData.certifications.includes(cert) ? 'bg-blue-100 border-blue-500' : 'border-gray-300'
+                      bookingData.certifications.includes(cert)
+                        ? "bg-blue-100 border-blue-500"
+                        : "border-gray-300"
                     }`}
                   >
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                      bookingData.certifications.includes(cert) ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
-                    }`}>
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        bookingData.certifications.includes(cert)
+                          ? "bg-blue-500 border-blue-500"
+                          : "border-gray-300"
+                      }`}
+                    >
                       {bookingData.certifications.includes(cert) && (
                         <span className="text-white text-sm">✓</span>
                       )}
@@ -235,39 +290,57 @@ export default function NannyBookingForm() {
                 ))}
               </div>
 
-              {showOtherCertInput && bookingData.certifications.includes('Others') && (
-                <div className="mt-4">
-                  <label className="block mb-2">Write your own:</label>
-                  <textarea 
-                    value={bookingData.otherCertification}
-                    onChange={(e) => setBookingData(prev => ({ ...prev, otherCertification: e.target.value }))}
-                    className="w-full p-3 border rounded min-h-24"
-                  />
-                </div>
-              )}
+              {showOtherCertInput &&
+                bookingData.certifications.includes("Others") && (
+                  <div className="mt-4">
+                    <label className="block mb-2">Write your own:</label>
+                    <textarea
+                      value={bookingData.otherCertification}
+                      onChange={(e) =>
+                        setBookingData((prev) => ({
+                          ...prev,
+                          otherCertification: e.target.value,
+                        }))
+                      }
+                      className="w-full p-3 border rounded min-h-24"
+                    />
+                  </div>
+                )}
             </div>
 
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <label className="font-bold">Budget</label>
-                <span className="bg-green-200 text-green-800 text-xs px-2 py-1 rounded">Recommend</span>
+                <span className="bg-green-200 text-green-800 text-xs px-2 py-1 rounded">
+                  Recommend
+                </span>
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">
                   <label className="block text-sm mb-2">Minimum</label>
-                  <input 
+                  <input
                     type="text"
                     value={`$${bookingData.budgetMin}`}
-                    onChange={(e) => setBookingData(prev => ({ ...prev, budgetMin: e.target.value.replace('$', '') }))}
+                    onChange={(e) =>
+                      setBookingData((prev) => ({
+                        ...prev,
+                        budgetMin: e.target.value.replace("$", ""),
+                      }))
+                    }
                     className="w-full p-3 border rounded text-center"
                   />
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm mb-2">Maximum</label>
-                  <input 
+                  <input
                     type="text"
                     value={`$${bookingData.budgetMax}`}
-                    onChange={(e) => setBookingData(prev => ({ ...prev, budgetMax: e.target.value.replace('$', '') }))}
+                    onChange={(e) =>
+                      setBookingData((prev) => ({
+                        ...prev,
+                        budgetMax: e.target.value.replace("$", ""),
+                      }))
+                    }
                     className="w-full p-3 border rounded text-center"
                   />
                 </div>
@@ -276,11 +349,16 @@ export default function NannyBookingForm() {
 
             <div className="mb-6">
               <label className="block mb-2 font-bold">Experience</label>
-              <input 
+              <input
                 type="text"
                 placeholder="e.g, 5 years"
                 value={bookingData.experience}
-                onChange={(e) => setBookingData(prev => ({ ...prev, experience: e.target.value }))}
+                onChange={(e) =>
+                  setBookingData((prev) => ({
+                    ...prev,
+                    experience: e.target.value,
+                  }))
+                }
                 className="w-full p-3 border-b"
               />
             </div>
@@ -291,7 +369,7 @@ export default function NannyBookingForm() {
       {/* Navigation Buttons */}
       <div className="bottom-0 left-0 right-0 p-6 bg-white flex gap-4">
         {currentStep > 1 && (
-          <button 
+          <button
             onClick={prevStep}
             className="flex-1 py-3 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center gap-2"
           >
@@ -299,7 +377,7 @@ export default function NannyBookingForm() {
             Back
           </button>
         )}
-        <button 
+        <button
           onClick={currentStep === 3 ? handleSubmit : nextStep}
           className="flex-1 py-3 bg-blue-500 text-white rounded-full flex items-center justify-center gap-2"
         >

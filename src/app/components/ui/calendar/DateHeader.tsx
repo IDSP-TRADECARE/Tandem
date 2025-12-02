@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import { typography } from '@/app/styles/typography';
 import { useState, useRef, useEffect } from 'react';
