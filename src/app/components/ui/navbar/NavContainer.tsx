@@ -1,4 +1,6 @@
-import { ReactNode } from 'react';
+'use client';
+
+import { ReactNode, useState, useEffect } from 'react';
 import { navPositions } from '@/app/components/Layout/BottomNav';
 
 interface NavContainerProps {
@@ -6,15 +8,29 @@ interface NavContainerProps {
 }
 
 export function NavContainer({ children }: NavContainerProps) {
+  const [isMobile, setIsMobile] = useState(true);
+  
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Find the active href using imported mapping
   let activePositionPercent = 12.5; // default to first position
+  let hasActiveRoute = false;
   
   if (Array.isArray(children)) {
     children.forEach((child: React.ReactElement<{ isActive?: boolean; href?: string }>) => {
       if (child?.props?.isActive && child?.props?.href) {
         const href = child.props.href;
         if (navPositions[href]) {
+          hasActiveRoute = true;
           activePositionPercent = navPositions[href];
           
           // Special offset for calendar
@@ -35,10 +51,15 @@ export function NavContainer({ children }: NavContainerProps) {
     });
   }
   
+  // Only show cutout on mobile and when on a navbar route
+  const showCutout = isMobile && hasActiveRoute;
+  
   // cutout with smooth edges
   const radiusPx = 40;
   const featherPx = 0.3;
-  const cutoutStyle = `radial-gradient(circle ${radiusPx}px at ${activePositionPercent}% -10px, transparent 0, transparent ${radiusPx - featherPx}px, black ${radiusPx + featherPx}px)`;
+  const cutoutStyle = showCutout 
+    ? `radial-gradient(circle ${radiusPx}px at ${activePositionPercent}% -10px, transparent 0, transparent ${radiusPx - featherPx}px, black ${radiusPx + featherPx}px)`
+    : 'none';
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-8 pb-6">
@@ -47,7 +68,7 @@ export function NavContainer({ children }: NavContainerProps) {
         style={{
           WebkitMaskImage: cutoutStyle,
           maskImage: cutoutStyle,
-          WebkitMaskComposite: 'source-out',
+          WebkitMaskComposite: showCutout ? 'source-out' : 'none',
           WebkitBackfaceVisibility: 'hidden',
           transform: 'translateZ(0)',
         }}
