@@ -56,14 +56,14 @@ export default function SignInPage() {
 
                     <div className='flex justify-center'>
                         <div className='flex flex-col gap-4 mt-8 max-w-md mx-auto w-full'>
-                            <Link href={"/sign-up/id-scan"}>
+                            <Link href={"/sign-up-process/id-scan"}>
                                 <button
                                     type='submit'
                                     className='w-full cursor-pointer py-4 bg-primary-normal text-white font-bold rounded-4xl hover:bg-blue-700 active:bg-blue-800 transition-colors text-lg'>
                                     Scan my ID
                                 </button>
                             </Link>
-                            <Link href={"/sign-up/form"}>
+                            <Link href={"/sign-up-process/form"}>
                                 <button
                                     type='button'
                                     className='w-full cursor-pointer py-4 bg-[#92F189] text-gray-900 font-bold rounded-4xl hover:bg-[#7FE876] active:bg-[#6DD464] transition-colors text-lg  '>

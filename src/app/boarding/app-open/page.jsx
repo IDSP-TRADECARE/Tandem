@@ -9,7 +9,7 @@ export default function App() {
 
     const handleSplashComplete = () => {
         setShowSplash(false);
-        router.push("/sign-up");
+        router.push("/sign-up-process");
     };
 
     if (showSplash) {

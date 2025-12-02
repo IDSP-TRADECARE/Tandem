@@ -56,7 +56,7 @@ export default function CameraPage() {
                         <li>4. Hold your phone steady while capturing.</li>
                     </ul>
                     {/* Camera Button */}
-                    <Link href={"/sign-up/form"}>
+                    <Link href={"/sign-up-process/form"}>
                         <div className='flex justify-center'>
                             <div className='bg-neutral-50 p-1 rounded-full w-max'>
                                 <div className='bg-white p-1 rounded-full w-max'>

@@ -35,12 +35,12 @@ export default function FeaturesPage() {
         if (currentIndex < features.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            router.push("./sign-up");
+            router.push("/sign-up-process/sign-up_2");
         }
     };
 
     const handleSkip = () => {
-        router.push("./sign-up");
+        router.push("/sign-up-process/sign-up_2");
     };
 
     const handlePrevious = () => {
@@ -56,8 +56,7 @@ export default function FeaturesPage() {
         <div className={styles.container}>
             <button
                 className={styles.skipButton}
-                onClick={handleSkip}
-            >
+                onClick={handleSkip}>
                 Skip
             </button>
 
@@ -90,22 +89,19 @@ export default function FeaturesPage() {
                 <div
                     className={`${styles.navigationButtons} ${
                         showPrevious ? styles.withPrevious : styles.singleButton
-                    }`}
-                >
+                    }`}>
                     <button
                         className={`${styles.previousButton} ${
                             showPrevious ? styles.visible : styles.hidden
                         }`}
-                        onClick={handlePrevious}
-                    >
+                        onClick={handlePrevious}>
                         Previous
                     </button>
                     <button
                         className={`${styles.nextButton} ${
                             showPrevious ? styles.halfWidth : styles.fullWidth
                         }`}
-                        onClick={handleNext}
-                    >
+                        onClick={handleNext}>
                         Next
                     </button>
                 </div>

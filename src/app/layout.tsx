@@ -39,7 +39,7 @@ export default function RootLayout({
                         crossOrigin='anonymous'
                     />
                     <link
-                        href='https://fonts.googleapis.com/css2?family=Alan+Sans:wght@300..900&display=swap'
+                        //fonts.googleapis.com/css2?family=Alan+Sans:wght@300..900&display=swap'
                         rel='stylesheet'
                     />
                 </head>

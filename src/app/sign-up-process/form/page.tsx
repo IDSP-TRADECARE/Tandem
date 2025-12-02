@@ -34,8 +34,7 @@ export default function Form() {
 
     const onSubmit = async () => {
         console.log("Final data →", formData);
-        // await fetch('/api/submit', { method: 'POST', body: JSON.stringify(formData) })
-        alert("Submitted! Check console.");
+        router.push("/calendar");
     };
 
     const goBack = () => {

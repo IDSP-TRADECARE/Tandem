@@ -47,7 +47,7 @@ export default function BeforeScan() {
                             2. Ensure all details are visible and easy to read.
                         </li>
                     </ul>
-                    <Link href={"/sign-up/camera"}>
+                    <Link href={"/sign-up-process/camera"}>
                         <button className='cursor-pointer p-2 text-white flex justify-center rounded-3xl bg-primary-normal justify-self-stretch font-semibold px-4 ml-6 mr-6 mt-4'>
                             Ready to Scan
                         </button>
