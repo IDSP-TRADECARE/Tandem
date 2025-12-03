@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   formatDate,
   DateSelectArg,
@@ -31,6 +31,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { IoIosArrowForward } from "react-icons/io";
 import { NannyBookingPopup } from "../components/popup/AddNanny";
+import { RequestPendingPopup } from "../components/popup/RequestPending";
 
 interface DateCard {
   id: string;
@@ -119,23 +120,46 @@ export default function Calendar() {
   // Add new state for the nanny booking popup
   const [nannyPopupOpen, setNannyPopupOpen] = useState<boolean>(false);
   const [selectedWorkDetails, setSelectedWorkDetails] = useState<
-    | {
-        time: string;
-        location: string;
-        dateKey: string; // Add dateKey to track the specific date
-      }
-    | undefined
+    { time: string; location: string; dateKey: string } | undefined
   >(undefined);
-
-  // Add state to track pending nanny requests by date - load from localStorage
+  const [requestPendingPopupOpen, setRequestPendingPopupOpen] = useState(false);
+  const [requestPendingDetails, setRequestPendingDetails] = useState<{
+    title: string;
+    dateLabel: string;
+    timeRange: string;
+    location: string;
+  } | null>(null);
   const [pendingNannyRequests, setPendingNannyRequests] = useState<Set<string>>(
-    () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("pendingNannyRequests");
-        return saved ? new Set(JSON.parse(saved)) : new Set();
-      }
-      return new Set();
+    new Set()
+  );
+
+  const fetchPendingNannyRequests = useCallback(async () => {
+    try {
+      const res = await fetch("/api/nanny/bookings/pending");
+      if (!res.ok) throw new Error("Failed to load pending nanny requests");
+      const data = await res.json();
+      setPendingNannyRequests(new Set(data.dates ?? []));
+    } catch (error) {
+      console.error("❌ pending nanny requests:", error);
     }
+  }, []);
+
+  const openRequestPendingPopup = useCallback(
+    (dateStr: string, timeRange: string, location: string) => {
+      const dateLabel = new Date(dateStr).toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      });
+      setRequestPendingDetails({
+        title: "Nanny",
+        dateLabel,
+        timeRange,
+        location,
+      });
+      setRequestPendingPopupOpen(true);
+    },
+    []
   );
 
   const { handlePreviousMonth, handleNextMonth } =
@@ -144,24 +168,8 @@ export default function Calendar() {
 
   useEffect(() => {
     fetchSchedules();
-  }, []);
-
-  // Check for completed nanny bookings from localStorage
-  useEffect(() => {
-    const completedBooking = localStorage.getItem("completedNannyBooking");
-    if (completedBooking) {
-      setPendingNannyRequests((prev) => {
-        const updated = new Set(prev).add(completedBooking);
-        // Persist to localStorage
-        localStorage.setItem(
-          "pendingNannyRequests",
-          JSON.stringify([...updated])
-        );
-        return updated;
-      });
-      localStorage.removeItem("completedNannyBooking"); // Clear after reading
-    }
-  }, []);
+    fetchPendingNannyRequests();
+  }, [fetchPendingNannyRequests]);
 
   const fetchSchedules = async () => {
     try {
@@ -572,9 +580,15 @@ export default function Calendar() {
               timeRange: undefined,
               isEmpty: !hasPendingRequest,
               isWork: false,
-              type: "Monthly",
+              type: "Weekly",
               onClick: () => {
-                if (!hasPendingRequest) {
+                if (hasPendingRequest) {
+                  openRequestPendingPopup(
+                    dateStr,
+                    timeRange,
+                    firstWork.extendedProps?.location || "work"
+                  );
+                } else {
                   setSelectedWorkDetails({
                     time: timeRange,
                     location: firstWork.extendedProps?.location || "work",
@@ -707,7 +721,13 @@ export default function Calendar() {
                 isWork: false,
                 type: "Monthly",
                 onClick: () => {
-                  if (!hasPendingRequest) {
+                  if (hasPendingRequest) {
+                    openRequestPendingPopup(
+                      dateStr,
+                      timeRange,
+                      firstWork.extendedProps?.location || "work"
+                    );
+                  } else {
                     setSelectedWorkDetails({
                       time: timeRange,
                       location: firstWork.extendedProps?.location || "work",
@@ -946,6 +966,44 @@ export default function Calendar() {
     }
   }, [activeView, selectedMonthDate]);
 
+  useEffect(() => {
+    if (pendingNannyRequests.size === 0 || allEvents.length === 0) return;
+
+    const workDates = new Set(
+      allEvents
+        .filter((event) => event.extendedProps?.type === "work" && event.start)
+        .map((event) => {
+          const start =
+            event.start instanceof Date
+              ? event.start
+              : new Date(event.start as string);
+          return start.toISOString().split("T")[0];
+        })
+    );
+
+    const staleDates = [...pendingNannyRequests].filter(
+      (date) => !workDates.has(date)
+    );
+
+    if (staleDates.length === 0) return;
+
+    staleDates.forEach((date) => {
+      fetch("/api/nanny/bookings/pending", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date }),
+      }).catch((err) =>
+        console.error("Failed to delete stale pending request", date, err)
+      );
+    });
+
+    setPendingNannyRequests((prev) => {
+      const updated = new Set(prev);
+      staleDates.forEach((date) => updated.delete(date));
+      return updated;
+    });
+  }, [allEvents, pendingNannyRequests]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1072,8 +1130,7 @@ export default function Calendar() {
                         <button
                           key={card.id}
                           onClick={card.onClick}
-                          disabled={card.text === "Request Pending"} // Disable click for pending requests
-                          className="relative bg-white rounded-3xl shadow-lg px-6 py-4 flex items-center justify-between w-full min-h-[80px] hover:shadow-xl transition-shadow overflow-hidden disabled:opacity-75 disabled:cursor-not-allowed"
+                          className="relative bg-white rounded-3xl shadow-lg px-6 py-4 flex items-center justify-between w-full min-h-[80px] hover:shadow-xl transition-shadow overflow-hidden"
                         >
                           <div
                             className="absolute left-0 top-0 bottom-0 w-3 rounded-l-3xl"
@@ -1402,6 +1459,13 @@ export default function Calendar() {
         onClose={() => setNannyPopupOpen(false)}
         onConfirm={handleConfirmNannyBooking}
         workDetails={selectedWorkDetails}
+      />
+
+      {/* Request Pending Popup */}
+      <RequestPendingPopup
+        isOpen={requestPendingPopupOpen}
+        onClose={() => setRequestPendingPopupOpen(false)}
+        details={requestPendingDetails ?? undefined}
       />
 
       <BottomNav />
