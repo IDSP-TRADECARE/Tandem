@@ -6,6 +6,9 @@ import { MdCancel } from 'react-icons/md';
 import { DaySelector } from '../../components/ui/schedule/DaySelector';
 import { TimeRangeInput } from '../../components/ui/schedule/TimeRangeInput';
 import { UnderlineInput } from '../../components/ui/schedule/UnderlineInput';
+import { detectNextWeek } from '@/lib/schedule/detectNextWeek';
+import { resolveWeek } from '@/lib/schedule/resolveWeek';
+
 
 interface ManualInputProps {
   onComplete: (data: ScheduleData) => void;
@@ -141,6 +144,8 @@ export function ManualInput({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    const isNextWeek = detectNextWeek(notes || '');
+    const weekStart = resolveWeek(isNextWeek);
 
     if (!title.trim()) {
       setError('Please enter a title');
@@ -194,8 +199,6 @@ export function ManualInput({
     setIsSubmitting(true);
 
     try {
-      setIsSubmitting(true);
-
       try {
         // Build final unified schedule
         const payload = {
@@ -212,6 +215,8 @@ export function ManualInput({
           ),
           location: location || null,
           notes: notes || null,
+          isNextWeek,
+          weekStart,
         };
 
         console.log('📤 Final payload:', payload);

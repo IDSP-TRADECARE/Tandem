@@ -54,11 +54,33 @@ export async function POST(request: NextRequest) {
     return val && typeof val === 'string' && val.trim() !== '' ? val : fallback;
   }
 
-  // -------- WEEK OFFSET (current vs next week) --------
-  const weekOffset = payload.weekOffset === 'next' ? 'next' : 'current';
-  console.log('📆 Received weekOffset:', weekOffset);
+  // ---------------- WEEK RESOLUTION (supports all input types) ----------------
 
-  const weekOf = resolveWeek(weekOffset === 'next');
+  // Manual input or PDF upload — weekStart comes from frontend resolveWeek()
+  if (payload.weekStart) {
+    console.log('📆 Using weekStart from payload:', payload.weekStart);
+    var weekOf = payload.weekStart;
+  }
+
+  // Manual input or PDF upload — "next week" detected via notes
+  else if (payload.isNextWeek !== undefined) {
+    console.log('📆 Using isNextWeek flag:', payload.isNextWeek);
+    weekOf = resolveWeek(payload.isNextWeek);
+  }
+
+  // Voice input — old logic based on weekOffset
+  else if (payload.weekOffset) {
+    const isNext = payload.weekOffset === 'next';
+    console.log('📆 Using weekOffset for voice input:', payload.weekOffset);
+    weekOf = resolveWeek(isNext);
+  }
+
+  // Default fallback — always resolve current week
+  else {
+    console.log('📆 No week data found — using current week');
+    weekOf = resolveWeek(false);
+  }
+
   console.log('📅 Final weekOf:', weekOf);
 
   // -------- FINAL DB PAYLOAD --------
