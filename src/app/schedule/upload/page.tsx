@@ -6,7 +6,7 @@ import { ManualInput } from '../../components/schedule/manualnput';
 import { VoiceInput } from '../../components/schedule/voiceInput';
 import { ScheduleOverview } from '../../components/schedule/scheduleOverview';
 import { BottomNav } from '../../components/Layout/BottomNav';
-import {auth} from "@clerk/nextjs/server";
+import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
 export type InputMethod = 'file' | 'voice' | 'manual';
@@ -20,7 +20,8 @@ export interface ScheduleData {
   timeTo: string;
   location: string;
   notes: string;
-  daySchedules?: Record<string, { timeFrom: string; timeTo: string }>; 
+  daySchedules?: Record<string, { timeFrom: string; timeTo: string }>;
+  weekOffset?: 'current' | 'next';
 }
 
 export default function ScheduleUploadPage() {
@@ -104,7 +105,11 @@ export default function ScheduleUploadPage() {
                 <p className="text-gray-600 mb-8">
                   Share your schedule with us for more flexibility
                 </p>
-                <FileUpload onComplete={handleScheduleComplete} onBack={handleReset} hideBackButton />
+                <FileUpload
+                  onComplete={handleScheduleComplete}
+                  onBack={handleReset}
+                  hideBackButton
+                />
               </div>
             )}
 
@@ -116,7 +121,11 @@ export default function ScheduleUploadPage() {
                 <p className="text-gray-600 mb-8">
                   Fill in your work schedule details below
                 </p>
-                <ManualInput onComplete={handleScheduleComplete} onBack={handleReset} hideBackButton />
+                <ManualInput
+                  onComplete={handleScheduleComplete}
+                  onBack={handleReset}
+                  hideBackButton
+                />
               </div>
             )}
 
@@ -127,12 +136,18 @@ export default function ScheduleUploadPage() {
                   onClick={() => handleMethodSelect('voice')}
                   className="w-16 h-16 bg-gradient-primary text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform mb-2"
                 >
-                  <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                  <svg
+                    className="w-7 h-7 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
                   </svg>
                 </button>
-                <span className="text-sm font-bold text-black mb-3">Voice Input</span>
+                <span className="text-sm font-bold text-black mb-3">
+                  Voice Input
+                </span>
               </div>
             )}
           </div>
@@ -140,13 +155,19 @@ export default function ScheduleUploadPage() {
 
         {step === 'uploading' && inputMethod === 'file' && (
           <div className="px-4 pt-6">
-            <FileUpload onComplete={handleScheduleComplete} onBack={handleReset} />
+            <FileUpload
+              onComplete={handleScheduleComplete}
+              onBack={handleReset}
+            />
           </div>
         )}
 
         {step === 'uploading' && inputMethod === 'manual' && (
           <div className="px-4 pt-6">
-            <ManualInput onComplete={handleScheduleComplete} onBack={handleReset} />
+            <ManualInput
+              onComplete={handleScheduleComplete}
+              onBack={handleReset}
+            />
           </div>
         )}
 
@@ -155,12 +176,26 @@ export default function ScheduleUploadPage() {
             <div className="bg-white rounded-lg p-6">
               <div className="text-center mb-6">
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-                  <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-10 h-10 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload Complete</h2>
-                <p className="text-gray-600">Your schedule has been successfully uploaded</p>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Upload Complete
+                </h2>
+                <p className="text-gray-600">
+                  Your schedule has been successfully uploaded
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -183,30 +218,31 @@ export default function ScheduleUploadPage() {
 
         {step === 'overview' && scheduleData && (
           <div className="px-4 pt-6">
-            <ScheduleOverview 
-              data={scheduleData}
+            <ScheduleOverview
+              data={{
+                ...scheduleData,
+                weekOffset: scheduleData.weekOffset ?? 'current',
+              }}
               onEdit={handleEdit}
-              onBack={handleReset} 
-              onSave={function (updatedData: ScheduleData): Promise<void> {
-                throw new Error('Function not implemented.');
-              } }            />
+              onBack={handleReset}
+            />
           </div>
         )}
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNav/>
+      <BottomNav />
 
       {/* Voice Input Modal */}
       {showVoiceInput && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-md w-full">
-            <VoiceInput 
-              onComplete={handleScheduleComplete} 
+            <VoiceInput
+              onComplete={handleScheduleComplete}
               onBack={() => {
                 setShowVoiceInput(false);
                 setInputMethod('file');
-              }} 
+              }}
             />
           </div>
         </div>

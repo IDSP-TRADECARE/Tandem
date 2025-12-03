@@ -1,19 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { WatsonXAI } from "@ibm-cloud/watsonx-ai";
-import { IamAuthenticator } from "ibm-cloud-sdk-core";
+import { NextRequest, NextResponse } from 'next/server';
+import { WatsonXAI } from '@ibm-cloud/watsonx-ai';
+import { IamAuthenticator } from 'ibm-cloud-sdk-core';
+import { detectNextWeek } from '@/lib/schedule/detectNextWeek';
+import { resolveWeek } from '@/lib/schedule/resolveWeek';
 
 export async function POST(request: NextRequest) {
   try {
     // ENV VALIDATION
     if (!process.env.WATSONX_API_KEY) {
       return NextResponse.json(
-        { error: "Missing WATSONX_API_KEY" },
+        { error: 'Missing WATSONX_API_KEY' },
         { status: 500 }
       );
     }
     if (!process.env.WATSONX_PROJECT_ID) {
       return NextResponse.json(
-        { error: "Missing WATSONX_PROJECT_ID" },
+        { error: 'Missing WATSONX_PROJECT_ID' },
         { status: 500 }
       );
     }
@@ -24,108 +26,104 @@ export async function POST(request: NextRequest) {
     });
 
     const watsonxAI = WatsonXAI.newInstance({
-      version: "2024-05-31",
+      version: '2024-05-31',
       authenticator,
       serviceUrl:
-        process.env.WATSONX_URL || "https://us-south.ml.cloud.ibm.com",
+        process.env.WATSONX_URL || 'https://us-south.ml.cloud.ibm.com',
     });
 
-    console.log("✅ WatsonX initialized");
+    console.log('✅ WatsonX initialized');
 
     // FILE EXTRACTION
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const file = formData.get('file') as File | null;
 
     if (!file) {
-      return NextResponse.json(
-        { error: "No file provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    console.log("📄 File received:", file.name, file.type, file.size);
+    console.log('📄 File received:', file.name, file.type, file.size);
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    let scheduleText = "";
-    let extractionMethod: "PDF" | "IMAGE" | "" = "";
+    let scheduleText = '';
+    let extractionMethod: 'PDF' | 'IMAGE' | '' = '';
 
     // PDF PARSE
-    if (file.type === "application/pdf") {
-      extractionMethod = "PDF";
-      console.log("📑 Parsing PDF…");
+    if (file.type === 'application/pdf') {
+      extractionMethod = 'PDF';
+      console.log('📑 Parsing PDF…');
 
       try {
-        const pdf = require("pdf-parse/lib/pdf-parse.js");
+        const pdf = require('pdf-parse/lib/pdf-parse.js');
         const data = await pdf(buffer);
         scheduleText = data.text;
       } catch {
-        const pdfParse = require("pdf-parse");
+        const pdfParse = require('pdf-parse');
         const data = await pdfParse(buffer);
         scheduleText = data.text;
       }
 
       if (!scheduleText.trim()) {
         return NextResponse.json(
-          { error: "Could not extract text from PDF" },
+          { error: 'Could not extract text from PDF' },
           { status: 400 }
         );
       }
 
-      console.log("📑 PDF text length:", scheduleText.length);
+      console.log('📑 PDF text length:', scheduleText.length);
 
       // IMAGE OCR
-    } else if (file.type.startsWith("image/")) {
-      extractionMethod = "IMAGE";
-      console.log("🖼️ Processing OCR…");
+    } else if (file.type.startsWith('image/')) {
+      extractionMethod = 'IMAGE';
+      console.log('🖼️ Processing OCR…');
 
       if (!process.env.OCR_SPACE_API_KEY) {
         return NextResponse.json(
-          { error: "OCR_SPACE_API_KEY missing" },
+          { error: 'OCR_SPACE_API_KEY missing' },
           { status: 500 }
         );
       }
 
       const form = new FormData();
       form.append(
-        "base64Image",
-        `data:${file.type};base64,${buffer.toString("base64")}`
+        'base64Image',
+        `data:${file.type};base64,${buffer.toString('base64')}`
       );
-      form.append("apikey", process.env.OCR_SPACE_API_KEY);
-      form.append("language", "eng");
-      form.append("scale", "true");
-      form.append("OCREngine", "2");
+      form.append('apikey', process.env.OCR_SPACE_API_KEY);
+      form.append('language', 'eng');
+      form.append('scale', 'true');
+      form.append('OCREngine', '2');
 
-      const ocrResponse = await fetch(
-        "https://api.ocr.space/parse/image",
-        { method: "POST", body: form }
-      );
+      const ocrResponse = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: form,
+      });
 
       const result = await ocrResponse.json();
 
       if (result.IsErroredOnProcessing) {
-        throw new Error(result.ErrorMessage || "OCR failed");
+        throw new Error(result.ErrorMessage || 'OCR failed');
       }
 
-      scheduleText = result.ParsedResults?.[0]?.ParsedText || "";
+      scheduleText = result.ParsedResults?.[0]?.ParsedText || '';
 
       if (!scheduleText.trim()) {
         return NextResponse.json(
-          { error: "Could not extract text from image" },
+          { error: 'Could not extract text from image' },
           { status: 400 }
         );
       }
-
     } else {
       return NextResponse.json(
-        { error: "Unsupported file type" },
+        { error: 'Unsupported file type' },
         { status: 400 }
       );
     }
 
     // WATSONX PROMPT
-    console.log("🤖 Sending to Watsonx…");
+    console.log('🤖 Sending to Watsonx…');
 
     const prompt = `
 You are an extraction model.
@@ -159,11 +157,11 @@ ${scheduleText}
     `.trim();
 
     // WATSONX CALL
-    let responseText = "";
+    let responseText = '';
     try {
       const response = await watsonxAI.generateText({
         input: prompt,
-        modelId: "ibm/granite-4-h-small",
+        modelId: 'ibm/granite-4-h-small',
         projectId: process.env.WATSONX_PROJECT_ID!,
         parameters: {
           max_new_tokens: 400,
@@ -175,23 +173,21 @@ ${scheduleText}
         },
       });
 
-      responseText =
-        response.result?.results?.[0]?.generated_text || "";
+      responseText = response.result?.results?.[0]?.generated_text || '';
 
       // Clean
       responseText = responseText
-        .replace(/```json/gi, "")
-        .replace(/```/g, "")
-        .replace(/^[^\{]*/, "")
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .replace(/^[^\{]*/, '')
         .trim();
 
-      console.log("🤖 Watsonx output cleaned:", responseText);
-
+      console.log('🤖 Watsonx output cleaned:', responseText);
     } catch (aiError: any) {
-      console.error("❌ Watsonx error:", aiError);
+      console.error('❌ Watsonx error:', aiError);
       return NextResponse.json(
         {
-          error: "Watsonx API failure",
+          error: 'Watsonx API failure',
           details: aiError?.message,
         },
         { status: 500 }
@@ -199,9 +195,9 @@ ${scheduleText}
     }
 
     // JSON EXTRACTION
-    if (!responseText.includes("{")) {
+    if (!responseText.includes('{')) {
       return NextResponse.json(
-        { error: "Watsonx returned no JSON" },
+        { error: 'Watsonx returned no JSON' },
         { status: 500 }
       );
     }
@@ -209,7 +205,7 @@ ${scheduleText}
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
-        { error: "Could not parse JSON from Watsonx output" },
+        { error: 'Could not parse JSON from Watsonx output' },
         { status: 500 }
       );
     }
@@ -217,32 +213,91 @@ ${scheduleText}
     let schedule = JSON.parse(jsonMatch[0]);
 
     // DEFAULTS
-    schedule.title ||= "Work Schedule";
+    schedule.title ||= 'Work Schedule';
     schedule.notes = `Extracted from uploaded ${extractionMethod.toLowerCase()}`;
-    schedule.location ||= "";
+    schedule.location ||= '';
 
-    schedule.workingDays ||= ["MON", "TUE", "WED", "THU", "FRI"];
+    schedule.workingDays ||= ['MON', 'TUE', 'WED', 'THU', 'FRI'];
 
     schedule.daySchedules ||= {};
     schedule.workingDays.forEach((day: string) => {
       if (!schedule.daySchedules[day]) {
         schedule.daySchedules[day] = {
-          timeFrom: "09:00",
-          timeTo: "17:00",
+          timeFrom: '09:00',
+          timeTo: '17:00',
         };
       }
     });
 
-    console.log("✅ Final parsed schedule:", schedule);
+    console.log('✅ Final parsed schedule:', schedule);
+
+    // Detect next-week automatically from extracted text
+    const isNextWeek = detectNextWeek(scheduleText);
+
+    // Compute the Monday of the correct week
+    const weekStart = resolveWeek(isNextWeek);
+
+    // Attach to schedule for frontend + backend consistency
+    schedule.isNextWeek = isNextWeek;
+    schedule.weekStart = weekStart;
+
+    // TIME VALIDATION (CRITICAL)
+    
+    const days = Object.keys(schedule.daySchedules || {});
+
+    // helper to convert HH:MM > minutes since midnight
+    const toMinutes = (t: string) => {
+      if (!t || !t.includes(':')) return NaN;
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    for (const day of days) {
+      const { timeFrom, timeTo } = schedule.daySchedules[day] || {};
+
+      if (!timeFrom || !timeTo) {
+        return NextResponse.json(
+          { error: `Missing time range for ${day}` },
+          { status: 400 }
+        );
+      }
+
+      const start = toMinutes(timeFrom);
+      const end = toMinutes(timeTo);
+
+      if (isNaN(start) || isNaN(end)) {
+        return NextResponse.json(
+          { error: `Invalid time format on ${day}: ${timeFrom} > ${timeTo}` },
+          { status: 400 }
+        );
+      }
+
+      if (start === end) {
+        return NextResponse.json(
+          { error: `Start and end times cannot be the same for ${day}` },
+          { status: 400 }
+        );
+      }
+
+      if (end < start) {
+        return NextResponse.json(
+          { error: `End time must be AFTER start time for ${day}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    console.log('⏱️ Schedule passed PDF/IMAGE time validation');
+
+    console.log('📅 Document upload resolved week:', { isNextWeek, weekStart });
 
     return NextResponse.json({ schedule });
-
   } catch (err: any) {
-    console.error("❌ Unhandled error:", err);
+    console.error('❌ Unhandled error:', err);
     return NextResponse.json(
       {
-        error: "Failed to parse schedule",
-        details: err?.message || "Unknown error",
+        error: 'Failed to parse schedule',
+        details: err?.message || 'Unknown error',
       },
       { status: 500 }
     );

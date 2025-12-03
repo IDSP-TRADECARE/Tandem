@@ -10,10 +10,9 @@ interface ScheduleOverviewProps {
   data: ScheduleData;
   onEdit: () => void;
   onBack: () => void;
-  onSave: (updatedData: ScheduleData) => Promise<void>;
 }
 
-// Convert 24h → 12h
+// Convert 24h > 12h
 function formatTime12Hour(time24: string): string {
   if (!time24) return '';
   const [hours] = time24.split(':').map(Number);
@@ -42,13 +41,13 @@ export function ScheduleOverview({
   const handleDayToggle = (dayCode: string, isDouble = false) => {
     const exists = editedData.workingDays.includes(dayCode);
 
-    // VIEW MODE → always allow switching
+    // VIEW MODE > always allow switching
     if (!isEditing) {
       if (exists) setSelectedDay(dayCode);
       return;
     }
 
-    // EDIT MODE — DOUBLE CLICK → DELETE
+    // EDIT MODE — DOUBLE CLICK > DELETE
     if (isDouble && exists) {
       const newWorkingDays = editedData.workingDays.filter(
         (d) => d !== dayCode
@@ -67,7 +66,7 @@ export function ScheduleOverview({
       return;
     }
 
-    // EDIT MODE — SINGLE CLICK ON EXISTING → JUST SELECT
+    // EDIT MODE — SINGLE CLICK ON EXISTING > JUST SELECT
     if (exists) {
       setSelectedDay(dayCode);
       return;
@@ -132,7 +131,7 @@ export function ScheduleOverview({
       const res = await fetch('/api/schedule/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editedData),
+        body: JSON.stringify({...editedData, weekOffset: editedData.weekOffset ?? 'current'}),
         credentials: 'include',
       });
 

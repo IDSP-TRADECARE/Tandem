@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { detectNextWeek } from '@/lib/schedule/detectNextWeek';
+import { resolveWeek } from '@/lib/schedule/resolveWeek';
 
 interface FileUploadProps {
   onComplete: (data: any) => void;
@@ -8,7 +10,11 @@ interface FileUploadProps {
   hideBackButton?: boolean;
 }
 
-export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadProps) {
+export function FileUpload({
+  onComplete,
+  onBack,
+  hideBackButton,
+}: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -17,9 +23,9 @@ export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadPro
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   };
@@ -32,12 +38,12 @@ export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadPro
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
       if (
-        droppedFile.type === "application/pdf" ||
-        droppedFile.type.startsWith("image/")
+        droppedFile.type === 'application/pdf' ||
+        droppedFile.type.startsWith('image/')
       ) {
         setFile(droppedFile);
       } else {
-        alert("Please upload a PDF or image file");
+        alert('Please upload a PDF or image file');
       }
     }
   };
@@ -48,89 +54,142 @@ export function FileUpload({ onComplete, onBack, hideBackButton }: FileUploadPro
     }
   };
 
-const handleUpload = async () => {
-  if (!file) return;
+  const handleUpload = async () => {
+    if (!file) return;
 
-  setUploading(true);
-  setUploadProgress(0);
-
-  // Simulate upload progress
-  const interval = setInterval(() => {
-    setUploadProgress((prev) => {
-      if (prev >= 90) {
-        return 90;
-      }
-      return prev + 10;
-    });
-  }, 200);
-
-  const formData = new FormData();
-  formData.append("file", file);
-
-  try {
-    console.log('🚀 Starting upload:', file.name);
-    
-    // Step 1: Parse the PDF
-    const response = await fetch("/api/schedule/parse-pdf", {
-      method: "POST",
-      body: formData,
-    });
-
-    console.log('📡 Response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Upload failed:', errorText);
-      throw new Error(`Upload failed: ${errorText}`);
-    }
-
-    const result = await response.json();
-    console.log('✅ Upload successful:', result);
-    
-    const scheduleData = result.schedule;
-    console.log('📋 Schedule data:', scheduleData);
-    
-    // Step 2: Save to database
-    const saveResponse = await fetch('/api/schedule/save', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(scheduleData),
-});
-
-if (!saveResponse.ok) {
-  const errorData = await saveResponse.json();
-  console.error('Save error:', errorData);
-  throw new Error(errorData.error || 'Failed to save schedule to database');
-}
-
-    const saveResult = await saveResponse.json();
-    console.log('✅ Saved to database:', saveResult);
-    
-    clearInterval(interval);
-    setUploadProgress(100);
-    
-    setTimeout(() => {
-      onComplete(scheduleData);
-    }, 500);
-  } catch (error) {
-    console.error("❌ Upload error:", error);
-    clearInterval(interval);
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    alert(`Failed to upload schedule: ${errorMessage}\n\nPlease check the console for details.`);
-    
-    setUploading(false);
+    setUploading(true);
     setUploadProgress(0);
-    setFile(null);
-  }
-};
+
+    // Simulate upload progress
+    const interval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 90) {
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 200);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      console.log('🚀 Starting upload:', file.name);
+
+      // 1: Parse the PDF
+      const response = await fetch('/api/schedule/parse-pdf', {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log('📡 Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Upload failed:', errorText);
+        throw new Error(`Upload failed: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Upload successful:', result);
+
+      const scheduleData = result.schedule;
+      console.log('📋 Schedule data:', scheduleData);
+
+      // ADD NEXT-WEEK + VALIDATION HERE
+
+      // If server didn't include the next-week fields (fallback)
+      const isNextWeek =
+        scheduleData.isNextWeek ?? detectNextWeek(scheduleData.notes || '');
+      const weekStart =
+        scheduleData.weekStart ??
+        scheduleData.weekOf ?? 
+        resolveWeek(isNextWeek);
+
+      // DISALLOW INVALID TIMES (same rules as manual + voice)
+      const days = Object.keys(scheduleData.daySchedules || {});
+
+      const toMinutes = (t: string) => {
+        if (!t || !t.includes(':')) return NaN;
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      };
+
+      for (const day of days) {
+        const sched = scheduleData.daySchedules[day];
+        if (!sched || !sched.timeFrom || !sched.timeTo) {
+          throw new Error(`Missing time range for ${day}`);
+        }
+
+        const start = toMinutes(sched.timeFrom);
+        const end = toMinutes(sched.timeTo);
+
+        if (isNaN(start) || isNaN(end)) {
+          throw new Error(`Invalid time format for ${day}`);
+        }
+        if (start === end) {
+          throw new Error(`Start and end times cannot be the same for ${day}`);
+        }
+        if (end < start) {
+          throw new Error(`End time must be AFTER start time for ${day}`);
+        }
+      }
+
+      console.log('⏱️ File upload schedule passed validation');
+
+      // MERGE INTO FINAL SCHEDULE WE WILL SAVE
+      const enrichedSchedule = {
+        ...scheduleData,
+        isNextWeek,
+        weekStart,
+      };
+
+      // Save to database
+      const saveResponse = await fetch('/api/schedule/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(enrichedSchedule),
+      });
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        console.error('Save error:', errorData);
+        throw new Error(
+          errorData.error || 'Failed to save schedule to database'
+        );
+      }
+
+      const saveResult = await saveResponse.json();
+      console.log('✅ Saved to database:', saveResult);
+
+      clearInterval(interval);
+      setUploadProgress(100);
+
+      setTimeout(() => {
+        onComplete(enrichedSchedule);
+      }, 500);
+    } catch (error) {
+      console.error('❌ Upload error:', error);
+      clearInterval(interval);
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(
+        `Failed to upload schedule: ${errorMessage}\n\nPlease check the console for details.`
+      );
+
+      setUploading(false);
+      setUploadProgress(0);
+      setFile(null);
+    }
+  };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return '0 Bytes';
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB"];
+    const sizes = ['Bytes', 'KB', 'MB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   if (uploading) {
@@ -167,15 +226,17 @@ if (!saveResponse.ok) {
           <h3 className="text-xl font-bold text-white mb-2">
             Uploading Schedule
           </h3>
-          <p className="text-white/90 text-sm mb-6">
-            {file?.name}
-          </p>
+          <p className="text-white/90 text-sm mb-6">{file?.name}</p>
 
           {/* Progress bar */}
           {file && (
             <div className="mt-4">
               <div className="flex items-center gap-2 bg-white/20 rounded-lg p-3">
-                <svg className="w-6 h-6 text-white flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg
+                  className="w-6 h-6 text-white flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
                 </svg>
                 <div className="flex-1">
@@ -184,7 +245,7 @@ if (!saveResponse.ok) {
                     <span>({formatFileSize(file.size)})</span>
                   </div>
                   <div className="w-full bg-white/30 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-white h-2 rounded-full transition-all duration-300"
                       style={{ width: `${uploadProgress}%` }}
                     />
@@ -203,7 +264,11 @@ if (!saveResponse.ok) {
       <div className="w-full space-y-4">
         <div className="border-3 border-gray-300 rounded-2xl p-4 bg-white">
           <div className="flex items-center gap-3">
-            <svg className="w-10 h-10 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg
+              className="w-10 h-10 text-red-500 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
             </svg>
             <div className="flex-1 min-w-0">
@@ -211,7 +276,10 @@ if (!saveResponse.ok) {
                 {file.name} ({formatFileSize(file.size)})
               </p>
               <div className="w-full bg-blue-100 rounded-full h-2 mt-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '100%' }} />
+                <div
+                  className="bg-blue-500 h-2 rounded-full"
+                  style={{ width: '100%' }}
+                />
               </div>
             </div>
             <button
@@ -242,9 +310,7 @@ if (!saveResponse.ok) {
   return (
     <div
       className={`border-3 border-dashed rounded-2xl p-12 text-center transition-colors ${
-        dragActive
-          ? "border-blue-500 bg-blue-50"
-          : "border-gray-300 bg-white"
+        dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'
       }`}
       onDragEnter={handleDrag}
       onDragLeave={handleDrag}
