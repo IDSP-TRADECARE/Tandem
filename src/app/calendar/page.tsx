@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   formatDate,
   DateSelectArg,
@@ -129,14 +129,19 @@ export default function Calendar() {
 
   // Add state to track pending nanny requests by date - load from localStorage
   const [pendingNannyRequests, setPendingNannyRequests] = useState<Set<string>>(
-    () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("pendingNannyRequests");
-        return saved ? new Set(JSON.parse(saved)) : new Set();
-      }
-      return new Set();
-    }
+    new Set()
   );
+
+  const fetchPendingNannyRequests = useCallback(async () => {
+    try {
+      const res = await fetch("/api/nanny/bookings/pending");
+      if (!res.ok) throw new Error("Failed to load pending nanny requests");
+      const data = await res.json();
+      setPendingNannyRequests(new Set(data.dates ?? []));
+    } catch (error) {
+      console.error("❌ pending nanny requests:", error);
+    }
+  }, []);
 
   const { handlePreviousMonth, handleNextMonth } =
     createMonthNavigationHandlers(currentMonth, setCurrentMonth);
@@ -144,24 +149,8 @@ export default function Calendar() {
 
   useEffect(() => {
     fetchSchedules();
-  }, []);
-
-  // Check for completed nanny bookings from localStorage
-  useEffect(() => {
-    const completedBooking = localStorage.getItem("completedNannyBooking");
-    if (completedBooking) {
-      setPendingNannyRequests((prev) => {
-        const updated = new Set(prev).add(completedBooking);
-        // Persist to localStorage
-        localStorage.setItem(
-          "pendingNannyRequests",
-          JSON.stringify([...updated])
-        );
-        return updated;
-      });
-      localStorage.removeItem("completedNannyBooking"); // Clear after reading
-    }
-  }, []);
+    fetchPendingNannyRequests();
+  }, [fetchPendingNannyRequests]);
 
   const fetchSchedules = async () => {
     try {

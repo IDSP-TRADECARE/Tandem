@@ -12,6 +12,7 @@ import {
   integer,
   decimal,
   boolean,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
@@ -62,9 +63,13 @@ export const schedules = pgTable(
         >
       >()
       .default({}),
-    originalFileUrl: text("original_file_url"), 
+    originalFileUrl: text("original_file_url"),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    dailyTimes: jsonb("daily_times").$type<Record<string, any>>().notNull().default({}), 
+    dailyTimes: jsonb("daily_times")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .$type<Record<string, any>>()
+      .notNull()
+      .default({}),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
@@ -167,15 +172,34 @@ export const nannyShares = pgTable("nanny_shares", {
     .default([]),
 });
 
+// Pending Nanny Requests table
+export const pendingNannyRequests = pgTable(
+  "pending_nanny_requests",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    date: text("date").notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userDateIdx: uniqueIndex("pending_nanny_requests_user_date_idx").on(
+      table.userId,
+      table.date
+    ),
+  })
+);
+
 // Direct Messages table
-export const directMessages = pgTable('direct_messages', {
-  id: serial('id').primaryKey(),
-  roomId: text('room_id').notNull(), // Format: userId1_userId2 (sorted)
-  senderId: text('sender_id').notNull(),
-  senderName: text('sender_name').notNull(),
-  content: text('content').notNull(),
-  timestamp: text('timestamp').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const directMessages = pgTable("direct_messages", {
+  id: serial("id").primaryKey(),
+  roomId: text("room_id").notNull(), // Format: userId1_userId2 (sorted)
+  senderId: text("sender_id").notNull(),
+  senderName: text("sender_name").notNull(),
+  content: text("content").notNull(),
+  timestamp: text("timestamp").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // TypeScript types

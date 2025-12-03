@@ -83,8 +83,11 @@ export default function NannyBookingForm() {
     const returnDate = params.get("returnDate");
 
     if (returnDate) {
-      // Save to localStorage so calendar page can pick it up
-      localStorage.setItem("completedNannyBooking", returnDate);
+      await fetch("/api/nanny/bookings/pending", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: returnDate, status: "pending" }),
+      });
     }
 
     router.push("./schedule");
