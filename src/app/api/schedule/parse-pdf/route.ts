@@ -241,6 +241,54 @@ ${scheduleText}
     schedule.isNextWeek = isNextWeek;
     schedule.weekStart = weekStart;
 
+    // TIME VALIDATION (CRITICAL)
+    
+    const days = Object.keys(schedule.daySchedules || {});
+
+    // helper to convert HH:MM > minutes since midnight
+    const toMinutes = (t: string) => {
+      if (!t || !t.includes(':')) return NaN;
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    for (const day of days) {
+      const { timeFrom, timeTo } = schedule.daySchedules[day] || {};
+
+      if (!timeFrom || !timeTo) {
+        return NextResponse.json(
+          { error: `Missing time range for ${day}` },
+          { status: 400 }
+        );
+      }
+
+      const start = toMinutes(timeFrom);
+      const end = toMinutes(timeTo);
+
+      if (isNaN(start) || isNaN(end)) {
+        return NextResponse.json(
+          { error: `Invalid time format on ${day}: ${timeFrom} → ${timeTo}` },
+          { status: 400 }
+        );
+      }
+
+      if (start === end) {
+        return NextResponse.json(
+          { error: `Start and end times cannot be the same for ${day}` },
+          { status: 400 }
+        );
+      }
+
+      if (end < start) {
+        return NextResponse.json(
+          { error: `End time must be AFTER start time for ${day}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    console.log('⏱️ Schedule passed PDF/IMAGE time validation');
+
     console.log('📅 Document upload resolved week:', { isNextWeek, weekStart });
 
     return NextResponse.json({ schedule });
