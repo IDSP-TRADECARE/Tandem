@@ -935,6 +935,44 @@ export default function Calendar() {
     }
   }, [activeView, selectedMonthDate]);
 
+  useEffect(() => {
+    if (pendingNannyRequests.size === 0 || allEvents.length === 0) return;
+
+    const workDates = new Set(
+      allEvents
+        .filter((event) => event.extendedProps?.type === "work" && event.start)
+        .map((event) => {
+          const start =
+            event.start instanceof Date
+              ? event.start
+              : new Date(event.start as string);
+          return start.toISOString().split("T")[0];
+        })
+    );
+
+    const staleDates = [...pendingNannyRequests].filter(
+      (date) => !workDates.has(date)
+    );
+
+    if (staleDates.length === 0) return;
+
+    staleDates.forEach((date) => {
+      fetch("/api/nanny/bookings/pending", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date }),
+      }).catch((err) =>
+        console.error("Failed to delete stale pending request", date, err)
+      );
+    });
+
+    setPendingNannyRequests((prev) => {
+      const updated = new Set(prev);
+      staleDates.forEach((date) => updated.delete(date));
+      return updated;
+    });
+  }, [allEvents, pendingNannyRequests]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

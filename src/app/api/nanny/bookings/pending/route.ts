@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { pendingNannyRequests } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export async function GET() {
   const { userId } = await auth();
@@ -48,6 +48,29 @@ export async function POST(request: NextRequest) {
       target: [pendingNannyRequests.userId, pendingNannyRequests.date],
       set: { status, updatedAt: new Date() },
     });
+
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { date } = await request.json();
+  if (!date) {
+    return NextResponse.json({ error: "Missing date" }, { status: 400 });
+  }
+
+  await db
+    .delete(pendingNannyRequests)
+    .where(
+      and(
+        eq(pendingNannyRequests.userId, userId),
+        eq(pendingNannyRequests.date, date)
+      )
+    );
 
   return NextResponse.json({ success: true });
 }
