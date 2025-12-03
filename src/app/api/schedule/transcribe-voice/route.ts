@@ -3,6 +3,8 @@ import Groq from 'groq-sdk';
 import { WatsonXAI } from '@ibm-cloud/watsonx-ai';
 import { IamAuthenticator } from 'ibm-cloud-sdk-core';
 
+import { detectNextWeek } from '@/lib/schedule/detectNextWeek';
+
 export const runtime = 'nodejs';
 
 // ---- GROQ ----
@@ -21,15 +23,14 @@ const watsonxAI = WatsonXAI.newInstance({
   serviceUrl: process.env.WATSONX_URL || 'https://us-south.ml.cloud.ibm.com',
 });
 
-const WATSON_MODEL = 'ibm/granite-4-h-small';
+const WATSON_MODEL = 'ibm/granite-3-8b-instruct';
 
 export async function POST(request: NextRequest) {
-  const t0 = Date.now();
-
   try {
-    //  AUDIO INPUT 
+    // ---- AUDIO INPUT ----
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File | null;
+
     if (!audioFile) {
       return NextResponse.json(
         { error: 'No audio file provided' },
@@ -37,123 +38,121 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    //  GROQ WHISPER TRANSCRIBE 
+    // ---- GROQ WHISPER ----
     const transcription = await groq.audio.transcriptions.create({
       file: audioFile,
       model: 'whisper-large-v3-turbo',
     });
 
-    const transcript = transcription.text;
+    const transcript = transcription.text?.trim() || '';
     console.log('📝 Transcript:', transcript);
 
-    //  WATSONX PROMPT 
+    // ---- WATSONX PROMPT ----
     const prompt = `
-Extract the work schedule from the transcript.
-Return ONLY valid JSON in this format:
+You MUST extract a detailed weekly schedule from the transcript and return ONLY valid JSON.
+
+Follow EXACTLY this schema:
 
 {
   "title": "Work Schedule",
-  "workingDays": ["MON", "TUE"],
+  "workingDays": ["MON","WED","THU","FRI"],
   "daySchedules": {
-    "MON": { "timeFrom": "09:00", "timeTo": "17:00" }
+    "MON": { "timeFrom": "05:00", "timeTo": "15:00" },
+    "WED": { "timeFrom": "03:00", "timeTo": "16:00" },
+    "THU": { "timeFrom": "07:00", "timeTo": "15:00" },
+    "FRI": { "timeFrom": "07:00", "timeTo": "15:00" }
   },
   "location": "",
   "notes": "Created via voice input"
 }
 
-RULES:
-- workingDays MUST use: MON, TUE, WED, THU, FRI, SAT, SUN.
-- Convert times to 24-hour "HH:MM" format.
-- If "Monday to Friday" → ["MON","TUE","WED","THU","FRI"].
-- If same time for all days, repeat it for each day.
-- location = extracted location or empty string.
-- notes MUST always be "Created via voice input".
-- RETURN ONLY THE JSON. No explanation, no markdown.
+STRICT RULES:
+- Extract EVERY day mentioned.
+- Extract EXACT times for each day.
+- Convert times to 24-hour HH:MM.
+- If one time range applies to multiple days (e.g. Thursday and Friday), apply it to EACH day separately.
+- If a day is mentioned with NO time, SKIP it completely.
+- NEVER infer times.
+- NEVER output comments, notes, or explanations.
+- NEVER output parentheses.
+- NEVER output text outside the JSON.
+- ONLY return the final JSON object.
 
-Transcript: "${transcript}"
-    `.trim();
+Transcript:
+"${transcript}"
+`.trim();
 
-    //  WATSONX CALL 
-    const wxStart = Date.now();
-    const response = await watsonxAI.generateText({
+    const wx = await watsonxAI.generateText({
       input: prompt,
       modelId: WATSON_MODEL,
       projectId: process.env.WATSONX_PROJECT_ID!,
       parameters: {
-        max_new_tokens: 350,
-        min_new_tokens: 30,
+        max_new_tokens: 300,
         temperature: 0,
         top_p: 1,
-        stop_sequences: [],
-        repetition_penalty: 1.0,
       },
     });
 
-    const wxEnd = Date.now();
-    console.log('⏱ Watsonx generateText:', wxEnd - wxStart, 'ms');
+    let raw = wx.result?.results?.[0]?.generated_text?.trim() || '';
+    console.log('🤖 Raw WatsonX:', raw);
 
-    let output = response.result?.results?.[0]?.generated_text?.trim() || '';
-    console.log('🤖 Raw Watsonx Output:', output);
+    raw = raw.replace(/```json|```/g, '').trim();
 
-    //  CLEAN & FIX ANY TRUNCATION 
-    // Remove markdown fences
-    output = output
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
 
-    // If JSON is truncated before the end
-    if (output.endsWith('"notes": "Created via voice')) {
-      console.warn('⚠️ Detected truncated notes. Fixing.');
-      output = output.replace(
-        /"notes": "Created via voice.*/g,
-        `"notes": "Created via voice input"}`
-      );
-    }
-
-    // Ensure JSON ends with }
-    if (!output.endsWith('}')) {
-      console.warn('⚠️ JSON ended early. Appending }.');
-      output = output + '}';
-    }
-
-    // Try extracting the JSON block
-    const jsonMatch = output.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('Watsonx returned no JSON');
+      console.warn(
+        '⚠️ WatsonX returned NO JSON. Falling back to default schedule.'
+      );
+      return NextResponse.json({
+        transcript,
+        schedule: {
+          title: 'Work Schedule',
+          workingDays: ['MON'],
+          daySchedules: {
+            MON: { timeFrom: '09:00', timeTo: '17:00' },
+          },
+          location: '',
+          notes: 'Created via voice input',
+          weekOffset: detectNextWeek(transcript) ? 'next' : 'current',
+        },
+      });
     }
 
-    const schedule = JSON.parse(jsonMatch[0]);
+    // --- SAFE JSON PARSE ---
+    let schedule = JSON.parse(jsonMatch[0]);
 
-    //  SAFETY DEFAULTS 
+    // ---- NORMALIZATION ----
     schedule.title ||= 'Work Schedule';
     schedule.notes = 'Created via voice input';
     schedule.location ||= '';
 
-    if (!schedule.workingDays?.length) {
-      schedule.workingDays = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+    if (!schedule.workingDays || !schedule.workingDays.length) {
+      throw new Error('Invalid AI output: missing workingDays');
     }
 
-    schedule.daySchedules ||= {};
-    schedule.workingDays.forEach((day: string) => {
-      if (!schedule.daySchedules[day]) {
-        schedule.daySchedules[day] = {
-          timeFrom: '09:00',
-          timeTo: '17:00',
-        };
-      }
-    });
+    if (!schedule.daySchedules) {
+      throw new Error('Invalid AI output: missing daySchedules');
+    }
 
-    console.log('✅ Final schedule:', schedule);
+    // ---- ADD NEXT-WEEK FLAG ----
+    schedule.weekOffset = detectNextWeek(transcript) ? 'next' : 'current';
+    console.log('📆 Week offset:', schedule.weekOffset);
+
+    console.log('✅ Final schedule sent to client:', schedule);
 
     return NextResponse.json({
       transcript,
       schedule,
     });
-  } catch (error: any) {
-    console.error('❌ Voice processing error:', error);
+  } catch (err: any) {
+    console.error('❌ Voice processing error:', err);
+
     return NextResponse.json(
-      { error: 'Failed to process voice input', details: error.message },
+      {
+        error: 'Failed to process voice input',
+        details: err.message,
+      },
       { status: 500 }
     );
   }

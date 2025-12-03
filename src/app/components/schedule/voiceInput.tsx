@@ -1,5 +1,6 @@
 'use client';
 
+import { detectNextWeek } from "@/lib/schedule/detectNextWeek";
 import { useState, useRef } from 'react';
 
 interface VoiceInputProps {
@@ -80,10 +81,32 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
           console.log('📝 Transcript:', transcript);
           console.log('📋 Parsed schedule:', schedule);
 
+          // 🆕 DETECT NEXT WEEK
+          const forNextWeek = detectNextWeek(transcript);
+          console.log("📅 Next-week detected:", forNextWeek);
+
+          // 🆕 MERGE FOR NEXT WEEK FLAG
+          let enrichedSchedule = {
+            ...schedule,
+            forNextWeek,
+          };
+
+          // If voice parser created daySchedules, extract first time
+          const days = Object.keys(schedule.daySchedules || {});
+          if (days.length > 0) {
+            const first = schedule.daySchedules[days[0]];
+            enrichedSchedule = {
+              ...enrichedSchedule,
+              timeFrom: first?.timeFrom || '',
+              timeTo: first?.timeTo || '',
+            };
+          }
+
+          // SAVE schedule including next-week flag
           const saveResponse = await fetch('/api/schedule/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(schedule),
+            body: JSON.stringify(enrichedSchedule),
             credentials: 'include',
           });
 
@@ -94,45 +117,32 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
           }
 
           const saveResult = await saveResponse.json();
-        console.log('✅ Schedule saved successfully:', saveResult);
+          console.log('✅ Schedule saved successfully:', saveResult);
 
-        let enrichedSchedule = schedule;
+          if (saveResult.scheduleId) {
+            enrichedSchedule = { ...enrichedSchedule, scheduleId: saveResult.scheduleId };
+          }
 
-        const days = Object.keys(schedule.daySchedules || {});
-        if (days.length > 0) {
-        const first = schedule.daySchedules[days[0]];
-        enrichedSchedule = {
-        ...schedule,
-        timeFrom: first?.timeFrom || '',
-        timeTo: first?.timeTo || '',
-        };
-        }
+          // cleanup audio
+          stopStreamTracks();
+          mediaRecorderRef.current = null;
+          audioChunksRef.current = [];
 
-        if (saveResult.scheduleId) {
-         enrichedSchedule = { ...enrichedSchedule, scheduleId: saveResult.scheduleId };
-        }
-
-        // cleanup media
-        stopStreamTracks();
-        mediaRecorderRef.current = null;
-        audioChunksRef.current = [];
-
-        // complete flow with the REAL schedule data
-        setTimeout(() => onComplete(enrichedSchedule), 500);
+          // Return final enriched schedule to flow
+          setTimeout(() => onComplete(enrichedSchedule), 500);
 
         } catch (err) {
           console.error('❌ Voice input error:', err);
           setError(err instanceof Error ? err.message : 'Failed to process voice input');
           setStatus('idle');
 
-          // cleanup on error
           stopStreamTracks();
           mediaRecorderRef.current = null;
           audioChunksRef.current = [];
         }
       };
 
-      // trigger stop (onstop handler already set)
+      // STOP recording
       try {
         mediaRecorderRef.current.stop();
         console.log('🎤 Stopped recording');
@@ -163,7 +173,7 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
         </button>
       </div>
 
-      {/* Content - Absolutely Centered */}
+      {/* Content */}
       <div className="absolute inset-0 flex items-center justify-center pt-16 pb-8">
         <div className="w-full px-8">
           {status === 'idle' && (
@@ -211,7 +221,7 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
 
               <div className="max-w-md mx-auto">
                 <p className="text-gray-700 text-lg leading-relaxed">Voice recording...</p>
-                <p className="text-gray-700 text-lg leading-relaxed">Please click the voice input button again when you have finished recording</p>
+                <p className="text-gray-700 text-lg leading-relaxed">Click the button again when finished</p>
               </div>
             </div>
           )}
@@ -223,9 +233,9 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
               </div>
 
               <div className="max-w-md mx-auto">
-                <p className="text-gray-700 text-lg leading-relaxed mb-2">Please wait a moment...</p>
+                <p className="text-gray-700 text-lg leading-relaxed mb-2">Please wait...</p>
                 <p className="text-gray-700 text-lg leading-relaxed flex items-center justify-center gap-2">
-                  Our system is processing your words
+                  Processing your words
                   <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -234,8 +244,9 @@ export function VoiceInput({ onComplete, onBack }: VoiceInputProps) {
               </div>
             </div>
           )}
+
         </div>
       </div>
     </div>
   );
-}``
+}

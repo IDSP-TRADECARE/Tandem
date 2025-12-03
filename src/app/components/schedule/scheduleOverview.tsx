@@ -10,7 +10,6 @@ interface ScheduleOverviewProps {
   data: ScheduleData;
   onEdit: () => void;
   onBack: () => void;
-  onSave: (updatedData: ScheduleData) => Promise<void>;
 }
 
 // Convert 24h → 12h
@@ -132,7 +131,7 @@ export function ScheduleOverview({
       const res = await fetch('/api/schedule/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editedData),
+        body: JSON.stringify({...editedData, weekOffset: editedData.weekOffset ?? 'current'}),
         credentials: 'include',
       });
 

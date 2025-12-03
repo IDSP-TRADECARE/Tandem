@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -7,21 +7,21 @@ import {
   EventClickArg,
   EventApi,
   EventInput,
-} from "@fullcalendar/core";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
+} from '@fullcalendar/core';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "../components/calendar/dialog";
-import { BottomNav } from "../components/Layout/BottomNav";
-import { GradientBackgroundFull } from "../components/ui/backgrounds/GradientBackgroundFull";
-import { HalfBackground } from "../components/ui/backgrounds/HalfBackground";
-import { TabBar } from "../components/ui/backgrounds/TabBar";
+} from '../components/calendar/dialog';
+import { BottomNav } from '../components/Layout/BottomNav';
+import { GradientBackgroundFull } from '../components/ui/backgrounds/GradientBackgroundFull';
+import { HalfBackground } from '../components/ui/backgrounds/HalfBackground';
+import { TabBar } from '../components/ui/backgrounds/TabBar';
 import {
   getHeadersForView,
   getTopPositionForView,
@@ -88,9 +88,9 @@ interface CustomEventInput extends EventInput {
   };
 }
 
-type ViewType = "Weekly" | "Monthly";
+type ViewType = 'Weekly' | 'Monthly';
 
-const tabs = ["Weekly", "Monthly"];
+const tabs = ['Weekly', 'Monthly'];
 
 export default function Calendar() {
   const router = useRouter();
@@ -99,7 +99,7 @@ export default function Calendar() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [monthPickerOpen, setMonthPickerOpen] = useState<boolean>(false);
-  const [activeView, setActiveView] = useState<ViewType>("Weekly");
+  const [activeView, setActiveView] = useState<ViewType>('Weekly');
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedMonthDate, setSelectedMonthDate] = useState<Date | null>(null);
   const [weekStartDate, setWeekStartDate] = useState<Date>(
@@ -110,12 +110,24 @@ export default function Calendar() {
     null
   );
   const [editMode, setEditMode] = useState<boolean>(false);
-  const [editEventTitle, setEditEventTitle] = useState<string>("");
-  const [editEventStartTime, setEditEventStartTime] = useState<string>("");
-  const [editEventEndTime, setEditEventEndTime] = useState<string>("");
-  const [editEventLocation, setEditEventLocation] = useState<string>("");
-  const [editEventNotes, setEditEventNotes] = useState<string>("");
+  const [editEventTitle, setEditEventTitle] = useState<string>('');
+  const [editEventStartTime, setEditEventStartTime] = useState<string>('');
+  const [editEventEndTime, setEditEventEndTime] = useState<string>('');
+  const [editEventLocation, setEditEventLocation] = useState<string>('');
+  const [editEventNotes, setEditEventNotes] = useState<string>('');
   const calendarRef = useRef<FullCalendar>(null);
+
+  // ⬇️ Jump calendar to the correct schedule week
+  useEffect(() => {
+    if (calendarRef.current && allEvents.length > 0) {
+      const firstEvent = allEvents.find((e) => e.weekOf);
+
+      if (firstEvent?.weekOf) {
+        console.log('📆 Jumping to week:', firstEvent.weekOf);
+        calendarRef.current.getApi().gotoDate(firstEvent.weekOf);
+      }
+    }
+  }, [allEvents]);
 
   // Add new state for the nanny booking popup
   const [nannyPopupOpen, setNannyPopupOpen] = useState<boolean>(false);
@@ -174,23 +186,23 @@ export default function Calendar() {
   const fetchSchedules = async () => {
     try {
       setLoading(true);
-      console.log("🔍 Fetching schedules from API...");
+      console.log('🔍 Fetching schedules from API...');
 
-      const response = await fetch("/api/schedule/week");
+      const response = await fetch('/api/schedule/week');
 
       if (!response.ok) {
-        throw new Error("Failed to fetch schedules");
+        throw new Error('Failed to fetch schedules');
       }
 
       const data = await response.json();
-      console.log("✅ Schedules received:", data.schedules);
+      console.log('✅ Schedules received:', data.schedules);
 
       setSchedules(data.schedules || []);
 
       const calendarEvents = generateCalendarEvents(data.schedules || []);
-      console.log("📅 Generated calendar events:", calendarEvents);
+      console.log('📅 Generated calendar events:', calendarEvents);
 
-      const savedCustomEvents = localStorage.getItem("customEvents");
+      const savedCustomEvents = localStorage.getItem('customEvents');
       if (savedCustomEvents) {
         const parsedCustomEvents = JSON.parse(savedCustomEvents);
         const customEventsWithDates = parsedCustomEvents.map(
@@ -212,7 +224,7 @@ export default function Calendar() {
         setAllEvents(calendarEvents);
       }
     } catch (error) {
-      console.error("❌ Error fetching schedules:", error);
+      console.error('❌ Error fetching schedules:', error);
     } finally {
       setLoading(false);
     }
@@ -224,8 +236,6 @@ export default function Calendar() {
     const events: CustomEventInput[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    console.log("📋 Generating events from schedules:", schedules);
 
     const dayMap: Record<string, number> = {
       SUN: 0,
@@ -244,22 +254,34 @@ export default function Calendar() {
 
       const dayOfWeek = date.getDay();
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
-
-      const eventWeek = getStartOfWeek(date).toISOString().slice(0, 10);
 
       const dayCode = Object.keys(dayMap).find(
         (key) => dayMap[key] === dayOfWeek
       );
-
       if (!dayCode) continue;
 
+      const generatedDayWeek = getStartOfWeek(date).toISOString().slice(0, 10);
+
+      // 🔥 LOOP OVER SCHEDULES
       for (const schedule of schedules) {
-        if (!schedule.workingDays.includes(dayCode)) {
-          continue;
+        let eventWeek = schedule.weekOf;
+
+        // safety fallback (should not happen once API returns weekOf)
+        if (!eventWeek) {
+          console.warn(
+            '⚠️ Missing schedule.weekOf — using CURRENT week',
+            schedule
+          );
+          eventWeek = getStartOfWeek(new Date()).toISOString().slice(0, 10);
         }
+
+        // only generate events inside the schedule's assigned week
+        if (generatedDayWeek !== eventWeek) continue;
+
+        if (!schedule.workingDays.includes(dayCode)) continue;
 
         if (schedule.deletedDates?.includes(dateStr)) {
           console.log(`⏭️ Skipping deleted date: ${dateStr}`);
@@ -272,28 +294,15 @@ export default function Calendar() {
           timeTo: schedule.timeTo,
         };
 
-        const editedDatesForDate = schedule.editedDates?.[dateStr];
-        const workEdits = editedDatesForDate?.work;
-        const childcareEdits = editedDatesForDate?.childcare;
+        const edited = schedule.editedDates?.[dateStr];
+        const workEdits = edited?.work;
+        const childcareEdits = edited?.childcare;
 
-        if (workEdits) {
-          console.log(`✏️ Applying work edits for ${dateStr}:`, workEdits);
-        }
-        if (childcareEdits) {
-          console.log(
-            `✏️ Applying childcare edits for ${dateStr}:`,
-            childcareEdits
-          );
-        }
-
+        // WORK
         const workTitle =
           workEdits?.title || `Work: ${schedule.location || schedule.title}`;
         const workTimeFrom = workEdits?.timeFrom || dayTimes.timeFrom;
         const workTimeTo = workEdits?.timeTo || dayTimes.timeTo;
-        const workLocation = workEdits?.location || schedule.location || "";
-        const workNotes = workEdits?.notes || schedule.notes || "";
-
-        const weekOf = schedule.weekOf;
 
         events.push({
           id: `work-${schedule.id}-${dateStr}`,
@@ -301,22 +310,21 @@ export default function Calendar() {
           start: `${dateStr}T${workTimeFrom}`,
           end: `${dateStr}T${workTimeTo}`,
           allDay: false,
-          backgroundColor: "#D4E3F0",
-          borderColor: "#D4E3F0",
+          backgroundColor: '#D4E3F0',
+          borderColor: '#D4E3F0',
           weekOf: eventWeek,
           extendedProps: {
-            location: workLocation,
-            notes: workNotes,
-            type: "work",
+            location: schedule.location || '',
+            notes: schedule.notes || '',
+            type: 'work',
             weekOf: eventWeek,
           },
         });
 
-        const childcareTitle = childcareEdits?.title || "No Childcare";
+        // CHILDCARE
+        const childcareTitle = childcareEdits?.title || 'No Childcare';
         const childcareTimeFrom = childcareEdits?.timeFrom || dayTimes.timeFrom;
         const childcareTimeTo = childcareEdits?.timeTo || dayTimes.timeFrom;
-        const childcareLocation = childcareEdits?.location || "";
-        const childcareNotes = childcareEdits?.notes || "";
 
         events.push({
           id: `childcare-${schedule.id}-${dateStr}`,
@@ -324,20 +332,20 @@ export default function Calendar() {
           start: `${dateStr}T${childcareTimeFrom}`,
           end: `${dateStr}T${childcareTimeTo}`,
           allDay: false,
-          backgroundColor: "#C8D3BC",
-          borderColor: "#C8D3BC",
+          backgroundColor: '#C8D3BC',
+          borderColor: '#C8D3BC',
           weekOf: eventWeek,
           extendedProps: {
-            location: childcareLocation,
-            notes: childcareNotes,
-            type: "childcare",
+            location: childcareEdits?.location || '',
+            notes: childcareEdits?.notes || '',
+            type: 'childcare',
             weekOf: eventWeek,
           },
         });
       }
     }
 
-    console.log(`✅ Generated ${events.length} events`);
+    console.log('📅 Generated calendar events:', events);
     return events;
   };
 
@@ -345,8 +353,8 @@ export default function Calendar() {
     const customEvents = currentEvents
       .filter(
         (event) =>
-          event.extendedProps?.type === "shift" ||
-          event.extendedProps?.type === "nanny"
+          event.extendedProps?.type === 'shift' ||
+          event.extendedProps?.type === 'nanny'
       )
       .map((event) => ({
         id: event.id,
@@ -363,7 +371,7 @@ export default function Calendar() {
         },
       }));
 
-    localStorage.setItem("customEvents", JSON.stringify(customEvents));
+    localStorage.setItem('customEvents', JSON.stringify(customEvents));
   }, [currentEvents]);
 
   useEffect(() => {
@@ -385,12 +393,13 @@ export default function Calendar() {
   const currentWeekStart = getStartOfCurrentWeek().toISOString().slice(0, 10);
 
   const getEventsForDate = (date: Date) => {
+    const selectedWeekStart = weekStartDate.toISOString().slice(0, 10);
+
     const filtered = allEvents.filter((event) => {
       if (!event.start) return false;
 
-      // ✔ WEEK FILTER HERE
       const eventWeek = event.weekOf || event.extendedProps?.weekOf;
-      if (eventWeek !== currentWeekStart) return false;
+      if (eventWeek !== selectedWeekStart) return false;
 
       const eventStart =
         event.start instanceof Date
@@ -423,12 +432,13 @@ export default function Calendar() {
   };
 
   const getEventsForCurrentMonth = () => {
+    const selectedWeekStart = weekStartDate.toISOString().slice(0, 10);
+
     const filtered = allEvents.filter((event) => {
       if (!event.start) return false;
 
-      // 🟦 filter by current week
-      if ((event.weekOf || event.extendedProps?.weekOf) !== currentWeekStart)
-        return false;
+      const eventWeek = event.weekOf || event.extendedProps?.weekOf;
+      if (eventWeek !== selectedWeekStart) return false;
 
       const eventStart =
         event.start instanceof Date
@@ -455,8 +465,8 @@ export default function Calendar() {
           : new Date(event.start as string);
 
       const year = eventStart.getFullYear();
-      const month = String(eventStart.getMonth() + 1).padStart(2, "0");
-      const day = String(eventStart.getDate()).padStart(2, "0");
+      const month = String(eventStart.getMonth() + 1).padStart(2, '0');
+      const day = String(eventStart.getDate()).padStart(2, '0');
       const dateKey = `${year}-${month}-${day}`;
 
       if (!grouped[dateKey]) {
@@ -476,7 +486,7 @@ export default function Calendar() {
     const groups: DateGroup[] = [];
 
     switch (activeView) {
-      case "Weekly": {
+      case 'Weekly': {
         const weekDates = getCurrentWeekDates();
 
         weekDates.forEach((date) => {
@@ -489,35 +499,35 @@ export default function Calendar() {
           const isToday = normalizedDate.getTime() === today.getTime();
 
           const dayName = date
-            .toLocaleDateString("en-US", {
-              weekday: "short",
+            .toLocaleDateString('en-US', {
+              weekday: 'short',
             })
             .toUpperCase();
 
           const dateNum = date.getDate().toString();
 
           const month = date
-            .toLocaleDateString("en-US", {
-              month: "short",
+            .toLocaleDateString('en-US', {
+              month: 'short',
             })
             .toUpperCase();
 
           const dateStr = `${date.getFullYear()}-${String(
             date.getMonth() + 1
-          ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+          ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
           const cards: DateCard[] = [];
 
           // Get all work events
           const workEvents = dayEvents.filter(
-            (event) => event.extendedProps?.type === "work"
+            (event) => event.extendedProps?.type === 'work'
           );
 
           // Check if this date has any childcare bookings (not "No Childcare")
           const hasChildcareBooking = dayEvents.some(
             (event) =>
-              event.extendedProps?.type === "childcare" &&
-              event.title !== "No Childcare"
+              event.extendedProps?.type === 'childcare' &&
+              event.title !== 'No Childcare'
           );
 
           // Add a separate card for EACH work event
@@ -531,23 +541,23 @@ export default function Calendar() {
                 ? workEvent.end
                 : new Date(workEvent.end as string);
 
-            const timeRange = `${start.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
+            const timeRange = `${start.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
               hour12: true,
-            })} - ${end.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
+            })} - ${end.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
               hour12: true,
             })}`;
 
             cards.push({
               id: `${workEvent.id}`,
-              text: workEvent.title || "Work",
+              text: workEvent.title || 'Work',
               timeRange: timeRange,
               isEmpty: false,
               isWork: true,
-              type: "Weekly",
+              type: 'Weekly',
               onClick: () => {
                 setSelectedEvent(workEvent);
                 setEventDetailOpen(true);
@@ -563,9 +573,9 @@ export default function Calendar() {
                 ? firstWork.start
                 : new Date(firstWork.start as string);
 
-            const timeRange = `${start.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
+            const timeRange = `${start.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
               hour12: true,
             })} shift`;
 
@@ -575,8 +585,8 @@ export default function Calendar() {
             cards.push({
               id: `${dateStr}-childcare-reminder`,
               text: hasPendingRequest
-                ? "Request Pending"
-                : "No Childcare Booked!",
+                ? 'Request Pending'
+                : 'No Childcare Booked!',
               timeRange: undefined,
               isEmpty: !hasPendingRequest,
               isWork: false,
@@ -591,7 +601,7 @@ export default function Calendar() {
                 } else {
                   setSelectedWorkDetails({
                     time: timeRange,
-                    location: firstWork.extendedProps?.location || "work",
+                    location: firstWork.extendedProps?.location || 'work',
                     dateKey: dateStr,
                   });
                   setNannyPopupOpen(true);
@@ -615,7 +625,7 @@ export default function Calendar() {
         return groups;
       }
 
-      case "Monthly": {
+      case 'Monthly': {
         const monthEvents = getEventsForCurrentMonth();
 
         if (monthEvents.length === 0) {
@@ -627,22 +637,22 @@ export default function Calendar() {
         Object.entries(groupedByDate)
           .sort()
           .forEach(([dateStr, dayEvents]) => {
-            const [year, month, day] = dateStr.split("-").map(Number);
+            const [year, month, day] = dateStr.split('-').map(Number);
             const date = new Date(year, month - 1, day);
             date.setHours(0, 0, 0, 0);
             const isToday = date.getTime() === today.getTime();
 
             const dayName = date
-              .toLocaleDateString("en-US", {
-                weekday: "short",
+              .toLocaleDateString('en-US', {
+                weekday: 'short',
               })
               .toUpperCase();
 
             const dateNum = date.getDate().toString();
 
             const monthStr = date
-              .toLocaleDateString("en-US", {
-                month: "short",
+              .toLocaleDateString('en-US', {
+                month: 'short',
               })
               .toUpperCase();
 
@@ -650,14 +660,14 @@ export default function Calendar() {
 
             // Get all work events
             const workEvents = dayEvents.filter(
-              (event) => event.extendedProps?.type === "work"
+              (event) => event.extendedProps?.type === 'work'
             );
 
             // Check if this date has any childcare bookings (not "No Childcare")
             const hasChildcareBooking = dayEvents.some(
               (event) =>
-                event.extendedProps?.type === "childcare" &&
-                event.title !== "No Childcare"
+                event.extendedProps?.type === 'childcare' &&
+                event.title !== 'No Childcare'
             );
 
             // Add a separate card for EACH work event
@@ -671,23 +681,23 @@ export default function Calendar() {
                   ? workEvent.end
                   : new Date(workEvent.end as string);
 
-              const timeRange = `${start.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
+              const timeRange = `${start.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
                 hour12: true,
-              })} - ${end.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
+              })} - ${end.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
                 hour12: true,
               })}`;
 
               cards.push({
                 id: `${workEvent.id}`,
-                text: workEvent.title || "Work",
+                text: workEvent.title || 'Work',
                 timeRange: timeRange,
                 isEmpty: false,
                 isWork: true,
-                type: "Monthly",
+                type: 'Monthly',
                 onClick: () => {
                   setSelectedEvent(workEvent);
                   setEventDetailOpen(true);
@@ -703,9 +713,9 @@ export default function Calendar() {
                   ? firstWork.start
                   : new Date(firstWork.start as string);
 
-              const timeRange = `${start.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
+              const timeRange = `${start.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
                 hour12: true,
               })} shift`;
 
@@ -714,12 +724,12 @@ export default function Calendar() {
               cards.push({
                 id: `${dateStr}-childcare-reminder`,
                 text: hasPendingRequest
-                  ? "Request Pending"
-                  : "No Childcare Booked!",
+                  ? 'Request Pending'
+                  : 'No Childcare Booked!',
                 timeRange: undefined,
                 isEmpty: !hasPendingRequest,
                 isWork: false,
-                type: "Monthly",
+                type: 'Monthly',
                 onClick: () => {
                   if (hasPendingRequest) {
                     openRequestPendingPopup(
@@ -730,7 +740,7 @@ export default function Calendar() {
                   } else {
                     setSelectedWorkDetails({
                       time: timeRange,
-                      location: firstWork.extendedProps?.location || "work",
+                      location: firstWork.extendedProps?.location || 'work',
                       dateKey: dateStr,
                     });
                     setNannyPopupOpen(true);
@@ -766,18 +776,18 @@ export default function Calendar() {
     if (selectedWorkDetails?.dateKey) {
       router.push(`/nanny/book/form?returnDate=${selectedWorkDetails.dateKey}`);
     } else {
-      router.push("/nanny/book/form");
+      router.push('/nanny/book/form');
     }
   };
 
   const parseScheduleEventId = (
     eventId: string
   ): { scheduleId: string; date: string } | null => {
-    const parts = eventId?.split("-") ?? [];
+    const parts = eventId?.split('-') ?? [];
     if (parts.length < 5) return null;
 
-    const date = parts.slice(-3).join("-");
-    const scheduleId = parts.slice(1, -3).join("-");
+    const date = parts.slice(-3).join('-');
+    const scheduleId = parts.slice(1, -3).join('-');
     return scheduleId && date ? { scheduleId, date } : null;
   };
 
@@ -810,10 +820,10 @@ export default function Calendar() {
     const calEvent = calendarApi.getEventById(selectedEvent.id as string);
     if (!calEvent) return;
 
-    calEvent.setProp("title", editEventTitle);
+    calEvent.setProp('title', editEventTitle);
 
     if (editEventStartTime && editEventEndTime && calEvent.start) {
-      const dateString = calEvent.start.toISOString().split("T")[0];
+      const dateString = calEvent.start.toISOString().split('T')[0];
       const newStart = new Date(`${dateString}T${editEventStartTime}`);
       const newEnd = new Date(`${dateString}T${editEventEndTime}`);
       calEvent.setStart(newStart);
@@ -821,8 +831,8 @@ export default function Calendar() {
       calEvent.setAllDay(false);
     }
 
-    calEvent.setExtendedProp("location", editEventLocation);
-    calEvent.setExtendedProp("notes", editEventNotes);
+    calEvent.setExtendedProp('location', editEventLocation);
+    calEvent.setExtendedProp('notes', editEventNotes);
 
     setAllEvents((prevEvents) =>
       prevEvents.map((event) =>
@@ -843,16 +853,16 @@ export default function Calendar() {
     );
 
     if (
-      selectedEvent.extendedProps?.type === "work" ||
-      selectedEvent.extendedProps?.type === "childcare"
+      selectedEvent.extendedProps?.type === 'work' ||
+      selectedEvent.extendedProps?.type === 'childcare'
     ) {
       try {
         const eventId = selectedEvent.id as string;
         const meta = parseScheduleEventId(eventId);
         if (meta && calEvent.start && calEvent.end) {
-          const response = await fetch("/api/schedule/event", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+          const response = await fetch('/api/schedule/event', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               scheduleId: meta.scheduleId,
               date: meta.date,
@@ -868,11 +878,11 @@ export default function Calendar() {
           });
 
           if (!response.ok) {
-            console.error("Failed to update schedule event");
+            console.error('Failed to update schedule event');
           }
         }
       } catch (error) {
-        console.error("Error updating schedule event:", error);
+        console.error('Error updating schedule event:', error);
       }
     }
 
@@ -893,35 +903,35 @@ export default function Calendar() {
 
   const getEventColor = (eventType: string) => {
     switch (eventType) {
-      case "shift":
+      case 'shift':
         return {
-          bg: "#dcfce7",
-          border: "#16a34a",
-          circle: "#16a34a",
+          bg: '#dcfce7',
+          border: '#16a34a',
+          circle: '#16a34a',
         };
-      case "nanny":
+      case 'nanny':
         return {
-          bg: "#dbeafe",
-          border: "#2563eb",
-          circle: "#2563eb",
+          bg: '#dbeafe',
+          border: '#2563eb',
+          circle: '#2563eb',
         };
-      case "work":
+      case 'work':
         return {
-          bg: "#fef3c7",
-          border: "#f59e0b",
-          circle: "#f59e0b",
+          bg: '#fef3c7',
+          border: '#f59e0b',
+          circle: '#f59e0b',
         };
-      case "childcare":
+      case 'childcare':
         return {
-          bg: "#fce7f3",
-          border: "#ec4899",
-          circle: "#ec4899",
+          bg: '#fce7f3',
+          border: '#ec4899',
+          circle: '#ec4899',
         };
       default:
         return {
-          bg: "#f3f4f6",
-          border: "#6b7280",
-          circle: "#6b7280",
+          bg: '#f3f4f6',
+          border: '#6b7280',
+          circle: '#6b7280',
         };
     }
   };
@@ -941,8 +951,8 @@ export default function Calendar() {
           : new Date(event.start as string);
 
       const year = eventStart.getFullYear();
-      const month = String(eventStart.getMonth() + 1).padStart(2, "0");
-      const day = String(eventStart.getDate()).padStart(2, "0");
+      const month = String(eventStart.getMonth() + 1).padStart(2, '0');
+      const day = String(eventStart.getDate()).padStart(2, '0');
       const dateKey = `${year}-${month}-${day}`;
 
       if (!eventsByDate[dateKey]) {
@@ -961,7 +971,7 @@ export default function Calendar() {
   };
 
   useEffect(() => {
-    if (activeView === "Weekly" && !selectedMonthDate) {
+    if (activeView === 'Weekly' && !selectedMonthDate) {
       setWeekStartDate(getStartOfCurrentWeek());
     }
   }, [activeView, selectedMonthDate]);
@@ -1017,7 +1027,7 @@ export default function Calendar() {
 
   return (
     <GradientBackgroundFull>
-      <div style={{ display: "none" }}>
+      <div style={{ display: 'none' }}>
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -1047,11 +1057,11 @@ export default function Calendar() {
           className="overflow-y-auto overflow-x-hidden overscroll-contain pb-4"
           style={{
             height:
-              activeView === "Monthly"
-                ? "calc(100vh - 500px)"
-                : "calc(100vh - 280px)",
-            WebkitOverflowScrolling: "touch",
-            scrollbarWidth: "thin",
+              activeView === 'Monthly'
+                ? 'calc(100vh - 500px)'
+                : 'calc(100vh - 280px)',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'thin',
           }}
         >
           {generateDateGroups().length === 0 ? (
@@ -1073,7 +1083,7 @@ export default function Calendar() {
                 work schedule or booking a nanny.
               </p>
               <button
-                onClick={() => (window.location.href = "/schedule/upload")}
+                onClick={() => (window.location.href = '/schedule/upload')}
                 className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-lg hover:shadow-xl"
               >
                 Upload Schedule
@@ -1085,28 +1095,28 @@ export default function Calendar() {
                 <div
                   key={group.dateStr}
                   className={`flex gap-4 ${
-                    group.isToday ? "bg-blue-50 rounded-3xl p-3" : ""
+                    group.isToday ? 'bg-blue-50 rounded-3xl p-3' : ''
                   }`}
                 >
                   {/* Date Label */}
                   <div className="flex flex-col items-center min-w-[60px] flex-shrink-0">
                     <p
                       className={`text-xs uppercase font-semibold ${
-                        group.isToday ? "text-blue-600" : "text-gray-500"
+                        group.isToday ? 'text-blue-600' : 'text-gray-500'
                       }`}
                     >
                       {group.dayName}
                     </p>
                     <p
                       className={`text-4xl font-bold leading-none ${
-                        group.isToday ? "text-blue-600" : "text-black"
+                        group.isToday ? 'text-blue-600' : 'text-black'
                       }`}
                     >
                       {group.date}
                     </p>
                     <p
                       className={`text-xs uppercase ${
-                        group.isToday ? "text-blue-600" : "text-gray-500"
+                        group.isToday ? 'text-blue-600' : 'text-gray-500'
                       }`}
                     >
                       {group.month}
@@ -1118,13 +1128,13 @@ export default function Calendar() {
                     {group.cards.map((card) => {
                       // Determine bar color: orange for pending, gray for no childcare, green for work, blue for childcare
                       const barColor =
-                        card.text === "Request Pending"
-                          ? "#f97316" // Orange for pending requests
+                        card.text === 'Request Pending'
+                          ? '#f97316' // Orange for pending requests
                           : card.isEmpty
-                          ? "#b0b0b8" // Gray for no childcare
+                          ? '#b0b0b8' // Gray for no childcare
                           : card.isWork
-                          ? "#6bb064" // Green for work
-                          : "#255495"; // Blue for childcare
+                          ? '#6bb064' // Green for work
+                          : '#255495'; // Blue for childcare
 
                       return (
                         <button
@@ -1136,7 +1146,7 @@ export default function Calendar() {
                             className="absolute left-0 top-0 bottom-0 w-3 rounded-l-3xl"
                             style={{ backgroundColor: barColor }}
                           />
-                          {card.isEmpty || card.text === "Request Pending" ? (
+                          {card.isEmpty || card.text === 'Request Pending' ? (
                             <h2 className="text-[16px] font-medium text-black">
                               {card.text}
                             </h2>
@@ -1173,7 +1183,7 @@ export default function Calendar() {
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">
-              {editMode ? "Edit Event" : "Event Details"}
+              {editMode ? 'Edit Event' : 'Event Details'}
             </DialogTitle>
           </DialogHeader>
 
@@ -1186,20 +1196,20 @@ export default function Calendar() {
                       className="w-4 h-4 rounded-full flex-shrink-0"
                       style={{
                         backgroundColor: getEventColor(
-                          selectedEvent.extendedProps?.type || ""
+                          selectedEvent.extendedProps?.type || ''
                         ).circle,
                       }}
                     ></div>
                     <span className="text-sm font-medium text-gray-500 uppercase">
-                      {selectedEvent.extendedProps?.type === "shift"
-                        ? "Shift"
-                        : selectedEvent.extendedProps?.type === "nanny"
-                        ? "Nanny"
-                        : selectedEvent.extendedProps?.type === "work"
-                        ? "Work Schedule"
-                        : selectedEvent.extendedProps?.type === "childcare"
-                        ? "Childcare Reminder"
-                        : "Event"}
+                      {selectedEvent.extendedProps?.type === 'shift'
+                        ? 'Shift'
+                        : selectedEvent.extendedProps?.type === 'nanny'
+                        ? 'Nanny'
+                        : selectedEvent.extendedProps?.type === 'work'
+                        ? 'Work Schedule'
+                        : selectedEvent.extendedProps?.type === 'childcare'
+                        ? 'Childcare Reminder'
+                        : 'Event'}
                     </span>
                   </div>
 
@@ -1232,25 +1242,25 @@ export default function Calendar() {
                         return (
                           <>
                             <p className="text-gray-900">
-                              📅{" "}
+                              📅{' '}
                               {formatDate(eventStart, {
-                                weekday: "long",
-                                month: "long",
-                                day: "numeric",
-                                year: "numeric",
+                                weekday: 'long',
+                                month: 'long',
+                                day: 'numeric',
+                                year: 'numeric',
                               })}
                             </p>
                             <p className="text-gray-900">
-                              🕐{" "}
+                              🕐{' '}
                               {formatDate(eventStart, {
-                                hour: "numeric",
-                                minute: "2-digit",
+                                hour: 'numeric',
+                                minute: '2-digit',
                                 hour12: true,
                               })}
                               {eventEnd &&
                                 ` - ${formatDate(eventEnd, {
-                                  hour: "numeric",
-                                  minute: "2-digit",
+                                  hour: 'numeric',
+                                  minute: '2-digit',
                                   hour12: true,
                                 })}`}
                             </p>
@@ -1285,7 +1295,7 @@ export default function Calendar() {
                   <div className="flex gap-2 pt-4">
                     <button
                       onClick={() => {
-                        setEditEventTitle(selectedEvent.title || "");
+                        setEditEventTitle(selectedEvent.title || '');
                         if (selectedEvent.start && selectedEvent.end) {
                           const start =
                             selectedEvent.start instanceof Date
@@ -1301,10 +1311,10 @@ export default function Calendar() {
                           setEditEventEndTime(end.toTimeString().slice(0, 5));
                         }
                         setEditEventLocation(
-                          selectedEvent.extendedProps?.location || ""
+                          selectedEvent.extendedProps?.location || ''
                         );
                         setEditEventNotes(
-                          selectedEvent.extendedProps?.notes || ""
+                          selectedEvent.extendedProps?.notes || ''
                         );
                         setEditMode(true);
                       }}
@@ -1334,16 +1344,16 @@ export default function Calendar() {
                             );
 
                             if (
-                              selectedEvent.extendedProps?.type === "work" ||
-                              selectedEvent.extendedProps?.type === "childcare"
+                              selectedEvent.extendedProps?.type === 'work' ||
+                              selectedEvent.extendedProps?.type === 'childcare'
                             ) {
                               const eventId = selectedEvent.id as string;
                               const meta = parseScheduleEventId(eventId);
                               if (meta) {
-                                await fetch("/api/schedule/event", {
-                                  method: "DELETE",
+                                await fetch('/api/schedule/event', {
+                                  method: 'DELETE',
                                   headers: {
-                                    "Content-Type": "application/json",
+                                    'Content-Type': 'application/json',
                                   },
                                   body: JSON.stringify({
                                     scheduleId: meta.scheduleId,
