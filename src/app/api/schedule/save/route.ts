@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   console.log('🔐 Save route hit');
 
   const { userId } = await auth();
-  console.log('👤 User ID from auth():', userId);
+  console.log('👤 User ID:', userId);
 
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,11 +18,12 @@ export async function POST(request: NextRequest) {
   const payload = await request.json();
   console.log('📦 Payload received:', JSON.stringify(payload, null, 2));
 
-  const dailyTimes = payload.daySchedules || payload.dailyTimes || {};
-  console.log('🕐 Daily times to save:', JSON.stringify(dailyTimes, null, 2));
+  // Always use daySchedules > NEVER trust root-level timeFrom/timeTo
+  const dailyTimes = payload.daySchedules || {};
+  console.log('🕐 Daily times:', JSON.stringify(dailyTimes, null, 2));
 
-  // -------- VALIDATION (VERY IMPORTANT) --------
-  if (!payload.workingDays || payload.workingDays.length === 0) {
+  // VALIDATION
+  if (!payload.workingDays?.length) {
     return NextResponse.json(
       { error: 'Missing workingDays — AI or input failed.' },
       { status: 400 }
@@ -36,63 +37,62 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // -------- Derive default times from first day --------
+  // DEFAULTS FOR ROOT-LEVEL FIELDS
+  // These DO NOT affect dailyTimes — they are just for DB compatibility!
   let defaultTimeFrom = '09:00';
   let defaultTimeTo = '17:00';
 
   const firstDay = payload.workingDays[0];
   const firstSchedule = payload.daySchedules[firstDay];
 
-  if (firstSchedule) {
-    defaultTimeFrom = firstSchedule.timeFrom || defaultTimeFrom;
-    defaultTimeTo = firstSchedule.timeTo || defaultTimeTo;
-  }
+  if (firstSchedule?.timeFrom) defaultTimeFrom = firstSchedule.timeFrom;
+  if (firstSchedule?.timeTo) defaultTimeTo = firstSchedule.timeTo;
 
-  console.log('⏰ Default times:', { defaultTimeFrom, defaultTimeTo });
+  console.log('⏰ Root-level defaults:', {
+    defaultTimeFrom,
+    defaultTimeTo,
+  });
 
-  function safeTime(val: any, fallback: string) {
+  // Safety
+  function safe(val: any, fallback: string) {
     return val && typeof val === 'string' && val.trim() !== '' ? val : fallback;
   }
 
-  // ---------------- WEEK RESOLUTION (supports all input types) ----------------
+  // WEEK RESOLUTION
+  let weekOf;
 
-  // Manual input or PDF upload — weekStart comes from frontend resolveWeek()
   if (payload.weekStart) {
-    console.log('📆 Using weekStart from payload:', payload.weekStart);
-    var weekOf = payload.weekStart;
-  }
-
-  // Manual input or PDF upload — "next week" detected via notes
-  else if (payload.isNextWeek !== undefined) {
+    console.log('📆 Using weekStart:', payload.weekStart);
+    weekOf = payload.weekStart;
+  } else if (payload.isNextWeek !== undefined) {
     console.log('📆 Using isNextWeek flag:', payload.isNextWeek);
     weekOf = resolveWeek(payload.isNextWeek);
-  }
-
-  // Voice input — old logic based on weekOffset
-  else if (payload.weekOffset) {
+  } else if (payload.weekOffset) {
     const isNext = payload.weekOffset === 'next';
-    console.log('📆 Using weekOffset for voice input:', payload.weekOffset);
+    console.log('📆 Using weekOffset:', payload.weekOffset);
     weekOf = resolveWeek(isNext);
-  }
-
-  // Default fallback — always resolve current week
-  else {
-    console.log('📆 No week data found — using current week');
+  } else {
+    console.log('📆 No week data > current week');
     weekOf = resolveWeek(false);
   }
 
   console.log('📅 Final weekOf:', weekOf);
 
-  // -------- FINAL DB PAYLOAD --------
+  // FINAL DATABASE PAYLOAD
   const baseValues = {
     title: payload.title ?? 'Schedule',
     workingDays: payload.workingDays,
-    timeFrom: safeTime(payload.timeFrom, defaultTimeFrom),
-    timeTo: safeTime(payload.timeTo, defaultTimeTo),
+
+    // Root-level (legacy) values > always safe fallbacks from first day's times
+    timeFrom: safe(payload.timeFrom, defaultTimeFrom),
+    timeTo: safe(payload.timeTo, defaultTimeTo),
+
+    // Authoritative time structure
+    dailyTimes,
+
     location: payload.location || null,
     notes: payload.notes || null,
     deletedDates: payload.deletedDates ?? [],
-    dailyTimes,
     weekOf,
   };
 
@@ -110,18 +110,12 @@ export async function POST(request: NextRequest) {
   } else {
     const [created] = await db
       .insert(schedules)
-      .values({
-        userId,
-        ...baseValues,
-      })
+      .values({ userId, ...baseValues })
       .returning();
 
     console.log('🆕 Created schedule:', created);
     row = created;
   }
 
-  return NextResponse.json({
-    success: true,
-    schedule: row,
-  });
+  return NextResponse.json({ success: true, schedule: row });
 }

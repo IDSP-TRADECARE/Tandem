@@ -267,7 +267,7 @@ ${scheduleText}
 
       if (isNaN(start) || isNaN(end)) {
         return NextResponse.json(
-          { error: `Invalid time format on ${day}: ${timeFrom} → ${timeTo}` },
+          { error: `Invalid time format on ${day}: ${timeFrom} > ${timeTo}` },
           { status: 400 }
         );
       }

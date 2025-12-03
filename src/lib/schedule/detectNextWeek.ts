@@ -13,7 +13,7 @@ export function detectNextWeek(transcript: string): boolean {
 
   if (direct) return true;
 
-  // If user says “Monday” and today is AFTER Monday → assume next week
+  // If user says “Monday” and today is AFTER Monday > assume next week
   const weekdays = [
     "sunday",
     "monday",
@@ -31,8 +31,8 @@ export function detectNextWeek(transcript: string): boolean {
     if (text.includes(weekdays[i])) {
       const spokenIndex = i;
 
-      // If today is later in the week than the spoken day → next week
-      // Example: today=Thu (4), spoken=Mon (1) → 4 > 1 → next week
+      // If today is later in the week than the spoken day > next week
+      // Example: today=Thu (4), spoken=Mon (1) > 4 > 1 > next week
       if (todayIndex > spokenIndex) {
         return true;
       }
