@@ -31,6 +31,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { IoIosArrowForward } from "react-icons/io";
 import { NannyBookingPopup } from "../components/popup/AddNanny";
+import { RequestPendingPopup } from "../components/popup/RequestPending";
 
 interface DateCard {
   id: string;
@@ -119,15 +120,15 @@ export default function Calendar() {
   // Add new state for the nanny booking popup
   const [nannyPopupOpen, setNannyPopupOpen] = useState<boolean>(false);
   const [selectedWorkDetails, setSelectedWorkDetails] = useState<
-    | {
-        time: string;
-        location: string;
-        dateKey: string; // Add dateKey to track the specific date
-      }
-    | undefined
+    { time: string; location: string; dateKey: string } | undefined
   >(undefined);
-
-  // Add state to track pending nanny requests by date - load from localStorage
+  const [requestPendingPopupOpen, setRequestPendingPopupOpen] = useState(false);
+  const [requestPendingDetails, setRequestPendingDetails] = useState<{
+    title: string;
+    dateLabel: string;
+    timeRange: string;
+    location: string;
+  } | null>(null);
   const [pendingNannyRequests, setPendingNannyRequests] = useState<Set<string>>(
     new Set()
   );
@@ -142,6 +143,24 @@ export default function Calendar() {
       console.error("❌ pending nanny requests:", error);
     }
   }, []);
+
+  const openRequestPendingPopup = useCallback(
+    (dateStr: string, timeRange: string, location: string) => {
+      const dateLabel = new Date(dateStr).toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      });
+      setRequestPendingDetails({
+        title: "Nanny",
+        dateLabel,
+        timeRange,
+        location,
+      });
+      setRequestPendingPopupOpen(true);
+    },
+    []
+  );
 
   const { handlePreviousMonth, handleNextMonth } =
     createMonthNavigationHandlers(currentMonth, setCurrentMonth);
@@ -561,9 +580,15 @@ export default function Calendar() {
               timeRange: undefined,
               isEmpty: !hasPendingRequest,
               isWork: false,
-              type: "Monthly",
+              type: "Weekly",
               onClick: () => {
-                if (!hasPendingRequest) {
+                if (hasPendingRequest) {
+                  openRequestPendingPopup(
+                    dateStr,
+                    timeRange,
+                    firstWork.extendedProps?.location || "work"
+                  );
+                } else {
                   setSelectedWorkDetails({
                     time: timeRange,
                     location: firstWork.extendedProps?.location || "work",
@@ -696,7 +721,13 @@ export default function Calendar() {
                 isWork: false,
                 type: "Monthly",
                 onClick: () => {
-                  if (!hasPendingRequest) {
+                  if (hasPendingRequest) {
+                    openRequestPendingPopup(
+                      dateStr,
+                      timeRange,
+                      firstWork.extendedProps?.location || "work"
+                    );
+                  } else {
                     setSelectedWorkDetails({
                       time: timeRange,
                       location: firstWork.extendedProps?.location || "work",
@@ -1099,8 +1130,7 @@ export default function Calendar() {
                         <button
                           key={card.id}
                           onClick={card.onClick}
-                          disabled={card.text === "Request Pending"} // Disable click for pending requests
-                          className="relative bg-white rounded-3xl shadow-lg px-6 py-4 flex items-center justify-between w-full min-h-[80px] hover:shadow-xl transition-shadow overflow-hidden disabled:opacity-75 disabled:cursor-not-allowed"
+                          className="relative bg-white rounded-3xl shadow-lg px-6 py-4 flex items-center justify-between w-full min-h-[80px] hover:shadow-xl transition-shadow overflow-hidden"
                         >
                           <div
                             className="absolute left-0 top-0 bottom-0 w-3 rounded-l-3xl"
@@ -1429,6 +1459,13 @@ export default function Calendar() {
         onClose={() => setNannyPopupOpen(false)}
         onConfirm={handleConfirmNannyBooking}
         workDetails={selectedWorkDetails}
+      />
+
+      {/* Request Pending Popup */}
+      <RequestPendingPopup
+        isOpen={requestPendingPopupOpen}
+        onClose={() => setRequestPendingPopupOpen(false)}
+        details={requestPendingDetails ?? undefined}
       />
 
       <BottomNav />
