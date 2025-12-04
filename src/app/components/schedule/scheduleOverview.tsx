@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { IoIosArrowBack } from 'react-icons/io';
 import { ScheduleData } from '@/app/schedule/upload/page';
 import { DaySelector } from '../../components/ui/schedule/DaySelector';
@@ -35,9 +35,29 @@ export function ScheduleOverview({
     workingDays.length > 0 ? workingDays[0] : null
   );
 
-  // -----------------------------
+  useEffect(() => {
+    // Build a clone of schedules
+    const normalized = { ...data.daySchedules };
+
+    // Only add default if the day has absolutely no schedule object
+    data.workingDays.forEach((day) => {
+      const existing = normalized[day];
+
+      if (!existing || !existing.timeFrom || !existing.timeTo) {
+        normalized[day] = {
+          timeFrom: existing?.timeFrom ?? '09:00',
+          timeTo: existing?.timeTo ?? '17:00',
+        };
+      }
+    });
+
+    setEditedData({
+      ...data,
+      daySchedules: normalized,
+    });
+  }, [data]);
+
   // DAY TOGGLE + DOUBLE CLICK DELETE
-  // -----------------------------
   const handleDayToggle = (dayCode: string, isDouble = false) => {
     const exists = editedData.workingDays.includes(dayCode);
 
@@ -85,9 +105,7 @@ export function ScheduleOverview({
     setSelectedDay(dayCode);
   };
 
-  // -----------------------------
   // TIME UPDATE (safe)
-  // -----------------------------
   const updateDayTime = (field: 'timeFrom' | 'timeTo', value: string) => {
     if (!selectedDay || !isEditing) return;
 
@@ -108,9 +126,7 @@ export function ScheduleOverview({
     });
   };
 
-  // -----------------------------
   // BUTTON HANDLERS
-  // -----------------------------
   const handleConfirm = () => {
     window.location.href = '/';
   };
@@ -131,7 +147,11 @@ export function ScheduleOverview({
       const res = await fetch('/api/schedule/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...editedData, weekOffset: editedData.weekOffset ?? 'current'}),
+        body: JSON.stringify({
+          ...editedData,
+          originalDaySchedules: data.daySchedules,
+          weekOffset: editedData.weekOffset ?? 'next', //friday mode **BOOM
+        }),
         credentials: 'include',
       });
 
@@ -151,11 +171,13 @@ export function ScheduleOverview({
   };
 
   const currentDaySchedule =
-    selectedDay && editedData.daySchedules?.[selectedDay];
+    selectedDay && editedData.daySchedules?.[selectedDay]
+      ? editedData.daySchedules[selectedDay] // REAL times
+      : isEditing
+      ? { timeFrom: '09:00', timeTo: '17:00' } // allow user to add missing times
+      : null; // hide if not editing
 
-  // -----------------------------
   // RENDER UI
-  // -----------------------------
   return (
     <div className="fixed inset-0 bg-gradient-primary">
       <div className="h-full overflow-y-auto flex flex-col p-6 pt-8 pb-32">
