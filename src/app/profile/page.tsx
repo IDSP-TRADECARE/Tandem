@@ -13,6 +13,12 @@ function Profile() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [darkMode, setDarkMode] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('darkMode') === 'true';
+        setDarkMode(saved);
+    }, []);
 
     useEffect(() => {
         async function loadProfile() {
@@ -45,9 +51,17 @@ function Profile() {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
 
+    const handleToggleDarkMode = () => {
+        const newMode = !darkMode;
+        setDarkMode(newMode);
+        localStorage.setItem('darkMode', String(newMode));
+    };
+
     return (
         <div className="min-h-screen flex flex-col">
-          <GradientBackgroundFull>
+          <GradientBackgroundFull
+          background={darkMode ? '#122847' : undefined}
+          >
             <div className="p-8 space-y-8 flex justify-start">
                 <ProfileHeader title="My Profile" showBackButton={false} />
             </div> 
@@ -61,9 +75,17 @@ function Profile() {
               />
             </div>
       
-            <HalfBackground topPosition="140px">
+            <HalfBackground 
+              topPosition="140px"
+              background={darkMode ? 'black' : undefined}
+            >
               <div className="w-full flex justify-center px-4 sm:px-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 260px)', paddingTop: '200px' }}>
-                <ScrollOption />
+                <ScrollOption 
+                onToggleDarkMode={handleToggleDarkMode} 
+                darkMode={darkMode}
+                textColor = {darkMode ? 'white' : undefined}
+                iconColor = {darkMode ? 'white' : undefined}
+                />
               </div>
             </HalfBackground>
 

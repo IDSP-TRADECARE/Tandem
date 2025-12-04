@@ -1,18 +1,21 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ToggleButtonProps {
   defaultChecked?: boolean; 
-  onChange?: (checked: boolean) => void; 
+  onChange?: () => void; 
 }
 
 export function ToggleButton({ defaultChecked = false, onChange }: ToggleButtonProps) {
   const [isChecked, setIsChecked] = useState(defaultChecked);
 
+  useEffect(() => {
+    setIsChecked(defaultChecked);
+  }, [defaultChecked]);
+
   const handleToggle = () => {
-    const newValue = !isChecked;
-    setIsChecked(newValue);
-    onChange?.(newValue);
+    setIsChecked(!isChecked);
+    onChange?.();
   };
 
   return (

@@ -4,7 +4,14 @@ import { useClerk } from '@clerk/nextjs';
 import { OptionButton } from './optionbtn';
 import { ToggleButton } from './togglebtn';
 
-export function ScrollOption() {
+interface ScrollOptionProps {
+  onToggleDarkMode?: () => void;
+  darkMode?: boolean;
+  textColor?: string;
+  iconColor?: string;
+}
+
+export function ScrollOption({ onToggleDarkMode, darkMode, textColor, iconColor }: ScrollOptionProps) {
   const router = useRouter();
   const { signOut } = useClerk();
 
@@ -15,39 +22,55 @@ export function ScrollOption() {
           icon="/profile/ComponentIcon/Edit.svg"
           text="Edit Profile"
           onClick={() => router.push('/profile/EditProfile')}
+          textColor={textColor}
+          iconColor={iconColor}
         />
 
         <OptionButton
           icon="/profile/ComponentIcon/Location.svg"
           text="Location"
           onClick={() => router.push('/profile/Location')}
+          textColor={textColor}
+          iconColor={iconColor}
         />  
 
         <OptionButton
           icon="/profile/ComponentIcon/Company.svg"
           text="Company"
           onClick={() => router.push('/profile/Company')}
+          textColor={textColor}
+          iconColor={iconColor}
         />
 
         <OptionButton
           icon="/profile/ComponentIcon/Mode.svg"
           text="Light/Dark Mode"
-          rightComponent={<ToggleButton />}
+          rightComponent={
+            <ToggleButton 
+              defaultChecked={darkMode} 
+              onChange={onToggleDarkMode ? () => onToggleDarkMode() : undefined}
+            />
+          }
+          textColor={textColor}
+          iconColor={iconColor}
         />
 
         <OptionButton
           icon="/profile/ComponentIcon/Help.svg"
           text="Help Centre"
           onClick={() => router.push('/profile/HelpCentre')}
+          textColor={textColor}
+          iconColor={iconColor}
         /> 
 
         <OptionButton
           icon="/profile/ComponentIcon/Logout.svg"
           text="Logout"
           onClick={() => signOut()}
+          textColor={textColor}
+          iconColor={iconColor}
         />  
       </div>
-
     </div>
   );
 }

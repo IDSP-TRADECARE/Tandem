@@ -1,14 +1,18 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 import { ReactNode } from 'react';
+import { IoChevronForwardOutline } from 'react-icons/io5';
 
 interface OptionButtonProps {
   icon: string;
   text: string;
   onClick?: () => void;
   rightComponent?: ReactNode;
+  textColor?: string;
+  iconColor?: string;
 }
 
-export function OptionButton({ icon, text, onClick, rightComponent }: OptionButtonProps) {
+export function OptionButton({ icon, text, onClick, rightComponent, textColor = '#000000', iconColor = '#000000' }: OptionButtonProps) {
   const handleRightClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -41,8 +45,12 @@ export function OptionButton({ icon, text, onClick, rightComponent }: OptionButt
           className="shrink-0"
         />
         <span
-         style={{fontFamily: 'Omnes',fontSize: '16px',}}
-         className="font-normal text-black">
+         style={{
+           fontFamily: 'Omnes',
+           fontSize: '16px',
+           color: textColor,
+         }}
+         className="font-normal">
         {text}
         </span>
       </div>
@@ -52,16 +60,8 @@ export function OptionButton({ icon, text, onClick, rightComponent }: OptionButt
           {rightComponent}
         </div>
       ) : (
-        <img
-          src="/profile/ComponentIcon/Arrows.svg"
-          alt=""
-          width={25}
-          height={25}
-          className="shrink-0"
-        />
+        <IoChevronForwardOutline size={25} color={iconColor} />
       )}
-
-    
     </div>
   );
 }
