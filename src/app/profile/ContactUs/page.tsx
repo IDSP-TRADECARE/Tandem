@@ -18,7 +18,7 @@ function ContactUs() {
     setShowFeedback(true);
   };
 
-  const handleFeedbackClose = (open) => {
+  const handleFeedbackClose = (open: boolean | ((prevState: boolean) => boolean)) => {
     setShowFeedback(open);
     if (!open) {
       // Reset textbox after popup fades out
@@ -36,7 +36,7 @@ function ContactUs() {
         <TextBox
           placeholder="To help us improve, please describe your feedback as detailed as possible"
           value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
+          onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setFeedback(e.target.value)}
         />
         <ActionButton
           text="Send Feedback"

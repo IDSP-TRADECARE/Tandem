@@ -3,7 +3,6 @@ import { useRouter } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
 import { OptionButton } from './optionbtn';
 import { ToggleButton } from './togglebtn';
-import { BottomNav } from '@/app/components/Layout/BottomNav';
 
 export function ScrollOption() {
   const router = useRouter();

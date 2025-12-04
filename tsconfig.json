@@ -36,7 +36,7 @@
     ".next\\dev/types/**/*.ts",
     ".next\\dev/types/**/*.ts",
     ".next/dev/types/**/*.ts"
-  ],
+, "src/app/components/ui/profile/textbox.tsx"  ],
   "exclude": [
     "node_modules"
   ]

@@ -7,13 +7,15 @@ interface UserIconProps {
   name: string;
   username: string;
   onEdit?: () => void;
+  uploadingImage?: boolean;
 }
 
 export function UserIcon({ 
   profileImage, 
   name = "Jane Doe", 
   username = "@JaneDoe", 
-  onEdit
+  onEdit,
+  uploadingImage = false
 }: UserIconProps) {
   return (
     <div className="w-full flex flex-col items-center justify-center relative z-20 mb-10">
@@ -28,7 +30,7 @@ export function UserIcon({
           }}
         >
           <div
-            className="w-full h-full rounded-full bg-neutral-200"
+            className="w-full h-full rounded-full bg-neutral-200 overflow-hidden relative"
             style={{
               border: '3px solid white',
             }}
@@ -36,26 +38,33 @@ export function UserIcon({
             <Image
               src={profileImage}
               alt="Profile"
-              width={120}
-              height={120}
-              className="w-[120px] h-[120px] rounded-full border-4 border-white object-cover shadow-lg"
+              width={96}
+              height={96}
+              className="w-full h-full rounded-full object-cover"
             />
+            {uploadingImage && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <span className="text-white text-xs">Uploading...</span>
+              </div>
+            )}
           </div>
         </div>
         
         {/* Edit icon overlay */}
-        <div 
-          className="absolute rounded-full"
-          style={{ 
-            bottom: '0px',
-            right: 'calc(50% - 40px)',
-            border: '2px solid white',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-            zIndex: 10,
-          }}
-        >
-          <EditButton onClick={onEdit} size={32} />
-        </div>
+        {onEdit && (
+          <div 
+            className="absolute rounded-full"
+            style={{ 
+              bottom: '0px',
+              right: 'calc(50% - 40px)',
+              border: '2px solid white',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+              zIndex: 10,
+            }}
+          >
+            <EditButton onClick={onEdit} size={32} />
+          </div>
+        )}
       </div>
 
       {/* Name */}

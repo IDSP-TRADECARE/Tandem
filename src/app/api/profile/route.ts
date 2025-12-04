@@ -1,6 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { db } from '@/db/index';
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { firstName, lastName, bio, email, phone, profilePicture } = body;
+    const { firstName, lastName, bio, email, phone, address, occupation, profilePicture } = body;
 
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -69,6 +69,8 @@ export async function POST(request: Request) {
           lastName,
           email,
           phone,
+          address,
+          occupation,
           bio,
           profilePicture,
           updatedAt: new Date(),
@@ -81,6 +83,8 @@ export async function POST(request: Request) {
         lastName,
         email,
         phone,
+        address,
+        occupation,
         bio,
         profilePicture,
       });
@@ -91,4 +95,9 @@ export async function POST(request: Request) {
     console.error('Error saving profile:', error);
     return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
   }
+}
+
+// Add PUT method handler (same logic as POST)
+export async function PUT(request: Request) {
+  return POST(request);
 }
