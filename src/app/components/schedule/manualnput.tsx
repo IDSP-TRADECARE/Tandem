@@ -6,6 +6,8 @@ import { MdCancel } from 'react-icons/md';
 import { DaySelector } from '../../components/ui/schedule/DaySelector';
 import { TimeRangeInput } from '../../components/ui/schedule/TimeRangeInput';
 import { UnderlineInput } from '../../components/ui/schedule/UnderlineInput';
+import { detectNextWeek } from '@/lib/schedule/detectNextWeek';
+import { resolveWeek } from '@/lib/schedule/resolveWeek';
 
 interface ManualInputProps {
   onComplete: (data: ScheduleData) => void;
@@ -142,6 +144,9 @@ export function ManualInput({
     e.preventDefault();
     setError(null);
 
+    const isNextWeek = detectNextWeek(notes || '');
+    const weekStart = resolveWeek(isNextWeek);
+
     if (!title.trim()) {
       setError('Please enter a title');
       return;
@@ -189,64 +194,74 @@ export function ManualInput({
         setError(`Please enter valid times for ${day?.fullName}`);
         return;
       }
+
+      // TIME RANGE VALIDATION
+      function toMinutes(t: string) {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      }
+
+      const startMin = toMinutes(normalizedFrom);
+      const endMin = toMinutes(normalizedTo);
+
+      const DAYS = [
+        { id: 'SUN', fullName: 'Sunday' },
+        { id: 'MON', fullName: 'Monday' },
+        { id: 'TUE', fullName: 'Tuesday' },
+        { id: 'WED', fullName: 'Wednesday' },
+        { id: 'THU', fullName: 'Thursday' },
+        { id: 'FRI', fullName: 'Friday' },
+        { id: 'SAT', fullName: 'Saturday' },
+      ];
+      const day = DAYS.find((d) => d.id === dayId);
+
+      if (startMin === endMin) {
+        setError(`Start and end times cannot be the same for ${day?.fullName}`);
+        return;
+      }
+
+      if (endMin < startMin) {
+        setError(`End time must be after start time for ${day?.fullName}`);
+        return;
+      }
     }
 
     setIsSubmitting(true);
 
     try {
-      setIsSubmitting(true);
+      // Build final unified schedule
+      const payload = {
+        title,
+        workingDays: Object.keys(daySchedules),
+        daySchedules: Object.fromEntries(
+          Object.entries(daySchedules).map(([day, sched]) => [
+            day,
+            {
+              timeFrom: normalizeToHHMM(sched.timeFrom)!,
+              timeTo: normalizeToHHMM(sched.timeTo)!,
+            },
+          ])
+        ),
+        location: location || null,
+        notes: notes || null,
+        isNextWeek,
+        weekStart,
+      };
 
-      try {
-        // Build final unified schedule
-        const payload = {
-          title,
-          workingDays: Object.keys(daySchedules),
-          daySchedules: Object.fromEntries(
-            Object.entries(daySchedules).map(([day, sched]) => [
-              day,
-              {
-                timeFrom: normalizeToHHMM(sched.timeFrom)!,
-                timeTo: normalizeToHHMM(sched.timeTo)!,
-              },
-            ])
-          ),
-          location: location || null,
-          notes: notes || null,
-        };
+      console.log('📤 Final payload:', payload);
 
-        console.log('📤 Final payload:', payload);
+      const response = await fetch('/api/schedule/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-        const response = await fetch('/api/schedule/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to save schedule');
-        }
-
-        const { schedule } = await response.json();
-
-        onComplete(schedule);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to save schedule'
-        );
-        setIsSubmitting(false);
+      if (!response.ok) {
+        throw new Error('Failed to save schedule');
       }
 
-      setTimeout(() => {
-        onComplete({
-          title,
-          workingDays,
-          timeFrom: '',
-          timeTo: '',
-          location,
-          notes,
-          daySchedules,
-        });
-      }, 500);
+      const { schedule } = await response.json();
+      onComplete(schedule);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save schedule');
       setIsSubmitting(false);

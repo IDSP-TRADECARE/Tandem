@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   formatDate,
   DateSelectArg,
@@ -26,11 +26,12 @@ import {
   getHeadersForView,
   getTopPositionForView,
   createMonthHandlers as createMonthNavigationHandlers,
-} from '../components/calendar/viewHelpers';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { IoIosArrowForward } from 'react-icons/io';
-import { NannyBookingPopup } from '../components/popup/AddNanny';
+} from "../components/calendar/viewHelpers";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { IoIosArrowForward } from "react-icons/io";
+import { NannyBookingPopup } from "../components/popup/AddNanny";
+import { RequestPendingPopup } from "../components/popup/RequestPending";
 
 interface DateCard {
   id: string;
@@ -116,15 +117,62 @@ export default function Calendar() {
   const [editEventNotes, setEditEventNotes] = useState<string>('');
   const calendarRef = useRef<FullCalendar>(null);
 
+  // ⬇️ Jump calendar to the correct schedule week
+  useEffect(() => {
+    if (calendarRef.current && allEvents.length > 0) {
+      const firstEvent = allEvents.find((e) => e.weekOf);
+
+      if (firstEvent?.weekOf) {
+        console.log('📆 Jumping to week:', firstEvent.weekOf);
+        calendarRef.current.getApi().gotoDate(firstEvent.weekOf);
+      }
+    }
+  }, [allEvents]);
+
   // Add new state for the nanny booking popup
   const [nannyPopupOpen, setNannyPopupOpen] = useState<boolean>(false);
   const [selectedWorkDetails, setSelectedWorkDetails] = useState<
-    | {
-        time: string;
-        location: string;
-      }
-    | undefined
+    { time: string; location: string; dateKey: string } | undefined
   >(undefined);
+  const [requestPendingPopupOpen, setRequestPendingPopupOpen] = useState(false);
+  const [requestPendingDetails, setRequestPendingDetails] = useState<{
+    title: string;
+    dateLabel: string;
+    timeRange: string;
+    location: string;
+  } | null>(null);
+  const [pendingNannyRequests, setPendingNannyRequests] = useState<Set<string>>(
+    new Set()
+  );
+
+  const fetchPendingNannyRequests = useCallback(async () => {
+    try {
+      const res = await fetch("/api/nanny/bookings/pending");
+      if (!res.ok) throw new Error("Failed to load pending nanny requests");
+      const data = await res.json();
+      setPendingNannyRequests(new Set(data.dates ?? []));
+    } catch (error) {
+      console.error("❌ pending nanny requests:", error);
+    }
+  }, []);
+
+  const openRequestPendingPopup = useCallback(
+    (dateStr: string, timeRange: string, location: string) => {
+      const dateLabel = new Date(dateStr).toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      });
+      setRequestPendingDetails({
+        title: "Nanny",
+        dateLabel,
+        timeRange,
+        location,
+      });
+      setRequestPendingPopupOpen(true);
+    },
+    []
+  );
 
   const { handlePreviousMonth, handleNextMonth } =
     createMonthNavigationHandlers(currentMonth, setCurrentMonth);
@@ -132,7 +180,8 @@ export default function Calendar() {
 
   useEffect(() => {
     fetchSchedules();
-  }, []);
+    fetchPendingNannyRequests();
+  }, [fetchPendingNannyRequests]);
 
   const fetchSchedules = async () => {
     try {
@@ -188,8 +237,6 @@ export default function Calendar() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    console.log('📋 Generating events from schedules:', schedules);
-
     const dayMap: Record<string, number> = {
       SUN: 0,
       MON: 1,
@@ -211,18 +258,30 @@ export default function Calendar() {
       const day = String(date.getDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
 
-      const eventWeek = getStartOfWeek(date).toISOString().slice(0, 10);
-
       const dayCode = Object.keys(dayMap).find(
         (key) => dayMap[key] === dayOfWeek
       );
-
       if (!dayCode) continue;
 
+      const generatedDayWeek = getStartOfWeek(date).toISOString().slice(0, 10);
+
+      // 🔥 LOOP OVER SCHEDULES
       for (const schedule of schedules) {
-        if (!schedule.workingDays.includes(dayCode)) {
-          continue;
+        let eventWeek = schedule.weekOf;
+
+        // safety fallback (should not happen once API returns weekOf)
+        if (!eventWeek) {
+          console.warn(
+            '⚠️ Missing schedule.weekOf — using CURRENT week',
+            schedule
+          );
+          eventWeek = getStartOfWeek(new Date()).toISOString().slice(0, 10);
         }
+
+        // only generate events inside the schedule's assigned week
+        if (generatedDayWeek !== eventWeek) continue;
+
+        if (!schedule.workingDays.includes(dayCode)) continue;
 
         if (schedule.deletedDates?.includes(dateStr)) {
           console.log(`⏭️ Skipping deleted date: ${dateStr}`);
@@ -235,28 +294,15 @@ export default function Calendar() {
           timeTo: schedule.timeTo,
         };
 
-        const editedDatesForDate = schedule.editedDates?.[dateStr];
-        const workEdits = editedDatesForDate?.work;
-        const childcareEdits = editedDatesForDate?.childcare;
+        const edited = schedule.editedDates?.[dateStr];
+        const workEdits = edited?.work;
+        const childcareEdits = edited?.childcare;
 
-        if (workEdits) {
-          console.log(`✏️ Applying work edits for ${dateStr}:`, workEdits);
-        }
-        if (childcareEdits) {
-          console.log(
-            `✏️ Applying childcare edits for ${dateStr}:`,
-            childcareEdits
-          );
-        }
-
+        // WORK
         const workTitle =
           workEdits?.title || `Work: ${schedule.location || schedule.title}`;
         const workTimeFrom = workEdits?.timeFrom || dayTimes.timeFrom;
         const workTimeTo = workEdits?.timeTo || dayTimes.timeTo;
-        const workLocation = workEdits?.location || schedule.location || '';
-        const workNotes = workEdits?.notes || schedule.notes || '';
-
-        const weekOf = schedule.weekOf;
 
         events.push({
           id: `work-${schedule.id}-${dateStr}`,
@@ -268,18 +314,17 @@ export default function Calendar() {
           borderColor: '#D4E3F0',
           weekOf: eventWeek,
           extendedProps: {
-            location: workLocation,
-            notes: workNotes,
+            location: schedule.location || '',
+            notes: schedule.notes || '',
             type: 'work',
             weekOf: eventWeek,
           },
         });
 
+        // CHILDCARE
         const childcareTitle = childcareEdits?.title || 'No Childcare';
         const childcareTimeFrom = childcareEdits?.timeFrom || dayTimes.timeFrom;
         const childcareTimeTo = childcareEdits?.timeTo || dayTimes.timeFrom;
-        const childcareLocation = childcareEdits?.location || '';
-        const childcareNotes = childcareEdits?.notes || '';
 
         events.push({
           id: `childcare-${schedule.id}-${dateStr}`,
@@ -291,8 +336,8 @@ export default function Calendar() {
           borderColor: '#C8D3BC',
           weekOf: eventWeek,
           extendedProps: {
-            location: childcareLocation,
-            notes: childcareNotes,
+            location: childcareEdits?.location || '',
+            notes: childcareEdits?.notes || '',
             type: 'childcare',
             weekOf: eventWeek,
           },
@@ -300,7 +345,7 @@ export default function Calendar() {
       }
     }
 
-    console.log(`✅ Generated ${events.length} events`);
+    console.log('📅 Generated calendar events:', events);
     return events;
   };
 
@@ -348,12 +393,13 @@ export default function Calendar() {
   const currentWeekStart = getStartOfCurrentWeek().toISOString().slice(0, 10);
 
   const getEventsForDate = (date: Date) => {
+    const selectedWeekStart = weekStartDate.toISOString().slice(0, 10);
+
     const filtered = allEvents.filter((event) => {
       if (!event.start) return false;
 
-      // ✔ WEEK FILTER HERE
       const eventWeek = event.weekOf || event.extendedProps?.weekOf;
-      if (eventWeek !== currentWeekStart) return false;
+      if (eventWeek !== selectedWeekStart) return false;
 
       const eventStart =
         event.start instanceof Date
@@ -386,12 +432,13 @@ export default function Calendar() {
   };
 
   const getEventsForCurrentMonth = () => {
+    const selectedWeekStart = weekStartDate.toISOString().slice(0, 10);
+
     const filtered = allEvents.filter((event) => {
       if (!event.start) return false;
 
-      // 🟦 filter by current week
-      if ((event.weekOf || event.extendedProps?.weekOf) !== currentWeekStart)
-        return false;
+      const eventWeek = event.weekOf || event.extendedProps?.weekOf;
+      if (eventWeek !== selectedWeekStart) return false;
 
       const eventStart =
         event.start instanceof Date
@@ -465,6 +512,10 @@ export default function Calendar() {
             })
             .toUpperCase();
 
+          const dateStr = `${date.getFullYear()}-${String(
+            date.getMonth() + 1
+          ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
           const cards: DateCard[] = [];
 
           // Get all work events
@@ -528,19 +579,33 @@ export default function Calendar() {
               hour12: true,
             })} shift`;
 
+            // Check if this date has a pending request
+            const hasPendingRequest = pendingNannyRequests.has(dateStr);
+
             cards.push({
-              id: `${date.toISOString()}-childcare-reminder`,
-              text: 'No Childcare Booked!',
+              id: `${dateStr}-childcare-reminder`,
+              text: hasPendingRequest
+                ? 'Request Pending'
+                : 'No Childcare Booked!',
               timeRange: undefined,
-              isEmpty: true,
+              isEmpty: !hasPendingRequest,
               isWork: false,
-              type: 'Weekly',
+              type: "Weekly",
               onClick: () => {
-                setSelectedWorkDetails({
-                  time: timeRange,
-                  location: firstWork.extendedProps?.location || 'work',
-                });
-                setNannyPopupOpen(true);
+                if (hasPendingRequest) {
+                  openRequestPendingPopup(
+                    dateStr,
+                    timeRange,
+                    firstWork.extendedProps?.location || "work"
+                  );
+                } else {
+                  setSelectedWorkDetails({
+                    time: timeRange,
+                    location: firstWork.extendedProps?.location || 'work',
+                    dateKey: dateStr,
+                  });
+                  setNannyPopupOpen(true);
+                }
               },
             });
           }
@@ -654,19 +719,32 @@ export default function Calendar() {
                 hour12: true,
               })} shift`;
 
+              const hasPendingRequest = pendingNannyRequests.has(dateStr);
+
               cards.push({
                 id: `${dateStr}-childcare-reminder`,
-                text: 'No Childcare Booked!',
+                text: hasPendingRequest
+                  ? 'Request Pending'
+                  : 'No Childcare Booked!',
                 timeRange: undefined,
-                isEmpty: true,
+                isEmpty: !hasPendingRequest,
                 isWork: false,
                 type: 'Monthly',
                 onClick: () => {
-                  setSelectedWorkDetails({
-                    time: timeRange,
-                    location: firstWork.extendedProps?.location || 'work',
-                  });
-                  setNannyPopupOpen(true);
+                  if (hasPendingRequest) {
+                    openRequestPendingPopup(
+                      dateStr,
+                      timeRange,
+                      firstWork.extendedProps?.location || "work"
+                    );
+                  } else {
+                    setSelectedWorkDetails({
+                      time: timeRange,
+                      location: firstWork.extendedProps?.location || 'work',
+                      dateKey: dateStr,
+                    });
+                    setNannyPopupOpen(true);
+                  }
                 },
               });
             }
@@ -694,7 +772,12 @@ export default function Calendar() {
   // Handler for confirming nanny booking
   const handleConfirmNannyBooking = () => {
     setNannyPopupOpen(false);
-    router.push('/nanny/book/form');
+    // Pass the dateKey through URL params so we can mark it as pending when returning
+    if (selectedWorkDetails?.dateKey) {
+      router.push(`/nanny/book/form?returnDate=${selectedWorkDetails.dateKey}`);
+    } else {
+      router.push('/nanny/book/form');
+    }
   };
 
   const parseScheduleEventId = (
@@ -893,6 +976,44 @@ export default function Calendar() {
     }
   }, [activeView, selectedMonthDate]);
 
+  useEffect(() => {
+    if (pendingNannyRequests.size === 0 || allEvents.length === 0) return;
+
+    const workDates = new Set(
+      allEvents
+        .filter((event) => event.extendedProps?.type === "work" && event.start)
+        .map((event) => {
+          const start =
+            event.start instanceof Date
+              ? event.start
+              : new Date(event.start as string);
+          return start.toISOString().split("T")[0];
+        })
+    );
+
+    const staleDates = [...pendingNannyRequests].filter(
+      (date) => !workDates.has(date)
+    );
+
+    if (staleDates.length === 0) return;
+
+    staleDates.forEach((date) => {
+      fetch("/api/nanny/bookings/pending", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date }),
+      }).catch((err) =>
+        console.error("Failed to delete stale pending request", date, err)
+      );
+    });
+
+    setPendingNannyRequests((prev) => {
+      const updated = new Set(prev);
+      staleDates.forEach((date) => updated.delete(date));
+      return updated;
+    });
+  }, [allEvents, pendingNannyRequests]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1005,11 +1126,15 @@ export default function Calendar() {
                   {/* Cards for this date */}
                   <div className="flex-1 flex flex-col gap-3">
                     {group.cards.map((card) => {
-                      const barColor = card.isEmpty
-                        ? '#b0b0b8'
-                        : card.isWork
-                        ? '#6bb064'
-                        : '#255495';
+                      // Determine bar color: orange for pending, gray for no childcare, green for work, blue for childcare
+                      const barColor =
+                        card.text === 'Request Pending'
+                          ? '#f97316' // Orange for pending requests
+                          : card.isEmpty
+                          ? '#b0b0b8' // Gray for no childcare
+                          : card.isWork
+                          ? '#6bb064' // Green for work
+                          : '#255495'; // Blue for childcare
 
                       return (
                         <button
@@ -1021,7 +1146,7 @@ export default function Calendar() {
                             className="absolute left-0 top-0 bottom-0 w-3 rounded-l-3xl"
                             style={{ backgroundColor: barColor }}
                           />
-                          {card.isEmpty ? (
+                          {card.isEmpty || card.text === 'Request Pending' ? (
                             <h2 className="text-[16px] font-medium text-black">
                               {card.text}
                             </h2>
@@ -1344,6 +1469,13 @@ export default function Calendar() {
         onClose={() => setNannyPopupOpen(false)}
         onConfirm={handleConfirmNannyBooking}
         workDetails={selectedWorkDetails}
+      />
+
+      {/* Request Pending Popup */}
+      <RequestPendingPopup
+        isOpen={requestPendingPopupOpen}
+        onClose={() => setRequestPendingPopupOpen(false)}
+        details={requestPendingDetails ?? undefined}
       />
 
       <BottomNav />

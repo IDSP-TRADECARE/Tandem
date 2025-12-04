@@ -1,4 +1,4 @@
-import { Schedule } from '../db/schema';
+import { Schedule } from '../../db/schema';
 
 export interface DaySchedule {
   date: number;
