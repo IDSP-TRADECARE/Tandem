@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { GradientBackgroundFull } from '../../components/ui/backgrounds/GradientBackgroundFull';
-import { BottomNav } from '../../components/Layout/BottomNav';
-import { HalfBackground } from '../../components/ui/backgrounds/HalfBackground';
+import { GradientBackgroundFull } from '../components/ui/backgrounds/GradientBackgroundFull';
+import { BottomNav } from '../components/Layout/BottomNav';
+import { HalfBackground } from '../components/ui/backgrounds/HalfBackground';
 
 export default function ProfilePage() {
   const { user } = useUser();
@@ -16,6 +16,12 @@ export default function ProfilePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode') === 'true';
+    setDarkMode(savedMode);
+  }, []);
 
   useEffect(() => {
     async function loadProfile() {
@@ -37,6 +43,12 @@ export default function ProfilePage() {
     loadProfile();
   }, [user]);
 
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('darkMode', String(newMode));
+  };
+
   const displayName = profile?.firstName && profile?.lastName 
     ? `${profile.firstName} ${profile.lastName}` 
     : user?.fullName || 'User';
@@ -48,9 +60,7 @@ export default function ProfilePage() {
   const menuItems = [
     { icon: '✏️', label: 'Edit Profile', onClick: () => router.push('/profile/edit') },
     { icon: '📍', label: 'Location', onClick: () => router.push('/profile/location') },
-    { icon: '💼', label: 'Company', onClick: () => router.push('/profile/company') },
-    { icon: '🌓', label: 'Light / Dark Mode', toggle: true },
-    { icon: '❓', label: 'Help Center', onClick: () => router.push('/profile/help') },
+    { icon: '🌓', label: 'Light / Dark Mode', toggle: true, onClick: toggleDarkMode },
     { icon: '🚪', label: 'Log Out', onClick: () => signOut() },
   ];
 
@@ -59,11 +69,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <GradientBackgroundFull>
+    <GradientBackgroundFull background={darkMode ? '#122847' : undefined}>
       <div className="p-6 text-center">
         <h1 className="text-white text-2xl font-bold">My Profile</h1>
       </div>
-      <HalfBackground>
+      <HalfBackground background={darkMode ? 'black' : undefined}>
 
           <div className="relative -mt-16 mb-4 text-center">
             <Image
@@ -75,8 +85,8 @@ export default function ProfilePage() {
             />
           </div>
 
-          <div className="rounded-3xl mx-4 p-6 text-center">
-            <h2 className="text-2xl font-bold">{displayName}</h2>
+          <div className="rounded-3xl mx-4 p-6 text-center" style={{ background: 'white' }}>
+            <h2 className="text-2xl font-bold" style={{ color: 'black' }}>{displayName}</h2>
             <p className="text-blue-500 text-sm">@{userId}</p>
             <p className="text-gray-600 mt-4 text-sm">{bio}</p>
           </div>
@@ -86,16 +96,20 @@ export default function ProfilePage() {
               <button
                 key={index}
                 onClick={item.onClick}
-                className="w-full bg-blue-50 rounded-2xl p-4 flex items-center justify-between"
+                className="w-full rounded-2xl p-4 flex items-center justify-between"
+                style={{ background: 'rgba(163, 192, 232, 0.3)' }}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{item.icon}</span>
-                  <span className="font-medium">{item.label}</span>
+                  <span className="text-2xl" style={{ color: '#92F189' }}>{item.icon}</span>
+                  <span className="font-medium" style={{ color: darkMode ? 'white' : 'black' }}>{item.label}</span>
                 </div>
                 {item.toggle ? (
-                  <div className="w-12 h-6 bg-blue-500 rounded-full"></div>
+                  <div 
+                    className="w-12 h-6 rounded-full" 
+                    style={{ background: darkMode ? '#6BB064' : '#d1d5db' }}
+                  ></div>
                 ) : (
-                  <span className="text-xl">›</span>
+                  <span className="text-xl" style={{ color: darkMode ? 'white' : 'black' }}>›</span>
                 )}
               </button>
             ))}

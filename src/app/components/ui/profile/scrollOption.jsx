@@ -1,11 +1,13 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { useClerk } from '@clerk/nextjs';
 import { OptionButton } from './optionbtn';
 import { ToggleButton } from './togglebtn';
 import { BottomNav } from '@/app/components/Layout/BottomNav';
 
 export function ScrollOption() {
   const router = useRouter();
+  const { signOut } = useClerk();
 
   return (
     <div className="w-full px-2 sm:px-4 pt-0 pb-24 space-y-6">
@@ -43,7 +45,7 @@ export function ScrollOption() {
         <OptionButton
           icon="/profile/ComponentIcon/Logout.svg"
           text="Logout"
-          onClick={() => router.push('/profile/Logout')}
+          onClick={() => signOut()}
         />  
       </div>
 

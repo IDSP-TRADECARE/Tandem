@@ -13,8 +13,8 @@ export default function EditCompanyPage() {
 
   return (
     <GradientBackgroundFull>
-      <div className="p-8 mt-8 flex justify-center">
-        <ProfileHeader title="Edit Company" onBack={() => router.push('/profile/MainProfile')} />
+      <div className="p-8 pt-8 flex justify-center">
+        <ProfileHeader title="Edit Company" onBack={() => router.push('/profile')} />
       </div>
 
       <HalfBackground topPosition="140px">
@@ -30,7 +30,7 @@ export default function EditCompanyPage() {
             </div>
 
             <div className="w-full flex justify-center">
-              <ActionButton text="Save" onClick={() => router.push('/profile/MainProfile')} />
+              <ActionButton text="Save" onClick={() => router.push('/profile')} />
             </div>
           </div>
         </div>

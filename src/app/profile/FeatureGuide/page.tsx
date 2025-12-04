@@ -13,8 +13,8 @@ function FeatureGuide() {
 
   return (
     <GradientBackgroundFull>
-        <div className="p-8 space-y-8 mt-8" >
-        <ProfileHeader title="Feature Guide" onBack={() => router.push('/profile/MainProfile')} />
+        <div className="p-8 space-y-8 mt-0" >
+        <ProfileHeader title="Feature Guide" onBack={() => router.push('/profile')} />
       </div> 
       <HalfBackground topPosition="140px">
         <div className="flex flex-col h-full">

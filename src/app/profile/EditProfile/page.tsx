@@ -19,8 +19,8 @@ export default function EditProfilePage() {
 
   return (
     <GradientBackgroundFull>
-      <div className="w-full px-4 sm:px-8 mt-6 sm:mt-6 flex justify-center">
-        <ProfileHeader title="Edit Profile" onBack={() => router.push('/profile/MainProfile')} />
+      <div className="w-full px-4 sm:px-8 pt-6 sm:mt-6 flex justify-center">
+        <ProfileHeader title="Edit Profile" onBack={() => router.push('/profile')} />
       </div>
 
       <div>
@@ -35,7 +35,7 @@ export default function EditProfilePage() {
               passwordDisplay={passwordDisplay}
               passwordIcon={passwordIcon}
               onTogglePassword={() => setIsPasswordHidden((prev) => !prev)}
-              onSave={() => router.push('/profile/MainProfile')}
+              onSave={() => router.push('/profile')}
             />
           </div>
         </HalfBackground>

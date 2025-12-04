@@ -28,7 +28,7 @@ function ContactUs() {
 
   return (
     <GradientBackgroundFull>
-        <div className="p-8 space-y-8 mt-8" >
+        <div className="p-8 space-y-8 mt-0" >
         <ProfileHeader title="Help Centre" onBack={() => router.push('/profile/HelpCentre')} />
       </div> 
       <HalfBackground topPosition="140px">

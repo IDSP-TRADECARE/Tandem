@@ -1,13 +1,16 @@
 'use client';
+import Image from 'next/image';
 import { EditButton } from '../editbutton';
 
 interface UserIconProps {
-  name?: string;
-  username?: string;
+  profileImage: string;
+  name: string;
+  username: string;
   onEdit?: () => void;
 }
 
 export function UserIcon({ 
+  profileImage, 
   name = "Jane Doe", 
   username = "@JaneDoe", 
   onEdit
@@ -29,7 +32,15 @@ export function UserIcon({
             style={{
               border: '3px solid white',
             }}
-          />
+          >
+            <Image
+              src={profileImage}
+              alt="Profile"
+              width={120}
+              height={120}
+              className="w-[120px] h-[120px] rounded-full border-4 border-white object-cover shadow-lg"
+            />
+          </div>
         </div>
         
         {/* Edit icon overlay */}
