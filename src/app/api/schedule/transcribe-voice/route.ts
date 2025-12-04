@@ -114,7 +114,10 @@ export async function POST(request: NextRequest) {
     const transcript = transcription.text?.trim() || '';
     console.log('📝 Transcript:', transcript);
 
-    const weekOffset = detectNextWeek(transcript) ? 'next' : 'current';
+      //friday mode **BOOM
+    const weekOffset: 'current' | 'next' = 'next';
+    //const weekOffset = detectNextWeek(transcript) ? 'next' : 'current';
+
 
     if (transcript.length < 6) {
       return NextResponse.json({
