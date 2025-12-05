@@ -235,17 +235,24 @@ export default function ScheduleUploadPage() {
 
       {/* Voice Input Modal */}
       {showVoiceInput && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <VoiceInput
-              onComplete={handleScheduleComplete}
-              onBack={() => {
-                setShowVoiceInput(false);
-                setInputMethod('file');
-              }}
-            />
+        <>
+          {/* Background Blur */}
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-md z-[60]"></div>
+
+          {/* Modal Container */}
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+              {/* Voice Input Component */}
+              <VoiceInput
+                onComplete={handleScheduleComplete}
+                onBack={() => {
+                  setShowVoiceInput(false);
+                  setInputMethod('file');
+                }}
+              />
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
