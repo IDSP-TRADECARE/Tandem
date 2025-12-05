@@ -16,6 +16,7 @@ interface Schedule {
   notes?: string;
   weekOf?: string;
   dailyTimes?: Record<string, { timeFrom: string; timeTo: string }>;
+  deletedDates?: string[]; // ✅ track deleted days
 }
 
 interface NotificationItem {
@@ -81,6 +82,7 @@ export function Notifications() {
       const pendingDates: string[] = pendingData.dates ?? [];
 
       const items: NotificationItem[] = [];
+      const scheduleDates = new Set<string>();
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -96,6 +98,12 @@ export function Notifications() {
           if (target < today) return;
 
           const dateStr = target.toISOString().split("T")[0];
+
+          // Skip if this date was deleted from the schedule
+          if (s.deletedDates?.includes(dateStr)) return;
+
+          scheduleDates.add(dateStr);
+
           const formattedDate = target.toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -119,7 +127,6 @@ export function Notifications() {
             icon: "calendar",
           });
 
-          // Pending nanny request on this date (if exists)
           if (pendingDates.includes(dateStr)) {
             items.push({
               id: `pending-${dateStr}`,
@@ -135,30 +142,15 @@ export function Notifications() {
         });
       });
 
-      // Also show pending requests without a matching schedule (fallback)
-      pendingDates.forEach((dateStr) => {
-        const target = new Date(dateStr);
-        target.setHours(0, 0, 0, 0);
-        if (target < today) return;
-        const formattedDate = target.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        });
-        const exists = items.some((i) => i.id === `pending-${dateStr}`);
-        if (!exists) {
-          items.push({
-            id: `pending-${dateStr}`,
-            date: formattedDate,
-            fullDate: target,
-            message: `You requested a nanny for ${formattedDate}`,
-            time: getRelativeTime(target),
-            icon: "hourglass",
-          });
-        }
-      });
+      // Remove any pending dates that no longer have a schedule
+      const filteredItems = items.filter(
+        (item) =>
+          !item.id.startsWith("pending-") ||
+          scheduleDates.has(item.id.replace("pending-", ""))
+      );
 
-      items.sort((a, b) => a.fullDate.getTime() - b.fullDate.getTime());
-      setNotifications(items);
+      filteredItems.sort((a, b) => a.fullDate.getTime() - b.fullDate.getTime());
+      setNotifications(filteredItems);
     } catch (err) {
       console.error("Failed to load notifications", err);
       setNotifications([]);
@@ -240,7 +232,8 @@ export function Notifications() {
             No notifications yet
           </h3>
           <p className="font-alan text-[16px] font-[400] text-gray-500 text-center">
-            When you have pending nanny requests, they&apos;ll show up here
+            When you have work schedules or pending nanny requests, they&apos;ll
+            show up here
           </p>
         </div>
       )}
