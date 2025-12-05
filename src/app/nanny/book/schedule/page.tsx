@@ -37,7 +37,7 @@ export default function NannySchedulePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-teal-200">
+    <div className="min-h-screen bg-gradient-primary">
       {/* Header */}
       <div className="text-white p-6">
         <button onClick={() => router.back()} className="mb-6">
