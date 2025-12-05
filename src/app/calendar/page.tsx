@@ -132,7 +132,7 @@ export default function Calendar() {
   // Add new state for the nanny booking popup
   const [nannyPopupOpen, setNannyPopupOpen] = useState<boolean>(false);
   const [selectedWorkDetails, setSelectedWorkDetails] = useState<
-    { time: string; location: string; dateKey: string } | undefined
+    { time: string; endTime?: string; location: string; dateKey: string } | undefined
   >(undefined);
   const [requestPendingPopupOpen, setRequestPendingPopupOpen] = useState(false);
   const [requestPendingDetails, setRequestPendingDetails] = useState<{
@@ -567,12 +567,21 @@ export default function Calendar() {
               firstWork.start instanceof Date
                 ? firstWork.start
                 : new Date(firstWork.start as string);
+            const end =
+              firstWork.end instanceof Date
+                ? firstWork.end
+                : new Date(firstWork.end as string);
 
             const timeRange = `${start.toLocaleTimeString("en-US", {
               hour: "numeric",
               minute: "2-digit",
               hour12: true,
             })} shift`;
+            const timeRangeEnd = `${end.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            })} shift end`;
 
             // Check if this date has a pending request
             const hasPendingRequest = pendingNannyRequests.has(dateStr);
@@ -596,7 +605,8 @@ export default function Calendar() {
                 } else {
                   setSelectedWorkDetails({
                     time: timeRange,
-                    location: firstWork.extendedProps?.location || "work",
+                    endTime: timeRangeEnd,
+                    location: firstWork.extendedProps?.location || 'work',
                     dateKey: dateStr,
                   });
                   setNannyPopupOpen(true);
@@ -707,12 +717,23 @@ export default function Calendar() {
                 firstWork.start instanceof Date
                   ? firstWork.start
                   : new Date(firstWork.start as string);
+              const end =
+                firstWork.end instanceof Date
+                  ? firstWork.end
+                  : new Date(firstWork.end as string);
+
 
               const timeRange = `${start.toLocaleTimeString("en-US", {
                 hour: "numeric",
                 minute: "2-digit",
                 hour12: true,
               })} shift`;
+
+              const timeRangeEnd = `${end.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              })} shift end`;
 
               const hasPendingRequest = pendingNannyRequests.has(dateStr);
 
@@ -735,7 +756,8 @@ export default function Calendar() {
                   } else {
                     setSelectedWorkDetails({
                       time: timeRange,
-                      location: firstWork.extendedProps?.location || "work",
+                      endTime: timeRangeEnd,
+                      location: firstWork.extendedProps?.location || 'work',
                       dateKey: dateStr,
                     });
                     setNannyPopupOpen(true);
@@ -763,17 +785,21 @@ export default function Calendar() {
         return [];
     }
   };
-
-  // Handler for confirming nanny booking
-  const handleConfirmNannyBooking = () => {
-    setNannyPopupOpen(false);
-    // Pass the dateKey through URL params so we can mark it as pending when returning
-    if (selectedWorkDetails?.dateKey) {
-      router.push(`/nanny/book/form?returnDate=${selectedWorkDetails.dateKey}`);
-    } else {
-      router.push("/nanny/book/form");
-    }
-  };
+// Handler for confirming nanny booking
+const handleConfirmNannyBooking = () => {
+  setNannyPopupOpen(false);
+  
+  if (selectedWorkDetails?.dateKey && selectedWorkDetails.time && selectedWorkDetails.endTime) {
+    const params = new URLSearchParams({
+      date: selectedWorkDetails.dateKey, // "2025-12-08"
+      startTime: selectedWorkDetails.time, // "9:00 AM"
+      endTime: selectedWorkDetails.endTime, // "5:00 PM"
+    });
+    router.push(`/nanny/book/form?${params.toString()}`);
+  } else {
+    router.push('/nanny/book/form');
+  }
+};
 
   const parseScheduleEventId = (
     eventId: string

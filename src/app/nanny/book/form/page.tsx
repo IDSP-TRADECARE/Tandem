@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { IoIosArrowBack } from "react-icons/io";
 import { BottomNav } from "@/app/components/Layout/BottomNav";
 
@@ -21,8 +21,15 @@ type BookingData = {
 
 export default function NannyBookingForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [showOtherCertInput, setShowOtherCertInput] = useState(false);
+  
+  // Get URL params - simple and clean
+  const date = searchParams.get('date'); // "2025-12-25"
+  const startTime = searchParams.get('startTime'); // "2:30 PM"
+  const endTime = searchParams.get('endTime'); // "8:30 PM"
+
   const [bookingData, setBookingData] = useState<BookingData>({
     children: [{ name: "", age: "" }],
     allergies: "",
@@ -90,18 +97,22 @@ export default function NannyBookingForm() {
   const handleSubmit = async () => {
     console.log("Booking data:", bookingData);
 
-    const params = new URLSearchParams(window.location.search);
-    const returnDate = params.get("returnDate");
-
-    if (returnDate) {
+    // Mark the date as pending if we have date
+    if (date) {
       await fetch("/api/nanny/bookings/pending", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: returnDate, status: "pending" }),
+        body: JSON.stringify({ date, status: "pending" }),
       });
     }
 
-    router.push("./schedule");
+    // Pass the params forward to schedule
+    const params = new URLSearchParams();
+    if (date) params.set('date', date);
+    if (startTime) params.set('startTime', startTime);
+    if (endTime) params.set('endTime', endTime);
+
+    router.push(`./schedule${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   return (
@@ -112,7 +123,7 @@ export default function NannyBookingForm() {
         <div className="w-6"></div>
       </div>
 
-      {/* Content */}
+      {/* Content - Keep all existing step content */}
       <div className="flex-1 px-6">
         {/* Step 1: Family Info */}
         {currentStep === 1 && (
