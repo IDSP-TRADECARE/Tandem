@@ -768,17 +768,21 @@ export default function Calendar() {
         return [];
     }
   };
-
-  // Handler for confirming nanny booking
-  const handleConfirmNannyBooking = () => {
-    setNannyPopupOpen(false);
-    // Pass the dateKey through URL params so we can mark it as pending when returning
-    if (selectedWorkDetails?.dateKey) {
-      router.push(`/nanny/book/form?returnDate=${selectedWorkDetails.dateKey}`);
-    } else {
-      router.push('/nanny/book/form');
-    }
-  };
+// Handler for confirming nanny booking
+const handleConfirmNannyBooking = () => {
+  setNannyPopupOpen(false);
+  // Pass the dateKey and time through URL params
+  if (selectedWorkDetails?.dateKey && selectedWorkDetails.time) {
+    const params = new URLSearchParams({
+      dateDetails: selectedWorkDetails.dateKey,
+      time: selectedWorkDetails.time,
+      location: selectedWorkDetails.location || '',
+    });
+    router.push(`/nanny/book/form?${params.toString()}`);
+  } else {
+    router.push('/nanny/book/form');
+  }
+};
 
   const parseScheduleEventId = (
     eventId: string

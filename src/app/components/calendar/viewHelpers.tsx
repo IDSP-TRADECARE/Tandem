@@ -78,7 +78,8 @@ export function getTopPositionForView(view: ViewType): string {
     case 'Weekly':
       return '220px'; // After date + today headers
     case 'Monthly':
-      return '450px'; // After date + weekly headers (no today selector)
+      // return '450px'; // After date + weekly headers (no today selector)
+      return '400px'; // After date + weekly headers (no today selector)
     default:
       return '140px';
   }

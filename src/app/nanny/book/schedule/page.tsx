@@ -2,13 +2,14 @@
 
 import { createQuickShare } from "@/lib/nanny/createQuickShare";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { IoIosArrowBack } from "react-icons/io";
 import { BottomNav } from "@/app/components/Layout/BottomNav";
 import { DaySelector } from "@/app/components/ui/schedule/DaySelector";
 
 export default function NannySchedulePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedDays, setSelectedDays] = useState<string[]>(["TUE"]);
   const [activeDay, setActiveDay] = useState<string>("TUE");
   const [needNanny, setNeedNanny] = useState(true);
@@ -18,15 +19,18 @@ export default function NannySchedulePage() {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
 
+  // Get URL params
+  const dateDetails = searchParams.get('dateDetails'); // "2025-12-25"
+  const time = searchParams.get('time'); // "2:30 PM - 8:30 PM shift"
+  const location = searchParams.get('location'); // "work"
+
   const handleDayToggle = (dayId: string, isDouble?: boolean) => {
     if (isDouble) {
-      // Remove day on double click
       setSelectedDays((prev) => prev.filter((d) => d !== dayId));
       if (activeDay === dayId) {
         setActiveDay("");
       }
     } else {
-      // Toggle day selection
       setSelectedDays((prev) =>
         prev.includes(dayId)
           ? prev.filter((d) => d !== dayId)
@@ -34,6 +38,38 @@ export default function NannySchedulePage() {
       );
       setActiveDay(dayId);
     }
+  };
+
+  const handleSave = async () => {
+    // Parse time range if available (e.g., "2:30 PM - 8:30 PM shift")
+    let customStartTime: string | undefined;
+    let customEndTime: string | undefined;
+
+    if (time) {
+      const timeMatch = time.match(/(\d+:\d+\s*(?:AM|PM))\s*-\s*(\d+:\d+\s*(?:AM|PM))/i);
+      if (timeMatch) {
+        customStartTime = timeMatch[1].trim();
+        customEndTime = timeMatch[2].trim();
+      }
+    }
+
+    // Override with user input if provided
+    if (startTime) {
+      customStartTime = startTime;
+    }
+    if (endTime) {
+      customEndTime = endTime;
+    }
+
+    // Create the quick share - createQuickShare will handle AM/PM conversion
+    await createQuickShare({
+      customDate: dateDetails || undefined,
+      customStartTime,
+      customEndTime,
+      location: location || undefined,
+    });
+
+    router.push("/nanny");
   };
 
   return (
@@ -53,6 +89,15 @@ export default function NannySchedulePage() {
         <p className="font-alan text-[16px] leading-[24px] font-[500] text-black mb-6">
           Tap each date to check the booking and set reason for days not needed.
         </p>
+
+        {/* Show selected date/time if available */}
+        {dateDetails && (
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+            <p className="font-alan text-[14px] font-[600] text-blue-800">
+              Selected: {dateDetails} {time && `- ${time}`}
+            </p>
+          </div>
+        )}
 
         {/* Day Selector */}
         <div className="mb-6">
@@ -223,10 +268,7 @@ export default function NannySchedulePage() {
           </button>
 
           <button
-            onClick={async () => {
-              await createQuickShare();
-              router.push("/nanny");
-            }}
+            onClick={handleSave}
             className="flex-1 py-3 bg-[#4F7DF3] text-white rounded-full font-alan text-[16px] font-[700] shadow-md hover:bg-[#3D6AD6] transition-colors"
           >
             Save

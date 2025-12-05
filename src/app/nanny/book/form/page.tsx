@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { IoIosArrowBack } from "react-icons/io";
 import { BottomNav } from "@/app/components/Layout/BottomNav";
 
@@ -21,8 +21,15 @@ type BookingData = {
 
 export default function NannyBookingForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [showOtherCertInput, setShowOtherCertInput] = useState(false);
+  
+  // Get URL params
+  const dateDetails = searchParams.get('dateDetails'); // "2025-12-25"
+  const time = searchParams.get('time'); // "2:30 PM shift"
+  const location = searchParams.get('location'); // "work"
+
   const [bookingData, setBookingData] = useState<BookingData>({
     children: [{ name: "", age: "" }],
     allergies: "",
@@ -90,18 +97,22 @@ export default function NannyBookingForm() {
   const handleSubmit = async () => {
     console.log("Booking data:", bookingData);
 
-    const params = new URLSearchParams(window.location.search);
-    const returnDate = params.get("returnDate");
-
-    if (returnDate) {
+    // Mark the date as pending if we have dateDetails
+    if (dateDetails) {
       await fetch("/api/nanny/bookings/pending", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: returnDate, status: "pending" }),
+        body: JSON.stringify({ date: dateDetails, status: "pending" }),
       });
     }
 
-    router.push("./schedule");
+    // Pass the params forward to schedule
+    const params = new URLSearchParams();
+    if (dateDetails) params.set('dateDetails', dateDetails);
+    if (time) params.set('time', time);
+    if (location) params.set('location', location);
+
+    router.push(`./schedule${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   return (
