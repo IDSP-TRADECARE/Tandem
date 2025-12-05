@@ -1,149 +1,233 @@
-'use client';
+"use client";
 
-
-// shorthand for now using the createqucikshare in lib
-import { createQuickShare } from '@/lib/nanny/createQuickShare';
-
-
-// SHORTHAND END --------------------
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { IoIosArrowBack } from 'react-icons/io';
-import { BottomNav } from '@/app/components/Layout/BottomNav';
-
-const DAYS = ['S', 'M', 'T', 'W', 'F'];
+import { createQuickShare } from "@/lib/nanny/createQuickShare";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { IoIosArrowBack } from "react-icons/io";
+import { BottomNav } from "@/app/components/Layout/BottomNav";
+import { DaySelector } from "@/app/components/ui/schedule/DaySelector";
 
 export default function NannySchedulePage() {
   const router = useRouter();
-  const [selectedDay, setSelectedDay] = useState<string | null>('M');
+  const [selectedDays, setSelectedDays] = useState<string[]>(["TUE"]);
+  const [activeDay, setActiveDay] = useState<string>("TUE");
   const [needNanny, setNeedNanny] = useState(true);
   const [someoneElse, setSomeoneElse] = useState(false);
-  const [reason, setReason] = useState('');
+  const [nannySharing, setNannySharing] = useState(false);
+  const [reason, setReason] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+
+  const handleDayToggle = (dayId: string, isDouble?: boolean) => {
+    if (isDouble) {
+      // Remove day on double click
+      setSelectedDays((prev) => prev.filter((d) => d !== dayId));
+      if (activeDay === dayId) {
+        setActiveDay("");
+      }
+    } else {
+      // Toggle day selection
+      setSelectedDays((prev) =>
+        prev.includes(dayId)
+          ? prev.filter((d) => d !== dayId)
+          : [...prev, dayId]
+      );
+      setActiveDay(dayId);
+    }
+  };
 
   return (
-    <div className="min-h-screen flex flex-col pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-teal-200">
       {/* Header */}
-      <div className="bg-gradient-primary text-white p-6">
-        <button onClick={() => router.back()} className="mb-4">
-          <IoIosArrowBack size={24} />
+      <div className="text-white p-6">
+        <button onClick={() => router.back()} className="mb-6">
+          <IoIosArrowBack size={28} />
         </button>
-        <h1 className="text-2xl font-bold">Plan your nanny schedule</h1>
+        <h1 className="font-alan text-[32px] leading-[40px] font-[900] text-center">
+          Plan your nanny schedule
+        </h1>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 bg-white rounded-t-3xl -mt-4 p-6">
-        <p className="mb-4">Tap each date to check the booking and set reason for days not needed.</p>
-        
+      {/* Content Card */}
+      <div className="bg-white rounded-t-[32px] px-6 pt-6 min-h-screen">
+        <p className="font-alan text-[16px] leading-[24px] font-[500] text-black mb-6">
+          Tap each date to check the booking and set reason for days not needed.
+        </p>
+
         {/* Day Selector */}
-        <div className="flex gap-2 mb-6">
-          {DAYS.map(day => (
-            <button
-              key={day}
-              onClick={() => setSelectedDay(day)}
-              className={`flex-1 w-12 h-12 rounded-full font-bold ${
-                day === 'M' || day === 'W' ? 'bg-green-200' : 'bg-gray-200'
-              } ${selectedDay === day ? 'ring-2 ring-green-600' : ''}`}
-            >
-              {day}
-            </button>
-          ))}
+        <div className="mb-6">
+          <DaySelector
+            selectedDays={selectedDays}
+            onDayToggle={handleDayToggle}
+            activeDay={activeDay}
+            showHint={false}
+          />
         </div>
 
         {/* Need Nanny Care */}
-        <h3 className="font-bold mb-3">Need nanny care today?</h3>
-        
+        <h3 className="font-alan text-[20px] leading-[28px] font-[700] text-black mb-4">
+          Need nanny care today?
+        </h3>
+
         <button
-          onClick={() => { setNeedNanny(true); setSomeoneElse(false); }}
-          className={`w-full p-4 mb-3 rounded-2xl border-2 flex items-center gap-3 ${
-            needNanny ? 'bg-blue-100 border-blue-500' : 'border-gray-300'
+          onClick={() => {
+            setNeedNanny(true);
+            setSomeoneElse(false);
+          }}
+          className={`w-full p-4 mb-3 rounded-2xl border-2 flex items-center gap-3 transition-colors ${
+            needNanny ? "bg-blue-100 border-blue-500" : "border-gray-300"
           }`}
         >
-          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-            needNanny ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
-          }`}>
+          <div
+            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+              needNanny ? "bg-blue-500 border-blue-500" : "border-gray-300"
+            }`}
+          >
             {needNanny && <span className="text-white text-sm">✓</span>}
           </div>
-          <span>Yes. Book nanny</span>
+          <span className="font-alan text-[16px] font-[500] text-black">
+            Yes. Book nanny
+          </span>
         </button>
 
         <button
-          onClick={() => { setNeedNanny(false); setSomeoneElse(true); }}
-          className={`w-full p-4 mb-3 rounded-2xl border-2 flex items-center gap-3 ${
-            someoneElse ? 'bg-blue-100 border-blue-500' : 'border-gray-300'
+          onClick={() => {
+            setNeedNanny(false);
+            setSomeoneElse(true);
+          }}
+          className={`w-full p-4 mb-3 rounded-2xl border-2 flex items-center gap-3 transition-colors ${
+            someoneElse ? "bg-blue-100 border-blue-500" : "border-gray-300"
           }`}
         >
-          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-            someoneElse ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
-          }`}>
+          <div
+            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+              someoneElse ? "bg-blue-500 border-blue-500" : "border-gray-300"
+            }`}
+          >
             {someoneElse && <span className="text-white text-sm">✓</span>}
           </div>
-          <span>No. Someone else is watching</span>
+          <span className="font-alan text-[16px] font-[500] text-black">
+            No. Someone else is watching
+          </span>
         </button>
 
         {someoneElse && (
-          <div className="mb-4">
-            <label className="text-sm text-gray-600">*Reason:</label>
+          <div className="mb-6 pl-10">
+            <label className="font-alan text-[14px] font-[600] text-gray-600 mb-2 block">
+              *Reason:
+            </label>
             <input
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="A family member will watch them"
-              className="w-full p-2 border-b mt-1"
+              className="w-full pb-2 border-b-2 border-gray-300 focus:border-blue-500 focus:outline-none font-alan text-[16px] placeholder:text-gray-400"
             />
           </div>
         )}
 
+        {/* Nanny Sharing */}
+        <h3 className="font-alan text-[20px] leading-[28px] font-[700] text-black mb-4 mt-6">
+          Nanny Sharing
+        </h3>
+
+        <button
+          onClick={() => setNannySharing(!nannySharing)}
+          className={`w-full p-4 mb-6 rounded-2xl border-2 flex items-center gap-3 transition-colors ${
+            nannySharing ? "bg-blue-100 border-blue-500" : "border-gray-300"
+          }`}
+        >
+          <div
+            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+              nannySharing ? "bg-blue-500 border-blue-500" : "border-gray-300"
+            }`}
+          >
+            {nannySharing && <span className="text-white text-sm">✓</span>}
+          </div>
+          <span className="font-alan text-[16px] font-[500] text-black">
+            Yes, make available to nanny share
+          </span>
+        </button>
+
         {/* Start/End Time */}
         <div className="flex gap-4 mb-6">
           <div className="flex-1">
-            <label className="block font-bold mb-2">Start</label>
-            <input type="text" placeholder="E.g., 7:00 AM" className="w-full p-2 border-b" />
+            <label className="font-alan text-[20px] leading-[28px] font-[700] text-black mb-2 block">
+              Start
+            </label>
+            <input
+              type="text"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              placeholder="E.g., 7:00 AM"
+              className="w-full pb-2 border-b-2 border-gray-300 focus:border-blue-500 focus:outline-none font-alan text-[16px] placeholder:text-gray-400"
+            />
           </div>
           <div className="flex-1">
-            <label className="block font-bold mb-2">End</label>
-            <input type="text" placeholder="E.g., 6:00 PM" className="w-full p-2 border-b" />
+            <label className="font-alan text-[20px] leading-[28px] font-[700] text-black mb-2 block">
+              End
+            </label>
+            <input
+              type="text"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              placeholder="E.g., 6:00 PM"
+              className="w-full pb-2 border-b-2 border-gray-300 focus:border-blue-500 focus:outline-none font-alan text-[16px] placeholder:text-gray-400"
+            />
           </div>
         </div>
 
         {/* Children */}
         <div className="mb-6">
-          <h3 className="font-bold mb-3">Children</h3>
+          <h3 className="font-alan text-[20px] leading-[28px] font-[700] text-black mb-3">
+            Children
+          </h3>
           <div className="flex gap-4">
-            <p className="flex-1 p-2 border-b">Angie</p>
-            <p className="flex-1 p-2 border-b">Sandy</p>
+            <p className="flex-1 pb-2 border-b-2 border-gray-300 font-alan text-[16px]">
+              Angie
+            </p>
+            <p className="flex-1 pb-2 border-b-2 border-gray-300 font-alan text-[16px]">
+              Sandy
+            </p>
           </div>
         </div>
 
         {/* Allergies */}
         <div className="mb-6">
-          <h3 className="font-bold mb-3">Allergies & Medical Conditions</h3>
-          <p className="p-2 border-b">None</p>
+          <h3 className="font-alan text-[20px] leading-[28px] font-[700] text-black mb-3">
+            Allergies & Medical Conditions
+          </h3>
+          <p className="pb-2 border-b-2 border-gray-300 font-alan text-[16px] text-gray-400">
+            None
+          </p>
         </div>
 
         {/* Additional Notes */}
         <div className="mb-6">
-          <h3 className="font-bold mb-3">Additional Notes</h3>
-          <textarea 
-            className="w-full p-3 border rounded min-h-24"
+          <h3 className="font-alan text-[20px] leading-[28px] font-[700] text-black mb-3">
+            Additional Notes
+          </h3>
+          <textarea
+            className="w-full p-4 border-2 border-gray-300 rounded-2xl focus:border-blue-500 focus:outline-none font-alan text-[16px] placeholder:text-gray-400 min-h-24 resize-none"
             placeholder="Add any additional information..."
           />
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4 mb-6">
-          <button className="flex-1 py-3 border-2 border-blue-500 text-blue-500 rounded-full">
+        <div className="flex gap-4 pb-32">
+          <button
+            onClick={() => router.back()}
+            className="flex-1 py-3 border-2 border-gray-300 text-gray-700 rounded-full font-alan text-[16px] font-[700] hover:bg-gray-50 transition-colors"
+          >
             Cancel
           </button>
 
           <button
-          // SHORT HAND FOR NOW --------------------
             onClick={async () => {
               await createQuickShare();
-              router.push('/nanny');
+              router.push("/nanny");
             }}
-            // SHORT HAND FOR NOW END ----------------
-            className="flex-1 py-3 bg-blue-500 text-white rounded-full"
+            className="flex-1 py-3 bg-[#4F7DF3] text-white rounded-full font-alan text-[16px] font-[700] shadow-md hover:bg-[#3D6AD6] transition-colors"
           >
             Save
           </button>
@@ -151,7 +235,9 @@ export default function NannySchedulePage() {
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNav />
+      <div className="fixed bottom-0 left-0 right-0">
+        <BottomNav />
+      </div>
     </div>
   );
 }
