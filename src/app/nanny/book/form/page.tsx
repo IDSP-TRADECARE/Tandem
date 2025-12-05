@@ -108,12 +108,7 @@ export default function NannyBookingForm() {
     <div className="min-h-screen flex flex-col pb-24 bg-white">
       {/* Header */}
       <div className="p-6 flex items-center justify-between">
-        <button
-          onClick={currentStep === 1 ? () => router.back() : prevStep}
-          className="p-2 -ml-2"
-        >
-          <IoIosArrowBack size={24} />
-        </button>
+        <div className="w-6"></div>
         <div className="w-6"></div>
       </div>
 
@@ -434,22 +429,30 @@ export default function NannyBookingForm() {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="px-6 py-4 bg-white flex gap-4 mt-auto">
-        {currentStep > 1 && (
+      <div className="px-6 py-4 bg-white flex gap-3 mt-auto">
+        {currentStep === 1 ? (
+          <button
+            onClick={() => router.back()}
+            className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-full flex items-center justify-center gap-2 font-alan text-[16px] font-[700] hover:bg-gray-50 transition-colors"
+          >
+            <IoIosArrowBack size={20} />
+            Back
+          </button>
+        ) : (
           <button
             onClick={prevStep}
-            className="px-8 py-3 border-2 border-[#1e3a5f] text-[#1e3a5f] rounded-full flex items-center justify-center gap-2 font-alan text-[16px] font-[700]"
+            className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-full flex items-center justify-center gap-2 font-alan text-[16px] font-[700] hover:bg-gray-50 transition-colors"
           >
-            <IoIosArrowBack />
+            <IoIosArrowBack size={20} />
             Back
           </button>
         )}
         <button
           onClick={currentStep === 3 ? handleSubmit : nextStep}
-          className="flex-1 py-3 bg-[#4F46E5] text-white rounded-full flex items-center justify-center gap-2 font-alan text-[16px] font-[700]"
+          className="flex-1 py-3 bg-[#4F7DF3] text-white rounded-full flex items-center justify-center gap-2 font-alan text-[16px] font-[700] shadow-md hover:bg-[#3D6AD6] transition-colors"
         >
           Next
-          {currentStep < 3 && <span className="text-xl">›</span>}
+          <IoIosArrowBack size={20} className="rotate-180" />
         </button>
       </div>
 
