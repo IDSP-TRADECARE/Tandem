@@ -232,6 +232,15 @@ export function DateHeader({
     const dateStr = fullDate.toISOString().split("T")[0];
     const events = eventsByDate[dateStr] || [];
 
+    // For monthly view, show any events on that date (no week filtering)
+    if (type === "monthly") {
+      return {
+        hasWork: events.some((e: any) => e.type === "work"),
+        hasNanny: events.some((e: any) => e.type === "nanny"),
+        hasChildcare: events.some((e: any) => e.type === "childcare"),
+      };
+    }
+
     const currentWeekStart = getStartOfWeek(selectedDay)
       .toISOString()
       .slice(0, 10);

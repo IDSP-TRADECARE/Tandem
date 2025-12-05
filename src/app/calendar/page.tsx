@@ -432,13 +432,8 @@ export default function Calendar() {
   };
 
   const getEventsForCurrentMonth = () => {
-    const selectedWeekStart = weekStartDate.toISOString().slice(0, 10);
-
     const filtered = allEvents.filter((event) => {
       if (!event.start) return false;
-
-      const eventWeek = event.weekOf || event.extendedProps?.weekOf;
-      if (eventWeek !== selectedWeekStart) return false;
 
       const eventStart =
         event.start instanceof Date
