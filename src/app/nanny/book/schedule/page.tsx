@@ -16,13 +16,13 @@ export default function NannySchedulePage() {
   const [someoneElse, setSomeoneElse] = useState(false);
   const [nannySharing, setNannySharing] = useState(false);
   const [reason, setReason] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [startTimeInput, setStartTimeInput] = useState("");
+  const [endTimeInput, setEndTimeInput] = useState("");
 
-  // Get URL params
-  const dateDetails = searchParams.get('dateDetails'); // "2025-12-25"
-  const time = searchParams.get('time'); // "2:30 PM - 8:30 PM shift"
-  const location = searchParams.get('location'); // "work"
+  // Get URL params - simple and clean
+  const date = searchParams.get('date'); // "2025-12-25"
+  const startTime = searchParams.get('startTime'); // "2:30 PM"
+  const endTime = searchParams.get('endTime'); // "8:30 PM"
 
   const handleDayToggle = (dayId: string, isDouble?: boolean) => {
     if (isDouble) {
@@ -41,32 +41,21 @@ export default function NannySchedulePage() {
   };
 
   const handleSave = async () => {
-    // Parse time range if available (e.g., "2:30 PM - 8:30 PM shift")
-    let customStartTime: string | undefined;
-    let customEndTime: string | undefined;
+    // Use user input if provided, otherwise use URL params
+    const finalStartTime = startTimeInput || startTime;
+    const finalEndTime = endTimeInput || endTime;
 
-    if (time) {
-      const timeMatch = time.match(/(\d+:\d+\s*(?:AM|PM))\s*-\s*(\d+:\d+\s*(?:AM|PM))/i);
-      if (timeMatch) {
-        customStartTime = timeMatch[1].trim();
-        customEndTime = timeMatch[2].trim();
-      }
-    }
-
-    // Override with user input if provided
-    if (startTime) {
-      customStartTime = startTime;
-    }
-    if (endTime) {
-      customEndTime = endTime;
-    }
+    console.log('Creating quick share with:', {
+      date,
+      startTime: finalStartTime,
+      endTime: finalEndTime,
+    });
 
     // Create the quick share - createQuickShare will handle AM/PM conversion
     await createQuickShare({
-      customDate: dateDetails || undefined,
-      customStartTime,
-      customEndTime,
-      location: location || undefined,
+      customDate: date || undefined,
+      customStartTime: finalStartTime || undefined,
+      customEndTime: finalEndTime || undefined,
     });
 
     router.push("/nanny");
@@ -91,11 +80,16 @@ export default function NannySchedulePage() {
         </p>
 
         {/* Show selected date/time if available */}
-        {dateDetails && (
+        {date && (
           <div className="mb-4 p-4 bg-blue-50 rounded-lg">
             <p className="font-alan text-[14px] font-[600] text-blue-800">
-              Selected: {dateDetails} {time && `- ${time}`}
+              Selected: {date}
             </p>
+            {startTime && endTime && (
+              <p className="font-alan text-[14px] font-[600] text-blue-800">
+                Time: {startTime} - {endTime}
+              </p>
+            )}
           </div>
         )}
 
@@ -202,9 +196,9 @@ export default function NannySchedulePage() {
             </label>
             <input
               type="text"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              placeholder="E.g., 7:00 AM"
+              value={startTimeInput}
+              onChange={(e) => setStartTimeInput(e.target.value)}
+              placeholder={startTime || "E.g., 7:00 AM"}
               className="w-full pb-2 border-b-2 border-gray-300 focus:border-blue-500 focus:outline-none font-alan text-[16px] placeholder:text-gray-400"
             />
           </div>
@@ -214,9 +208,9 @@ export default function NannySchedulePage() {
             </label>
             <input
               type="text"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              placeholder="E.g., 6:00 PM"
+              value={endTimeInput}
+              onChange={(e) => setEndTimeInput(e.target.value)}
+              placeholder={endTime || "E.g., 6:00 PM"}
               className="w-full pb-2 border-b-2 border-gray-300 focus:border-blue-500 focus:outline-none font-alan text-[16px] placeholder:text-gray-400"
             />
           </div>
@@ -276,7 +270,6 @@ export default function NannySchedulePage() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0">
         <BottomNav />
       </div>
