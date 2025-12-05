@@ -38,7 +38,7 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
   const fetchProfilesForMembers = useCallback(async (members: any[]) => {
     if (!members || members.length === 0) return;
     const toFetch = members
-      .filter((m) => m?.userId && !m.avatarUrl && !m.userId.startsWith('pending_'));
+      .filter((m) => m?.userId && !m.userId.startsWith('pending_'));
 
     if (toFetch.length === 0) return;
 
@@ -46,10 +46,40 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
       const results = await Promise.all(
         toFetch.map(async (m) => {
           try {
-            const res = await fetch(`/api/users/${encodeURIComponent(m.userId)}`);
-            if (!res.ok) return null;
-            const data = await res.json();
-            return { userId: m.userId, profilePicture: data.profilePicture ?? data.profile_picture ?? null };
+            // Fetch Clerk user data (name and profile picture)
+            const userRes = await fetch(`/api/users/${encodeURIComponent(m.userId)}`);
+            if (!userRes.ok) return null;
+            const userData = await userRes.json();
+
+            // Fetch all nanny shares to get member info (like /nanny/user/[userId] does)
+            const sharesRes = await fetch('/api/nanny');
+            let kidsCount = m.kidsCount || 1; // default
+            
+            if (sharesRes.ok) {
+              const sharesData = await sharesRes.json();
+              const shares = sharesData.shares || [];
+              
+              // Find shares where this user is a member
+              const userShares = shares.filter((share: any) => 
+                share.members?.some((member: any) => member.userId === m.userId)
+              );
+              
+              // Get member info from any share they're in
+              for (const share of userShares) {
+                const member = share.members?.find((mem: any) => mem.userId === m.userId);
+                if (member?.kidsCount) {
+                  kidsCount = member.kidsCount;
+                  break;
+                }
+              }
+            }
+
+            return { 
+              userId: m.userId, 
+              profilePicture: userData.profilePicture ?? userData.profile_picture ?? null,
+              name: userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || m.name,
+              kidsCount,
+            };
           } catch {
             return null;
           }
@@ -60,7 +90,15 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
         if (!prev) return prev;
         const updatedMembers = prev.members.map((mem: any) => {
           const found = results.find((r) => r && r.userId === mem.userId);
-          return found?.profilePicture ? { ...mem, avatarUrl: found.profilePicture } : mem;
+          if (found) {
+            return { 
+              ...mem, 
+              avatarUrl: found.profilePicture,
+              name: found.name,
+              kidsCount: found.kidsCount,
+            };
+          }
+          return mem;
         });
         return { ...prev, members: updatedMembers };
       });
