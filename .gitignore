@@ -48,3 +48,6 @@ next-env.d.ts
 
 
 /uploads
+
+#d3-routes are in development 
+src/app/d3-routes

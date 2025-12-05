@@ -64,22 +64,29 @@ export async function POST(request: NextRequest) {
   weekOf = resolveWeek(true);
 
   //friday mode **BOOM
-//   if (payload.weekStart) {
-//      console.log('📆 Using weekStart:', payload.weekStart);
-//      weekOf = payload.weekStart;
-//    } else if (payload.isNextWeek !== undefined) {
-//      console.log('📆 Using isNextWeek flag:', payload.isNextWeek);
-//      weekOf = resolveWeek(payload.isNextWeek);
-//    } else if (payload.weekOffset) {
-//      const isNext = payload.weekOffset === 'next';
-//      console.log('📆 Using weekOffset:', payload.weekOffset);
-//      weekOf = resolveWeek(isNext);
-//    } else {
-//      console.log('📆 No week data > current week');
-//      weekOf = resolveWeek(false);
-//    }
+  //   if (payload.weekStart) {
+  //      console.log('📆 Using weekStart:', payload.weekStart);
+  //      weekOf = payload.weekStart;
+  //    } else if (payload.isNextWeek !== undefined) {
+  //      console.log('📆 Using isNextWeek flag:', payload.isNextWeek);
+  //      weekOf = resolveWeek(payload.isNextWeek);
+  //    } else if (payload.weekOffset) {
+  //      const isNext = payload.weekOffset === 'next';
+  //      console.log('📆 Using weekOffset:', payload.weekOffset);
+  //      weekOf = resolveWeek(isNext);
+  //    } else {
+  //      console.log('📆 No week data > current week');
+  //      weekOf = resolveWeek(false);
+  //    }
 
   console.log('📅 Final weekOf:', weekOf);
+
+  // If user didn't edit times for a day, keep existing ones
+  for (const day of payload.workingDays) {
+    if (!dailyTimes[day] && payload.originalDaySchedules?.[day]) {
+      dailyTimes[day] = payload.originalDaySchedules[day];
+    }
+  }
 
   // FINAL DATABASE PAYLOAD
   const baseValues = {
@@ -120,5 +127,11 @@ export async function POST(request: NextRequest) {
     row = created;
   }
 
-  return NextResponse.json({ success: true, schedule: row });
+  return NextResponse.json({
+    success: true,
+    schedule: {
+      ...row,
+      daySchedules: row.dailyTimes,
+    },
+  });
 }
