@@ -11,7 +11,7 @@ type UserProfile = {
   id: string;
   name: string;
   avatarUrl?: string | null;
-  kids: Array<{ age?: string | number }>;
+  kids: Array<{ name?: string }>;
   location?: string;
   bio?: string;
   languages?: string[];
@@ -74,7 +74,7 @@ export default function NannyUserPage({ params }: { params: Promise<{ userId: st
           id: userId,
           name: userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'User',
           avatarUrl: userData.profilePicture || userData.profile_picture || null,
-          kids: Array.from({ length: memberInfo.kidsCount || 1 }, (_, i) => ({ age: '?' })),
+          kids: Array.from({ length: memberInfo.kidsCount || 1 }, () => ({})),
           location: memberInfo.location || 'Location not set',
           bio: userData.bio || 'No bio yet.',
           languages: ['English'], // Could add to user profile in future
@@ -90,7 +90,7 @@ export default function NannyUserPage({ params }: { params: Promise<{ userId: st
           id: userId,
           name: 'User',
           avatarUrl: '/profile/placeholderAvatar.png',
-          kids: [{ age: '?' }],
+          kids: [{}],
           location: 'Unknown',
           bio: 'No information available.',
           languages: ['English'],
