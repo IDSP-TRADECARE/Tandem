@@ -722,12 +722,23 @@ export default function Calendar() {
                 firstWork.start instanceof Date
                   ? firstWork.start
                   : new Date(firstWork.start as string);
+              const end =
+                firstWork.end instanceof Date
+                  ? firstWork.end
+                  : new Date(firstWork.end as string);
+
 
               const timeRange = `${start.toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
                 hour12: true,
               })} shift`;
+
+              const timeRangeEnd = `${end.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              })} shift end`;
 
               const hasPendingRequest = pendingNannyRequests.has(dateStr);
 
@@ -750,6 +761,7 @@ export default function Calendar() {
                   } else {
                     setSelectedWorkDetails({
                       time: timeRange,
+                      endTime: timeRangeEnd,
                       location: firstWork.extendedProps?.location || 'work',
                       dateKey: dateStr,
                     });
@@ -783,14 +795,10 @@ const handleConfirmNannyBooking = () => {
   setNannyPopupOpen(false);
   
   if (selectedWorkDetails?.dateKey && selectedWorkDetails.time && selectedWorkDetails.endTime) {
-    // Parse the time range to extract start and end times
-    const startMatch = selectedWorkDetails.time.match(/(\d+:\d+\s*(?:AM|PM))/i);
-    const endMatch = selectedWorkDetails.endTime.match(/(\d+:\d+\s*(?:AM|PM))/i);
-    
     const params = new URLSearchParams({
-      date: selectedWorkDetails.dateKey, // "2025-12-25"
-      startTime: startMatch ? startMatch[1].trim() : '', // "9:00 AM"
-      endTime: endMatch ? endMatch[1].trim() : '', // "5:00 PM"
+      date: selectedWorkDetails.dateKey, // "2025-12-08"
+      startTime: selectedWorkDetails.time, // "9:00 AM"
+      endTime: selectedWorkDetails.endTime, // "5:00 PM"
     });
     router.push(`/nanny/book/form?${params.toString()}`);
   } else {

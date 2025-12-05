@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type QuickShare = {
   date: string; // YYYY-MM-DD format
@@ -20,16 +21,20 @@ function formatHHMM(d: Date) {
 
 // Helper to convert 12-hour time to 24-hour HH:MM format
 function convertTo24Hour(time12h: string): string {
-  const [time, modifier] = time12h.trim().split(/\s+/);
-  // eslint-disable-next-line prefer-const
+  // Remove any extra text like " shift" or " shift end"
+  const cleanTime = time12h.trim().replace(/\s*(shift|end)\s*/gi, '');
+  const [time, modifier] = cleanTime.trim().split(/\s+/);
   let [hours, minutes] = time.split(':');
 
-  if (hours === '12') {
-    hours = '00';
-  }
-
-  if (modifier?.toUpperCase() === 'PM') {
-    hours = String(parseInt(hours, 10) + 12);
+  // Handle 12 AM (midnight) and 12 PM (noon)
+  if (modifier?.toUpperCase() === 'AM') {
+    if (hours === '12') {
+      hours = '00';
+    }
+  } else if (modifier?.toUpperCase() === 'PM') {
+    if (hours !== '12') {
+      hours = String(parseInt(hours, 10) + 12);
+    }
   }
 
   return `${hours.padStart(2, '0')}:${minutes}`;
@@ -45,7 +50,27 @@ export async function createQuickShare(
   const now = new Date();
 
   // Use custom date or default to today
-  const date = overrides?.customDate || now.toISOString().slice(0, 10);
+  let date: string;
+  if (overrides?.customDate) {
+    // Parse the date and add 1 day to fix timezone offset
+    const [year, month, day] = overrides.customDate.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day);
+    localDate.setDate(localDate.getDate() + 1); // Add 1 day
+
+    const localYear = localDate.getFullYear();
+    const localMonth = String(localDate.getMonth() + 1).padStart(2, '0');
+    const localDay = String(localDate.getDate()).padStart(2, '0');
+    date = `${localYear}-${localMonth}-${localDay}`;
+  } else {
+    // Default to today + 1 day
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1); // Add 1 day
+    
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    date = `${year}-${month}-${day}`;
+  }
 
   // Use custom start time or default to now
   let startTime: string;
@@ -90,6 +115,8 @@ export async function createQuickShare(
   delete (payload as any).customDate;
   delete (payload as any).customStartTime;
   delete (payload as any).customEndTime;
+
+  console.log('📤 Creating nanny share:', payload);
 
   const res = await fetch('/api/nanny/create', {
     method: 'POST',
