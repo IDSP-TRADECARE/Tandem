@@ -50,4 +50,4 @@ next-env.d.ts
 /uploads
 
 #d3-routes are in development 
-/d3-routes
+# /d3-routes
