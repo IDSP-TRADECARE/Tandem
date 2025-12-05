@@ -1,6 +1,6 @@
 "use client";
 
-import Verify from "@/app/sign-in/verify-cancel/workModal"; // Correct path!
+import Verify from "@/../d3-routes/sign-in/verify-cancel/workModal"; // Correct path!
 import { useState } from "react";
 
 export default function CompanyInfoIcon() {
