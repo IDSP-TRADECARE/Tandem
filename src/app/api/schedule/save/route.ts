@@ -61,23 +61,22 @@ export async function POST(request: NextRequest) {
   // WEEK RESOLUTION
   let weekOf;
 
-  weekOf = resolveWeek(true);
+  // weekOf = resolveWeek(true);
 
-  //friday mode **BOOM
-  //   if (payload.weekStart) {
-  //      console.log('📆 Using weekStart:', payload.weekStart);
-  //      weekOf = payload.weekStart;
-  //    } else if (payload.isNextWeek !== undefined) {
-  //      console.log('📆 Using isNextWeek flag:', payload.isNextWeek);
-  //      weekOf = resolveWeek(payload.isNextWeek);
-  //    } else if (payload.weekOffset) {
-  //      const isNext = payload.weekOffset === 'next';
-  //      console.log('📆 Using weekOffset:', payload.weekOffset);
-  //      weekOf = resolveWeek(isNext);
-  //    } else {
-  //      console.log('📆 No week data > current week');
-  //      weekOf = resolveWeek(false);
-  //    }
+    if (payload.weekStart) {
+       console.log('📆 Using weekStart:', payload.weekStart);
+       weekOf = payload.weekStart;
+     } else if (payload.isNextWeek !== undefined) {
+       console.log('📆 Using isNextWeek flag:', payload.isNextWeek);
+       weekOf = resolveWeek(payload.isNextWeek);
+     } else if (payload.weekOffset) {
+       const isNext = payload.weekOffset === 'next';
+       console.log('📆 Using weekOffset:', payload.weekOffset);
+       weekOf = resolveWeek(isNext);
+     } else {
+       console.log('📆 No week data > current week');
+       weekOf = resolveWeek(false);
+     }
 
   console.log('📅 Final weekOf:', weekOf);
 
