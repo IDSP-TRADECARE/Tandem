@@ -150,7 +150,7 @@ export function ScheduleOverview({
         body: JSON.stringify({
           ...editedData,
           originalDaySchedules: data.daySchedules,
-          weekOffset: editedData.weekOffset ?? 'next', //friday mode **BOOM
+          weekOffset: editedData.weekOffset ?? 'current',
         }),
         credentials: 'include',
       });
