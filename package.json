@@ -30,7 +30,7 @@
     "groq-sdk": "^0.33.0",
     "ibm-cloud-sdk-core": "^5.4.4",
     "lucide-react": "latest",
-    "next": "^16.0.0",
+    "next": "16.0.7",
     "pdf-parse": "^1.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
