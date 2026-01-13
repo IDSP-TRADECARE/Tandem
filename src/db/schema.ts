@@ -27,6 +27,7 @@ export const users = pgTable("users", {
   occupation: varchar("occupation", { length: 100 }),
   bio: text("bio"),
   profilePicture: text("profile_picture"),
+  isGuest: boolean("is_guest").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
