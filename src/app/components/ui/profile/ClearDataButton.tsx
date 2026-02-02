@@ -75,7 +75,7 @@ export function ClearDataButton({ textColor, iconColor }: ClearDataButtonProps) 
           className="w-6 h-6"
           style={{ filter: iconColor === 'white' ? 'brightness(0) invert(1)' : undefined }}
         />
-        <span className="font-medium">Clear All Data</span>
+        <span className="font-medium">Clear All Data & Logout</span>
       </div>
       <svg
         className="w-5 h-5"

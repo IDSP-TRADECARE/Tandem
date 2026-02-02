@@ -3,7 +3,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import NannyLayout from '@/app/components/ui/nanny/NannyLayout';
 import GroupMemberCard from '@/app/components/ui/nanny/cards/GroupMemberCard';
 import RequestMemberCard from '@/app/components/ui/nanny/cards/RequestMemberCard';
@@ -21,7 +21,7 @@ type JoinRequest = {
 
 export default function NannyShareDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { user, isSignedIn } = useUser();
+  const { user, isSignedIn } = useCurrentUser();
   const { socket } = useSocket() ?? { socket: null };
 
   const [shareId, setShareId] = useState<string | null>(null);
