@@ -1,15 +1,12 @@
-import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { schedules } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const user = await getCurrentUser();
 
     const [latest] = await db
       .select({
@@ -27,7 +24,7 @@ export async function GET(request: NextRequest) {
         weekOf: schedules.weekOf,
       })
       .from(schedules)
-      .where(eq(schedules.userId, userId))
+      .where(eq(schedules.userId, user.userId))
       .orderBy(desc(schedules.updatedAt))
       .limit(1);
 

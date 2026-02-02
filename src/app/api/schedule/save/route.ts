@@ -1,19 +1,16 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../db';
 import { schedules } from '../../../../db/schema';
 import { eq } from 'drizzle-orm';
 import { resolveWeek } from '@/lib/schedule/resolveWeek';
+import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
 export async function POST(request: NextRequest) {
   console.log('🔐 Save route hit');
 
-  const { userId } = await auth();
-  console.log('👤 User ID:', userId);
-
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  try {
+    const user = await getCurrentUser();
+    console.log('👤 User ID:', user.userId);
 
   const payload = await request.json();
   console.log('📦 Payload received:', JSON.stringify(payload, null, 2));
@@ -117,7 +114,7 @@ export async function POST(request: NextRequest) {
   } else {
     const [created] = await db
       .insert(schedules)
-      .values({ userId, ...baseValues })
+      .values({ userId: user.userId, ...baseValues })
       .returning();
 
     console.log('🆕 Created schedule:', created);
