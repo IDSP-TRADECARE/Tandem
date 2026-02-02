@@ -229,14 +229,14 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
       return;
     }
 
-    const userName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || user?.username || 'Anonymous';
+    const userName = user?.name || 'Anonymous';
     const requestPayload: JoinRequest = {
       id: `req_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       userId: user?.id,
       name: userName,
       kidsCount,
       createdAt: new Date().toISOString(),
-      avatarUrl: (user as any)?.profilePicture ?? null,
+      avatarUrl: user?.imageUrl ?? null,
     };
 
     if (socket && shareId) {
