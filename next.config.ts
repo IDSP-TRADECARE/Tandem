@@ -37,6 +37,9 @@ const nextConfig = {
               'https://localhost:3001',
               'https://sdx24.com',
               'https://*.sdx24.com',
+              'https://www.stefandorosh.com',
+              'https://www.lam-thai.com',
+              'https://www.matheusdemeis.com',
             ].join(' '),
           },
           // Enable cross-origin credentials (required for cookies in iframe)
