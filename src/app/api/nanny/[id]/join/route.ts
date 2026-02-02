@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { nannyShares } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const user = await getCurrentUser();
 
     const { id } = await params;
     const shareId = parseInt(id, 10);
@@ -44,7 +41,7 @@ export async function POST(
     };
 
     const members: Member[] = share.members || [];
-    if (members.some((m: Member) => m.userId === userId)) {
+    if (members.some((m: Member) => m.userId === user.userId)) {
       return NextResponse.json({ error: 'You already joined' }, { status: 400 });
     }
 
@@ -54,7 +51,7 @@ export async function POST(
     }
 
     const newMember = {
-      userId,
+      userId: user.userId,
       name: userName,
       kidsCount: Number(kidsCount),
       joinedAt: new Date().toISOString(),
