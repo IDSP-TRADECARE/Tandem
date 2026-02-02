@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUser();
     console.log('👤 User ID:', user.userId);
 
-  const payload = await request.json();
-  console.log('📦 Payload received:', JSON.stringify(payload, null, 2));
+    const payload = await request.json();
+    console.log('📦 Payload received:', JSON.stringify(payload, null, 2));
 
   // Always use daySchedules > NEVER trust root-level timeFrom/timeTo
   const dailyTimes = payload.daySchedules || {};
@@ -128,4 +128,11 @@ export async function POST(request: NextRequest) {
       daySchedules: row.dailyTimes,
     },
   });
+  } catch (error) {
+    console.error('❌ Error saving schedule:', error);
+    return NextResponse.json(
+      { error: 'Failed to save schedule' },
+      { status: 500 }
+    );
+  }
 }

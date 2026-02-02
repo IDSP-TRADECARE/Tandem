@@ -1,3 +1,8 @@
+// Legacy component - no longer used
+export default function CompanyInfoIcon() {
+  return null;
+}
+
 // "use client";
 
 // import Verify from "@/../d3-routes/sign-in/verify-cancel/workModal"; // Correct path!
