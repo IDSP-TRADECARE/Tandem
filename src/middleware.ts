@@ -1,4 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import { hasGuestSession } from '@/lib/auth/guestSession';
 
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
@@ -9,9 +11,21 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+  // Allow public routes
+  if (isPublicRoute(request)) {
+    return NextResponse.next();
   }
+
+  // Check if user has a guest session
+  const hasGuest = hasGuestSession(request);
+  
+  if (hasGuest) {
+    // User is a guest, allow access
+    return NextResponse.next();
+  }
+
+  // Not a guest, require Clerk authentication
+  await auth.protect();
 });
 
 export const config = {

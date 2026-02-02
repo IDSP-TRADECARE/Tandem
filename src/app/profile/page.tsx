@@ -22,8 +22,6 @@ function Profile() {
 
     useEffect(() => {
         async function loadProfile() {
-            if (!user?.id) return;
-            
             try {
                 const response = await fetch('/api/profile');
                 if (response.ok) {
@@ -38,14 +36,14 @@ function Profile() {
         }
 
         loadProfile();
-    }, [user]);
+    }, []);
 
     const name = profile?.firstName && profile?.lastName 
         ? `${profile.firstName} ${profile.lastName}` 
-        : user?.fullName || 'User';
+        : user?.fullName || profile?.firstName || 'Guest User';
     
     const bio = profile?.bio || 'Not set';
-    const profileImage = profile?.profilePicture || '/profile/placeholderAvatar.png';
+    const profileImage = profile?.profilePicture || user?.imageUrl || '/profile/placeholderAvatar.png';
 
     if (loading) {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;

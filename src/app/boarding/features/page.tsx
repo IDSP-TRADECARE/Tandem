@@ -35,12 +35,12 @@ export default function FeaturesPage() {
         if (currentIndex < features.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            router.push("/sign-up-process/sign-up_2");
+            router.push("/sign-up");
         }
     };
 
     const handleSkip = () => {
-        router.push("/sign-up-process/sign-up_2");
+        router.push("/sign-up");
     };
 
     const handlePrevious = () => {
