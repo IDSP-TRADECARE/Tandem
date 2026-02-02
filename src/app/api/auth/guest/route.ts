@@ -88,7 +88,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       isGuest: true,
-      guestUserId,
+      userId: guestUserId, // Changed from guestUserId to userId for consistency
       sessionId: guestSession,
     });
   } catch (error) {

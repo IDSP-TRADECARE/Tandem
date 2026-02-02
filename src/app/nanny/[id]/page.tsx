@@ -134,10 +134,17 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
     if (shareId) fetchShare(shareId);
   }, [shareId, fetchShare]);
 
-  const isCreator = useMemo(() => 
-    Boolean(share && isSignedIn && share.creatorId === user?.id),
-    [share, isSignedIn, user]
-  );
+  const isCreator = useMemo(() => {
+    const result = Boolean(share && isSignedIn && share.creatorId === user?.id);
+    console.log('🔍 Ownership check:', {
+      share: share?.id,
+      creatorId: share?.creatorId,
+      userId: user?.id,
+      isCreator: result,
+      comparison: `"${share?.creatorId}" === "${user?.id}"`
+    });
+    return result;
+  }, [share, isSignedIn, user]);
 
   const isMember = useMemo(() =>
     Boolean(share && (share.members || []).some((m: any) => String(m?.userId) === String(user?.id))),

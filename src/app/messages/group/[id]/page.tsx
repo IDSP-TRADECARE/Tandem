@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { ChatHeader } from '@/app/components/ui/chat/ChatHeader';
 import { ChatMessages } from '@/app/components/ui/chat/ChatMessages';
 import { ChatInput } from '@/app/components/ui/chat/ChatInput';
 import { useChat } from '@/lib/socket/useChat'; // ✅ Fixed import path
 
 export default function GroupChatPage({ params }: { params: Promise<{ id: string }> }) {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
   const [shareId, setShareId] = useState<string | null>(null);
   const [chatTitle, setChatTitle] = useState('Group Chat');
 
@@ -40,7 +40,7 @@ export default function GroupChatPage({ params }: { params: Promise<{ id: string
   }, [shareId]);
 
   const userId = user?.id || '';
-  const userName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User';
+  const userName = user?.name || 'User';
 
   const { messages, isSending, sendMessage } = useChat({
     chatType: 'group',
