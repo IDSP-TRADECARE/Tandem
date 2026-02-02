@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ProfileCard from '@/app/components/ui/nanny/cards/ProfileCard';
 import NannyLayout from '@/app/components/ui/nanny/NannyLayout';
-import { useUser } from '@clerk/nextjs';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 
 type UserProfile = {
   id: string;
@@ -21,7 +21,7 @@ type UserProfile = {
 
 export default function NannyUserPage({ params }: { params: Promise<{ userId: string }> }) {
   const router = useRouter();
-  const { user: currentUser } = useUser();
+  const { user: currentUser } = useCurrentUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);

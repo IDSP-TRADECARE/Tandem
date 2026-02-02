@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { GradientBackgroundFull } from '@/app/components/ui/backgrounds/GradientBackgroundFull';
 import { HalfBackground } from '@/app/components/ui/backgrounds/HalfBackground';
 import { ProfileHeader } from '@/app/components/ui/profile/header';
@@ -11,7 +11,7 @@ import User from '@/app/components/ui/profile/User/user';
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isSignedIn } = useCurrentUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,7 +34,7 @@ export default function EditProfilePage() {
 
   useEffect(() => {
     async function loadProfile() {
-      if (!user?.id) return;
+      if (!isSignedIn || !user?.id) return;
       
       try {
         const response = await fetch('/api/profile');
@@ -44,7 +44,7 @@ export default function EditProfilePage() {
           setFormData({
             firstName: data.firstName || '',
             lastName: data.lastName || '',
-            email: data.email || user.primaryEmailAddress?.emailAddress || '',
+            email: data.email || '',
             phone: data.phone || '',
             address: data.address || '',
             occupation: data.occupation || '',
@@ -60,7 +60,7 @@ export default function EditProfilePage() {
     }
 
     loadProfile();
-  }, [user]);
+  }, [user, isSignedIn]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -147,9 +147,9 @@ export default function EditProfilePage() {
 
   const displayName = formData.firstName && formData.lastName 
     ? `${formData.firstName} ${formData.lastName}` 
-    : user?.fullName || 'User';
+    : user?.name || 'User';
   
-  const username = user?.username || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || user?.id || 'user';
+  const username = user?.id?.split('_')[0] || user?.id || 'user';
   const profileImage = formData.profilePicture || '/profile/placeholderAvatar.png';
 
   const passwordDisplay = isPasswordHidden ? '***********' : '12345678';

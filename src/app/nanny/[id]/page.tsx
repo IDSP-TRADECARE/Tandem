@@ -3,7 +3,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import NannyLayout from '@/app/components/ui/nanny/NannyLayout';
 import GroupMemberCard from '@/app/components/ui/nanny/cards/GroupMemberCard';
 import RequestMemberCard from '@/app/components/ui/nanny/cards/RequestMemberCard';
@@ -21,7 +21,7 @@ type JoinRequest = {
 
 export default function NannyShareDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { user, isSignedIn } = useUser();
+  const { user, isSignedIn } = useCurrentUser();
   const { socket } = useSocket() ?? { socket: null };
 
   const [shareId, setShareId] = useState<string | null>(null);
@@ -134,10 +134,17 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
     if (shareId) fetchShare(shareId);
   }, [shareId, fetchShare]);
 
-  const isCreator = useMemo(() => 
-    Boolean(share && isSignedIn && share.creatorId === user?.id),
-    [share, isSignedIn, user]
-  );
+  const isCreator = useMemo(() => {
+    const result = Boolean(share && isSignedIn && share.creatorId === user?.id);
+    console.log('🔍 Ownership check:', {
+      share: share?.id,
+      creatorId: share?.creatorId,
+      userId: user?.id,
+      isCreator: result,
+      comparison: `"${share?.creatorId}" === "${user?.id}"`
+    });
+    return result;
+  }, [share, isSignedIn, user]);
 
   const isMember = useMemo(() =>
     Boolean(share && (share.members || []).some((m: any) => String(m?.userId) === String(user?.id))),
@@ -229,14 +236,14 @@ export default function NannyShareDetailPage({ params }: { params: Promise<{ id:
       return;
     }
 
-    const userName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || user?.username || 'Anonymous';
+    const userName = user?.name || 'Anonymous';
     const requestPayload: JoinRequest = {
       id: `req_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       userId: user?.id,
       name: userName,
       kidsCount,
       createdAt: new Date().toISOString(),
-      avatarUrl: (user as any)?.profilePicture ?? null,
+      avatarUrl: user?.imageUrl ?? null,
     };
 
     if (socket && shareId) {

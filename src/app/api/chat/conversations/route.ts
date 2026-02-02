@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db/index';
 import { directMessages } from '@/db/schema';
 import { sql } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
 type ShareMember = {
   userId: string;
@@ -22,10 +22,8 @@ type ShareMessage = {
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const user = await getCurrentUser();
+    const userId = user.userId;
 
     const allShares = await db.query.nannyShares.findMany({
       orderBy: (shares, { desc }) => [desc(shares.createdAt)]

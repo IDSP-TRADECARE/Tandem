@@ -1,42 +1,34 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
 export async function GET() {
-  const { userId } = await auth();
-  
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
-    const user = await db
+    const user = await getCurrentUser();
+    
+    const dbUser = await db
       .select()
       .from(users)
-      .where(eq(users.clerkId, userId))
+      .where(eq(users.clerkId, user.userId))
       .limit(1);
 
-    if (user.length === 0) {
+    if (dbUser.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user[0]);
+    return NextResponse.json(dbUser[0]);
   } catch (error) {
     console.error('Error fetching profile:', error);
-    return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    const user = await getCurrentUser();
+    
     const body = await request.json();
     const { firstName, lastName, bio, email, phone, address, occupation, profilePicture } = body;
 
@@ -58,7 +50,7 @@ export async function POST(request: Request) {
     const existingUser = await db
       .select()
       .from(users)
-      .where(eq(users.clerkId, userId))
+      .where(eq(users.clerkId, user.userId))
       .limit(1);
 
     if (existingUser.length > 0) {
@@ -75,10 +67,10 @@ export async function POST(request: Request) {
           profilePicture,
           updatedAt: new Date(),
         })
-        .where(eq(users.clerkId, userId));
+        .where(eq(users.clerkId, user.userId));
     } else {
       await db.insert(users).values({
-        clerkId: userId,
+        clerkId: user.userId,
         firstName,
         lastName,
         email,

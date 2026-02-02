@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { ChatHeader } from '@/app/components/ui/chat/ChatHeader';
 import { ChatMessages } from '@/app/components/ui/chat/ChatMessages';
 import { ChatInput } from '@/app/components/ui/chat/ChatInput';
 import { useChat } from '@/lib/socket/useChat';
 
 export default function DirectMessagePage({ params }: { params: Promise<{ id: string }> }) {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
   const [roomId, setRoomId] = useState<string | null>(null);
   const [otherUserName, setOtherUserName] = useState('User');
 
@@ -59,7 +59,7 @@ export default function DirectMessagePage({ params }: { params: Promise<{ id: st
   }, [roomId, user?.id]);
 
   const userId = user?.id || '';
-  const userName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User';
+  const userName = user?.name || 'User';
 
   const { messages, isSending, sendMessage } = useChat({
     chatType: 'direct',

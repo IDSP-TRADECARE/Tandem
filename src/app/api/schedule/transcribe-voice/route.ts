@@ -3,6 +3,7 @@ import Groq from 'groq-sdk';
 import { WatsonXAI } from '@ibm-cloud/watsonx-ai';
 import { IamAuthenticator } from 'ibm-cloud-sdk-core';
 import { detectNextWeek } from '@/lib/schedule/detectNextWeek';
+import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
 export const runtime = 'nodejs';
 
@@ -96,6 +97,10 @@ function convertToTimeRange(text: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    // AUTHENTICATION
+    const user = await getCurrentUser();
+    console.log('👤 User ID:', user.userId);
+
     // AUDIO EXTRACTION
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File | null;

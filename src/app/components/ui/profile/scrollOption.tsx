@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
 import { OptionButton } from './optionbtn';
 import { ToggleButton } from './togglebtn';
+import { ClearDataButton } from './ClearDataButton';
 
 interface ScrollOptionProps {
   onToggleDarkMode?: () => void;
@@ -62,6 +63,11 @@ export function ScrollOption({ onToggleDarkMode, darkMode, textColor, iconColor 
           textColor={textColor}
           iconColor={iconColor}
         /> 
+
+        <ClearDataButton 
+          textColor={textColor}
+          iconColor={iconColor}
+        />
 
         <OptionButton
           icon="/profile/ComponentIcon/Logout.svg"

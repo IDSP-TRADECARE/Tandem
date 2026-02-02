@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server'; // ✅ Changed from getAuth
 import { db } from '@/db/index';
 import { nannyShares, directMessages } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
 type ShareMember = {
   userId: string;
@@ -25,10 +25,8 @@ export async function GET(
   { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
-    const { userId } = await auth(); // ✅ Changed
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const user = await getCurrentUser();
+    const userId = user.userId;
 
     const { type, id } = await params;
 
@@ -91,10 +89,8 @@ export async function POST(
   { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
-    const { userId } = await auth(); // ✅ Changed
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const user = await getCurrentUser();
+    const userId = user.userId;
 
     const { type, id } = await params;
     const body = await req.json();
