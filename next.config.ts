@@ -41,6 +41,7 @@ const nextConfig = {
               'https://stefandorosh.com',
               'https://www.lam-thai.com',
               'https://www.matheusdemeis.com',
+              'https://.matheusdemeis.com',
             ].join(' '),
           },
           // Enable cross-origin credentials (required for cookies in iframe)
