@@ -1,38 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { WatsonXAI } from '@ibm-cloud/watsonx-ai';
-import { IamAuthenticator } from 'ibm-cloud-sdk-core';
+import Groq from 'groq-sdk';
 import { detectNextWeek } from '@/lib/schedule/detectNextWeek';
 import { resolveWeek } from '@/lib/schedule/resolveWeek';
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY!,
+});
 
 export async function POST(request: NextRequest) {
   try {
     // ENV VALIDATION
-    if (!process.env.WATSONX_API_KEY) {
+    if (!process.env.GROQ_API_KEY) {
       return NextResponse.json(
-        { error: 'Missing WATSONX_API_KEY' },
-        { status: 500 }
-      );
-    }
-    if (!process.env.WATSONX_PROJECT_ID) {
-      return NextResponse.json(
-        { error: 'Missing WATSONX_PROJECT_ID' },
+        { error: 'Missing GROQ_API_KEY' },
         { status: 500 }
       );
     }
 
-    // INIT WATSONX
-    const authenticator = new IamAuthenticator({
-      apikey: process.env.WATSONX_API_KEY!,
-    });
-
-    const watsonxAI = WatsonXAI.newInstance({
-      version: '2024-05-31',
-      authenticator,
-      serviceUrl:
-        process.env.WATSONX_URL || 'https://us-south.ml.cloud.ibm.com',
-    });
-
-    console.log('✅ WatsonX initialized');
+    console.log('✅ Groq initialized');
 
     // FILE EXTRACTION
     const formData = await request.formData();
@@ -53,7 +38,7 @@ export async function POST(request: NextRequest) {
     // PDF PARSE
     if (file.type === 'application/pdf') {
       extractionMethod = 'PDF';
-      console.log('📑 Parsing PDF…');
+      console.log('📑 Parsing PDF...');
 
       try {
         const pdf = require('pdf-parse/lib/pdf-parse.js');
@@ -77,7 +62,7 @@ export async function POST(request: NextRequest) {
       // IMAGE OCR
     } else if (file.type.startsWith('image/')) {
       extractionMethod = 'IMAGE';
-      console.log('🖼️ Processing OCR…');
+      console.log('🖼️ Processing OCR...');
 
       if (!process.env.OCR_SPACE_API_KEY) {
         return NextResponse.json(
@@ -122,11 +107,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // WATSONX PROMPT
-    console.log('🤖 Sending to Watsonx…');
+    // GROQ PROMPT
+    console.log('🤖 Sending to Groq...');
 
-    const prompt = `
-You are an extraction model.
+    const systemPrompt = `You are an extraction model.
 Extract a work schedule from the given text and return ONLY valid JSON using this exact schema:
 
 {
@@ -142,38 +126,30 @@ Extract a work schedule from the given text and return ONLY valid JSON using thi
 RULES:
 - Use day codes: MON TUE WED THU FRI SAT SUN.
 - Convert AM/PM to 24h format (HH:MM).
-- If “Monday to Friday” or “Weekdays” → ["MON","TUE","WED","THU","FRI"].
-- If no time is found → use 09:00–17:00.
-- If no location → "".
+- If "Monday to Friday" or "Weekdays" -> ["MON","TUE","WED","THU","FRI"].
+- If no time is found -> use 09:00-17:00.
+- If no location -> "".
 - notes MUST be: "Extracted from uploaded ${extractionMethod.toLowerCase()}".
 - Do NOT include explanation.
 - Do NOT repeat the original text.
-- Return ONLY JSON. No markdown. No prose.
+- Return ONLY JSON. No markdown. No prose.`;
 
-TEXT:
-"""
-${scheduleText}
-"""
-    `.trim();
-
-    // WATSONX CALL
+    // GROQ CALL
     let responseText = '';
     try {
-      const response = await watsonxAI.generateText({
-        input: prompt,
-        modelId: 'ibm/granite-4-h-small',
-        projectId: process.env.WATSONX_PROJECT_ID!,
-        parameters: {
-          max_new_tokens: 400,
-          min_new_tokens: 50,
-          temperature: 0,
-          top_p: 1,
-          stop_sequences: [],
-          repetition_penalty: 1.05,
-        },
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: scheduleText },
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0,
+        max_tokens: 400,
+        top_p: 1,
+        response_format: { type: 'json_object' },
       });
 
-      responseText = response.result?.results?.[0]?.generated_text || '';
+      responseText = chatCompletion.choices?.[0]?.message?.content || '';
 
       // Clean
       responseText = responseText
@@ -182,12 +158,12 @@ ${scheduleText}
         .replace(/^[^\{]*/, '')
         .trim();
 
-      console.log('🤖 Watsonx output cleaned:', responseText);
+      console.log('🤖 Groq output cleaned:', responseText);
     } catch (aiError: any) {
-      console.error('❌ Watsonx error:', aiError);
+      console.error('❌ Groq error:', aiError);
       return NextResponse.json(
         {
-          error: 'Watsonx API failure',
+          error: 'Groq API failure',
           details: aiError?.message,
         },
         { status: 500 }
@@ -197,7 +173,7 @@ ${scheduleText}
     // JSON EXTRACTION
     if (!responseText.includes('{')) {
       return NextResponse.json(
-        { error: 'Watsonx returned no JSON' },
+        { error: 'Groq returned no JSON' },
         { status: 500 }
       );
     }
@@ -205,7 +181,7 @@ ${scheduleText}
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
-        { error: 'Could not parse JSON from Watsonx output' },
+        { error: 'Could not parse JSON from Groq output' },
         { status: 500 }
       );
     }
@@ -242,7 +218,7 @@ ${scheduleText}
     schedule.weekStart = weekStart;
 
     // TIME VALIDATION (CRITICAL)
-    
+
     const days = Object.keys(schedule.daySchedules || {});
 
     // helper to convert HH:MM > minutes since midnight

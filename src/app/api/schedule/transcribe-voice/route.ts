@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
-import { WatsonXAI } from '@ibm-cloud/watsonx-ai';
-import { IamAuthenticator } from 'ibm-cloud-sdk-core';
 import { detectNextWeek } from '@/lib/schedule/detectNextWeek';
 import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
@@ -11,19 +9,6 @@ export const runtime = 'nodejs';
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY!,
 });
-
-// WATSONX
-const authenticator = new IamAuthenticator({
-  apikey: process.env.WATSONX_API_KEY!,
-});
-
-const watsonxAI = WatsonXAI.newInstance({
-  version: '2024-05-31',
-  authenticator,
-  serviceUrl: process.env.WATSONX_URL || 'https://us-south.ml.cloud.ibm.com',
-});
-
-const WATSON_MODEL = 'ibm/granite-3-8b-instruct';
 
 // PRESENTATION DEFAULT
 const PRESENTATION_DEFAULT = {
@@ -129,9 +114,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // WATSONX PROMPT
-    const prompt = `
-Extract a weekly work schedule. Output ONLY valid JSON using:
+    // GROQ PROMPT
+    const systemPrompt = `Extract a weekly work schedule. Output ONLY valid JSON using:
 
 {
   "title": "Work Schedule",
@@ -142,26 +126,27 @@ Extract a weekly work schedule. Output ONLY valid JSON using:
 }
 
 Rules:
-- Use day codes (MON–SUN)
-- Convert AM/PM → 24h
+- Use day codes (MON-SUN)
+- Convert AM/PM to 24h
 - NEVER output arrays
 - NEVER output long names
-- Skip days with invalid times
+- Skip days with invalid times`;
 
-Transcript:
-"${transcript}"
-`.trim();
-
-    // WATSONX CALL
-    const wx = await watsonxAI.generateText({
-      input: prompt,
-      modelId: WATSON_MODEL,
-      projectId: process.env.WATSONX_PROJECT_ID!,
-      parameters: { max_new_tokens: 400, temperature: 0, top_p: 1 },
+    // GROQ CALL
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Transcript:\n"${transcript}"` },
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0,
+      max_tokens: 400,
+      top_p: 1,
+      response_format: { type: 'json_object' },
     });
 
     // RAW OUTPUT CLEAN
-    let raw = wx.result?.results?.[0]?.generated_text?.trim() || '';
+    let raw = chatCompletion.choices?.[0]?.message?.content?.trim() || '';
     raw = raw
       .replace(/```json|```/g, '')
       .replace(/[\u0000-\u001F]+/g, '')
